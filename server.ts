@@ -375,31 +375,31 @@ async function startServer() {
 
   // Upload endpoint for projects
   app.post("/api/upload", upload.array('images', 10), (req, res) => {
-    if (!req.files || req.files.length === 0) {
+    if (!(req as any).files || (req as any).files.length === 0) {
       return res.status(400).json({ error: "No files uploaded" });
     }
     
-    const uploadedPaths = req.files.map(file => `/uploads/${file.filename}`);
+    const uploadedPaths = (req as any).files.map((file: any) => `/uploads/${file.filename}`);
     res.json({ images: uploadedPaths });
   });
 
   // Upload endpoint for developer logo
   app.post("/api/upload/developer-logo", uploadDeveloper.single('logo'), (req, res) => {
-    if (!req.file) {
+    if (!(req as any).file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
     
-    const logoPath = `/uploads/developers/${req.file.filename}`;
+    const logoPath = `/uploads/developers/${(req as any).file.filename}`;
     res.json({ logo: logoPath });
   });
 
   // Upload endpoint for destination image
   app.post("/api/upload/destination-image", uploadDestination.single('image'), (req, res) => {
-    if (!req.file) {
+    if (!(req as any).file) {
       return res.status(400).json({ error: "No file uploaded" });
     }
     
-    const imagePath = `/uploads/destinations/${req.file.filename}`;
+    const imagePath = `/uploads/destinations/${(req as any).file.filename}`;
     res.json({ image: imagePath });
   });
 

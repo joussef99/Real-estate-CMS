@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Blog } from '../types';
-import { Link } from 'react-router-dom';
 
 export default function Blogs() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -26,7 +25,7 @@ export default function Blogs() {
               <div className="p-8">
                 <span className="mb-4 inline-block text-xs font-bold uppercase tracking-widest text-zinc-400">{blog.category}</span>
                 <h2 className="mb-4 text-2xl font-bold leading-tight text-zinc-900 group-hover:text-zinc-600">
-                  <Link to={`/blogs/${blog.id}`}>{blog.title}</Link>
+                  {blog.title}
                 </h2>
                 <div className="flex items-center justify-between text-sm text-zinc-500">
                   <span>By {blog.author}</span>
