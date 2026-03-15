@@ -7,8 +7,21 @@ export default function Destinations() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    fetch('/api/destinations').then(res => res.json()).then(setDestinations);
-    fetch('/api/projects').then(res => res.json()).then(setProjects);
+    const normalize = <T,>(data: any, key?: string): T[] => {
+      if (Array.isArray(data)) return data;
+      if (key && data && Array.isArray(data[key])) return data[key];
+      if (data && Array.isArray(data.destinations)) return data.destinations;
+      if (data && Array.isArray(data.projects)) return data.projects;
+      return [];
+    };
+
+    fetch('/api/destinations')
+      .then(res => res.json())
+      .then(data => setDestinations(normalize<Destination>(data, 'destinations')));
+
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(data => setProjects(normalize<Project>(data, 'projects')));
   }, []);
 
   return (

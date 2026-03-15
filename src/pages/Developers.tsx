@@ -7,8 +7,21 @@ export default function Developers() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    fetch('/api/developers').then(res => res.json()).then(setDevelopers);
-    fetch('/api/projects').then(res => res.json()).then(setProjects);
+    const normalize = <T,>(data: any, key?: string): T[] => {
+      if (Array.isArray(data)) return data;
+      if (key && data && Array.isArray(data[key])) return data[key];
+      if (data && Array.isArray(data.developers)) return data.developers;
+      if (data && Array.isArray(data.projects)) return data.projects;
+      return [];
+    };
+
+    fetch('/api/developers')
+      .then(res => res.json())
+      .then(data => setDevelopers(normalize<Developer>(data, 'developers')));
+
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(data => setProjects(normalize<Project>(data, 'projects')));
   }, []);
 
   return (

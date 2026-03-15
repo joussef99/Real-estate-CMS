@@ -7,6 +7,7 @@ import About from './pages/About';
 import Contact from './pages/Contact';
 import Careers from './pages/Careers';
 import Blogs from './pages/Blogs';
+import BlogDetails from './pages/BlogDetails';
 import Developers from './pages/Developers';
 import Destinations from './pages/Destinations';
 import Login from './pages/admin/Login';
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/careers" element={<Careers />} />
           <Route path="/blogs" element={<Blogs />} />
+          <Route path="/blogs/:id" element={<BlogDetails />} />
           <Route path="/developers" element={<Developers />} />
           <Route path="/destinations" element={<Destinations />} />
           

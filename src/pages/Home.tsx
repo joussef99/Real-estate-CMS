@@ -33,17 +33,37 @@ export default function Home() {
   
   const navigate = useNavigate();
 
+  const normalize = <T,>(data: any, key?: string): T[] => {
+    if (Array.isArray(data)) return data;
+    if (key && data && Array.isArray(data[key])) return data[key];
+    if (data && Array.isArray(data.projects)) return data.projects;
+    if (data && Array.isArray(data.destinations)) return data.destinations;
+    if (data && Array.isArray(data.developers)) return data.developers;
+    if (data && Array.isArray(data.blogs)) return data.blogs;
+    return [];
+  };
+
   useEffect(() => {
     fetch('/api/projects')
       .then(res => res.json())
       .then(data => {
-        setAllProjects(data);
-        setLatestProjects(data.slice(0, 3));
-        setFeaturedProjects(data.filter((p: Project) => p.is_featured === 1).slice(0, 2));
+        const projectsData = normalize<Project>(data, 'projects');
+        setAllProjects(projectsData);
+        setLatestProjects(projectsData.slice(0, 3));
+        setFeaturedProjects(projectsData.filter((p: Project) => p.is_featured === 1).slice(0, 2));
       });
-    fetch('/api/destinations').then(res => res.json()).then(data => setDestinations(data));
-    fetch('/api/developers').then(res => res.json()).then(data => setDevelopers(data.slice(0, 4)));
-    fetch('/api/blogs').then(res => res.json()).then(data => setBlogs(data.slice(0, 3)));
+
+    fetch('/api/destinations')
+      .then(res => res.json())
+      .then(data => setDestinations(normalize<Destination>(data, 'destinations')));
+
+    fetch('/api/developers')
+      .then(res => res.json())
+      .then(data => setDevelopers(normalize<Developer>(data, 'developers').slice(0, 4)));
+
+    fetch('/api/blogs')
+      .then(res => res.json())
+      .then(data => setBlogs(normalize<Blog>(data, 'blogs').slice(0, 3)));
   }, []);
 
   const toggleFilter = (list: string[], setList: (val: string[]) => void, item: string) => {

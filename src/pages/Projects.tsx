@@ -25,8 +25,20 @@ export default function Projects() {
   const [showFilters, setShowFilters] = useState(searchParams.toString().length > 0);
 
   useEffect(() => {
-    fetch('/api/projects').then(res => res.json()).then(setProjects);
-    fetch('/api/property-types').then(res => res.json()).then(data => setPropertyTypes(data.map(pt => pt.name)));
+    const normalize = <T,>(data: any, key?: string): T[] => {
+      if (Array.isArray(data)) return data;
+      if (key && data && Array.isArray(data[key])) return data[key];
+      if (data && Array.isArray(data.projects)) return data.projects;
+      return [];
+    };
+
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(data => setProjects(normalize<Project>(data, 'projects')));
+
+    fetch('/api/property-types')
+      .then(res => res.json())
+      .then(data => setPropertyTypes((Array.isArray(data) ? data : []).map(pt => pt.name)));
   }, []);
 
   // Update URL when filters change

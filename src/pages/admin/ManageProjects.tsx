@@ -20,7 +20,14 @@ export default function ManageProjects() {
   const fetchProjects = () => {
     fetch('/api/projects')
       .then(res => res.json())
-      .then(setProjects);
+      .then(data => {
+        const projectList = Array.isArray(data)
+          ? data
+          : Array.isArray(data.projects)
+            ? data.projects
+            : [];
+        setProjects(projectList);
+      });
   };
 
   const handleDelete = async (id: number) => {

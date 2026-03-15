@@ -150,56 +150,41 @@ router.get("/search", (req, res) => {
   });
 });
 
-// GET single project by slug (SEO-friendly URL)
-router.get("/:slug", (req, res) => {
-  const slug = req.params.slug;
-  
-  // Try to fetch by slug first
-  let project = db.prepare(`
+// GET single project by ID
+router.get("/:id", (req, res) => {
+  const id = req.params.id;
+
+  if (!/^\d+$/.test(id)) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  const project = db.prepare(`
     SELECT p.*, d.name as developer_name, dest.name as destination_name 
     FROM projects p
     LEFT JOIN developers d ON p.developer_id = d.id
     LEFT JOIN destinations dest ON p.destination_id = dest.id
-    WHERE p.slug = ?
-  `).get(slug);
-  
-  // If not found, try by numeric ID for backward compatibility
-  if (!project && /^\d+$/.test(slug)) {
-    project = db.prepare(`
-      SELECT p.*, d.name as developer_name, dest.name as destination_name 
-      FROM projects p
-      LEFT JOIN developers d ON p.developer_id = d.id
-      LEFT JOIN destinations dest ON p.destination_id = dest.id
-      WHERE p.id = ?
-    `).get(parseInt(slug));
-  }
-  
+    WHERE p.id = ?
+  `).get(parseInt(id));
+
   if (!project) return res.status(404).json({ error: "Not found" });
   res.json(project);
 });
 
-// GET project amenities by slug
-router.get("/:slug/amenities", (req, res) => {
-  const slug = req.params.slug;
-  
-  // Try to get amenities by slug first
-  let amenities = db.prepare(`
+// GET project amenities by project ID
+router.get("/:id/amenities", (req, res) => {
+  const id = req.params.id;
+
+  if (!/^\d+$/.test(id)) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  const amenities = db.prepare(`
     SELECT pa.amenity_id, a.name 
     FROM project_amenities pa
     JOIN amenities a ON pa.amenity_id = a.id
-    WHERE pa.project_id = (SELECT id FROM projects WHERE slug = ?)
-  `).all(slug) as any;
-  
-  // If not found, try by numeric ID for backward compatibility
-  if (amenities.length === 0 && /^\d+$/.test(slug)) {
-    amenities = db.prepare(`
-      SELECT pa.amenity_id, a.name 
-      FROM project_amenities pa
-      JOIN amenities a ON pa.amenity_id = a.id
-      WHERE pa.project_id = ?
-    `).all(parseInt(slug));
-  }
-  
+    WHERE pa.project_id = ?
+  `).all(parseInt(id)) as any;
+
   res.json(amenities);
 });
 
