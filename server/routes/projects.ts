@@ -1,7 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { db } from "../db/database.ts";
 import { authenticate } from "../middleware/auth.ts";
-import { generateSlug } from "../utils/slug.ts";
 
 const router = Router();
 
@@ -161,40 +160,21 @@ router.get("/search", safe((req, res) => {
   });
 }));
 
-// GET single project by ID or slug
+// GET single project by ID
 router.get("/:id", safe((req, res) => {
   const identifier = req.params.id;
 
-  if (!identifier) {
+  if (!identifier || !/^\d+$/.test(identifier)) {
     return res.status(404).json({ error: "Not found" });
   }
 
-  let project;
-  if (/^\d+$/.test(identifier)) {
-    project = db.prepare(`
-      SELECT p.*, d.name as developer_name, dest.name as destination_name 
-      FROM projects p
-      LEFT JOIN developers d ON p.developer_id = d.id
-      LEFT JOIN destinations dest ON p.destination_id = dest.id
-      WHERE p.id = ?
-    `).get(parseInt(identifier));
-  }
-
-  if (!project) {
-    try {
-      project = db.prepare(`
-        SELECT p.*, d.name as developer_name, dest.name as destination_name 
-        FROM projects p
-        LEFT JOIN developers d ON p.developer_id = d.id
-        LEFT JOIN destinations dest ON p.destination_id = dest.id
-        WHERE p.slug = ?
-      `).get(identifier);
-    } catch (err: any) {
-      if (!/no such column: slug/i.test(err?.message || '')) {
-        throw err;
-      }
-    }
-  }
+  const project = db.prepare(`
+    SELECT p.*, d.name as developer_name, dest.name as destination_name 
+    FROM projects p
+    LEFT JOIN developers d ON p.developer_id = d.id
+    LEFT JOIN destinations dest ON p.destination_id = dest.id
+    WHERE p.id = ?
+  `).get(parseInt(identifier));
 
   if (!project) return res.status(404).json({ error: "Not found" });
   res.json(project);
@@ -224,15 +204,13 @@ router.get("/:id/amenities", safe((req, res) => {
 router.post("/", authenticate, safe((req, res) => {
   const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, beds, size, meta_title, meta_description } = req.body;
   
-  // Auto-generate slug and meta fields
-  const slug = generateSlug(name);
   const finalMetaTitle = meta_title || `${name} - Luxury ${type} in ${location}`;
   const finalMetaDescription = meta_description || description.substring(0, 160) || `Discover ${name}, a premium ${type.toLowerCase()} property in ${location}.`;
   
   const result = db.prepare(`
-    INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, beds, size, main_image, slug, meta_title, meta_description)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, beds, size, gallery?.[0] || null, slug, finalMetaTitle, finalMetaDescription);
+    INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, beds, size, main_image, meta_title, meta_description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, beds, size, gallery?.[0] || null, finalMetaTitle, finalMetaDescription);
   
   const projectId = result.lastInsertRowid;
   
@@ -244,7 +222,7 @@ router.post("/", authenticate, safe((req, res) => {
     });
   }
   
-  res.json({ id: projectId, slug });
+  res.json({ id: projectId });
 }));
 
 // UPDATE project

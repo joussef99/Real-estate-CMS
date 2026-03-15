@@ -1,6 +1,5 @@
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
-import { generateSlug } from "../utils/slug.ts";
 
 export const db = new Database("realestate.db");
 
@@ -114,7 +113,6 @@ export function initializeDatabase() {
       // ignore if column exists
     }
   };
-  addProjectColumn('slug TEXT UNIQUE');
   addProjectColumn('meta_title TEXT');
   addProjectColumn('meta_description TEXT');
 
@@ -125,7 +123,6 @@ export function initializeDatabase() {
       // ignore if column exists
     }
   };
-  addBlogColumn('slug TEXT UNIQUE');
   addBlogColumn('meta_title TEXT');
   addBlogColumn('meta_description TEXT');
 
@@ -287,30 +284,27 @@ function seedData() {
     ];
 
     projects.forEach(p => {
-      const slug = generateSlug(p.name);
       const metaTitle = `${p.name} - Luxury ${p.type} in ${p.location}`;
       const metaDescription = p.description.substring(0, 160) || `Discover ${p.name}, a premium ${p.type.toLowerCase()} property in ${p.location}.`;
       
       db.prepare(`
-        INSERT INTO projects (name, location, price_range, type, status, description, main_image, gallery, amenities, developer_id, destination_id, is_featured, beds, size, slug, meta_title, meta_description)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO projects (name, location, price_range, type, status, description, main_image, gallery, amenities, developer_id, destination_id, is_featured, beds, size, meta_title, meta_description)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(
         p.name, p.location, p.price_range, p.type, p.status, p.description, p.main_image,
-        JSON.stringify(p.gallery), JSON.stringify(p.amenities), p.developer_id, p.destination_id, p.is_featured, p.beds, p.size, slug, metaTitle, metaDescription
+        JSON.stringify(p.gallery), JSON.stringify(p.amenities), p.developer_id, p.destination_id, p.is_featured, p.beds, p.size, metaTitle, metaDescription
       );
     });
 
-    const blogSlug = generateSlug("Investing in the New Administrative Capital");
     const blogMetaTitle = "Investing in the New Administrative Capital - Real Estate Guide";
     const blogMetaDescription = "Learn about the investment potential of Egypt's New Administrative Capital and why it's a prime real estate opportunity.";
     
-    db.prepare("INSERT INTO blogs (title, content, image, category, author, slug, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(
+    db.prepare("INSERT INTO blogs (title, content, image, category, author, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?)").run(
       "Investing in the New Administrative Capital",
       "The New Capital is set to become the heart of Egypt's economy, making it a prime spot for real estate investment...",
       "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800",
       "Investment",
       "Ahmed Mansour",
-      blogSlug,
       blogMetaTitle,
       blogMetaDescription
     );
