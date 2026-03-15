@@ -35,7 +35,7 @@ export default function AdminAmenities() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/amenities', {
+      const res = await fetch('/api/amenities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export default function AdminAmenities() {
     }
 
     try {
-      const res = await fetch(`/api/admin/amenities/${id}`, {
+      const res = await fetch(`/api/amenities/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

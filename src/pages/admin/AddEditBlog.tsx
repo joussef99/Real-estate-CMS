@@ -37,7 +37,7 @@ export default function AddEditBlog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = id ? `/api/admin/blogs/${id}` : '/api/admin/blogs';
+    const url = id ? `/api/blogs/${id}` : '/api/blogs';
     const method = id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {

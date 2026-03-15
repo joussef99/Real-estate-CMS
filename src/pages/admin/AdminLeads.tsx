@@ -15,7 +15,7 @@ export default function AdminLeads() {
 
   const loadLeads = async () => {
     try {
-      const res = await fetch('/api/admin/leads', {
+      const res = await fetch('/api/leads', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -37,7 +37,7 @@ export default function AdminLeads() {
     }
 
     try {
-      const res = await fetch(`/api/admin/leads/${id}`, {
+      const res = await fetch(`/api/leads/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

@@ -67,7 +67,7 @@ export default function AddEditDeveloper() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = id ? `/api/admin/developers/${id}` : '/api/admin/developers';
+    const url = id ? `/api/developers/${id}` : '/api/developers';
     const method = id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {

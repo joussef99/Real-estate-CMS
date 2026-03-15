@@ -35,7 +35,7 @@ export default function AdminPropertyTypes() {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/property-types', {
+      const res = await fetch('/api/property-types', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -65,7 +65,7 @@ export default function AdminPropertyTypes() {
     }
 
     try {
-      const res = await fetch(`/api/admin/property-types/${id}`, {
+      const res = await fetch(`/api/property-types/${id}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`

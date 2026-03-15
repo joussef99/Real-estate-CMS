@@ -107,25 +107,27 @@ export function initializeDatabase() {
   `);
 
   // Add SEO columns to existing tables (migration for backward compatibility)
-  try {
-    db.exec(`
-      ALTER TABLE projects ADD COLUMN slug TEXT UNIQUE;
-      ALTER TABLE projects ADD COLUMN meta_title TEXT;
-      ALTER TABLE projects ADD COLUMN meta_description TEXT;
-    `);
-  } catch (e) {
-    // Columns already exist, ignore error
-  }
+  const addProjectColumn = (col: string) => {
+    try {
+      db.exec(`ALTER TABLE projects ADD COLUMN ${col}`);
+    } catch (e) {
+      // ignore if column exists
+    }
+  };
+  addProjectColumn('slug TEXT UNIQUE');
+  addProjectColumn('meta_title TEXT');
+  addProjectColumn('meta_description TEXT');
 
-  try {
-    db.exec(`
-      ALTER TABLE blogs ADD COLUMN slug TEXT UNIQUE;
-      ALTER TABLE blogs ADD COLUMN meta_title TEXT;
-      ALTER TABLE blogs ADD COLUMN meta_description TEXT;
-    `);
-  } catch (e) {
-    // Columns already exist, ignore error
-  }
+  const addBlogColumn = (col: string) => {
+    try {
+      db.exec(`ALTER TABLE blogs ADD COLUMN ${col}`);
+    } catch (e) {
+      // ignore if column exists
+    }
+  };
+  addBlogColumn('slug TEXT UNIQUE');
+  addBlogColumn('meta_title TEXT');
+  addBlogColumn('meta_description TEXT');
 
   seedData();
 }

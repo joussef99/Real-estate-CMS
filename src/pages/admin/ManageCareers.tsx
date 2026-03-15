@@ -27,7 +27,7 @@ export default function ManageCareers() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this job posting?')) return;
     
-    const res = await fetch(`/api/admin/careers/${id}`, {
+    const res = await fetch(`/api/careers/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

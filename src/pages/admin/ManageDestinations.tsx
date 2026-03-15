@@ -27,7 +27,7 @@ export default function ManageDestinations() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this destination?')) return;
     
-    const res = await fetch(`/api/admin/destinations/${id}`, {
+    const res = await fetch(`/api/destinations/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

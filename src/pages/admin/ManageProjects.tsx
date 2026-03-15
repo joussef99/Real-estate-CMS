@@ -33,7 +33,7 @@ export default function ManageProjects() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this project?')) return;
     
-    const res = await fetch(`/api/admin/projects/${id}`, {
+    const res = await fetch(`/api/projects/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

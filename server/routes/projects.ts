@@ -1,12 +1,23 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { db } from "../db/database.ts";
 import { authenticate } from "../middleware/auth.ts";
 import { generateSlug } from "../utils/slug.ts";
 
 const router = Router();
 
+const safe = (handler: (req: Request, res: Response, next: NextFunction) => any) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      await handler(req, res, next);
+    } catch (err: any) {
+      console.error(err);
+      res.status(500).json({ error: err?.message || "Internal Server Error" });
+    }
+  };
+};
+
 // GET all projects with optional pagination
-router.get("/", (req, res) => {
+router.get("/", safe((req, res) => {
   const limit = parseInt(req.query.limit as string) || 1000; // Default to 1000 if not specified
   const page = parseInt(req.query.page as string) || 1;
   const offset = (page - 1) * limit;
@@ -37,10 +48,10 @@ router.get("/", (req, res) => {
     total,
     limit
   });
-});
+}));
 
 // SEARCH projects with advanced filters
-router.get("/search", (req, res) => {
+router.get("/search", safe((req, res) => {
   const page = parseInt(req.query.page as string) || 1;
   const limit = parseInt(req.query.limit as string) || 12;
   const offset = (page - 1) * limit;
@@ -148,30 +159,50 @@ router.get("/search", (req, res) => {
     total,
     limit
   });
-});
+}));
 
-// GET single project by ID
-router.get("/:id", (req, res) => {
-  const id = req.params.id;
+// GET single project by ID or slug
+router.get("/:id", safe((req, res) => {
+  const identifier = req.params.id;
 
-  if (!/^\d+$/.test(id)) {
+  if (!identifier) {
     return res.status(404).json({ error: "Not found" });
   }
 
-  const project = db.prepare(`
-    SELECT p.*, d.name as developer_name, dest.name as destination_name 
-    FROM projects p
-    LEFT JOIN developers d ON p.developer_id = d.id
-    LEFT JOIN destinations dest ON p.destination_id = dest.id
-    WHERE p.id = ?
-  `).get(parseInt(id));
+  let project;
+  if (/^\d+$/.test(identifier)) {
+    project = db.prepare(`
+      SELECT p.*, d.name as developer_name, dest.name as destination_name 
+      FROM projects p
+      LEFT JOIN developers d ON p.developer_id = d.id
+      LEFT JOIN destinations dest ON p.destination_id = dest.id
+      WHERE p.id = ?
+    `).get(parseInt(identifier));
+  }
+
+  if (!project) {
+    try {
+      project = db.prepare(`
+        SELECT p.*, d.name as developer_name, dest.name as destination_name 
+        FROM projects p
+        LEFT JOIN developers d ON p.developer_id = d.id
+        LEFT JOIN destinations dest ON p.destination_id = dest.id
+        WHERE p.slug = ?
+      `).get(identifier);
+    } catch (err: any) {
+      if (!/no such column: slug/i.test(err?.message || '')) {
+        throw err;
+      }
+    }
+  }
 
   if (!project) return res.status(404).json({ error: "Not found" });
   res.json(project);
-});
+
+}));
 
 // GET project amenities by project ID
-router.get("/:id/amenities", (req, res) => {
+router.get("/:id/amenities", safe((req, res) => {
   const id = req.params.id;
 
   if (!/^\d+$/.test(id)) {
@@ -186,11 +217,11 @@ router.get("/:id/amenities", (req, res) => {
   `).all(parseInt(id)) as any;
 
   res.json(amenities);
-});
+}));
 
 
 // CREATE project
-router.post("/", authenticate, (req, res) => {
+router.post("/", authenticate, safe((req, res) => {
   const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, beds, size, meta_title, meta_description } = req.body;
   
   // Auto-generate slug and meta fields
@@ -214,23 +245,37 @@ router.post("/", authenticate, (req, res) => {
   }
   
   res.json({ id: projectId, slug });
-});
+}));
 
 // UPDATE project
-router.put("/:id", authenticate, (req, res) => {
+router.put("/:id", authenticate, safe((req, res) => {
   const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, beds, size, meta_title, meta_description } = req.body;
   const projectId = req.params.id;
-  
-  // Auto-generate slug and meta fields
-  const slug = generateSlug(name);
+
   const finalMetaTitle = meta_title || `${name} - Luxury ${type} in ${location}`;
   const finalMetaDescription = meta_description || description.substring(0, 160) || `Discover ${name}, a premium ${type.toLowerCase()} property in ${location}.`;
-  
+
   db.prepare(`
-    UPDATE projects SET name=?, location=?, price_range=?, type=?, status=?, description=?, gallery=?, developer_id=?, destination_id=?, is_featured=?, beds=?, size=?, slug=?, meta_title=?, meta_description=?
+    UPDATE projects SET name=?, location=?, price_range=?, type=?, status=?, description=?, gallery=?, developer_id=?, destination_id=?, is_featured=?, beds=?, size=?, meta_title=?, meta_description=?
     WHERE id=?
-  `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, beds, size, slug, finalMetaTitle, finalMetaDescription, projectId);
-  
+  `).run(
+    name,
+    location,
+    price_range,
+    type,
+    status,
+    description,
+    JSON.stringify(gallery),
+    developer_id,
+    destination_id,
+    is_featured ? 1 : 0,
+    beds,
+    size,
+    finalMetaTitle,
+    finalMetaDescription,
+    projectId
+  );
+
   // Delete old amenities and insert new ones
   db.prepare("DELETE FROM project_amenities WHERE project_id = ?").run(projectId);
   if (amenities && Array.isArray(amenities) && amenities.length > 0) {
@@ -239,14 +284,14 @@ router.put("/:id", authenticate, (req, res) => {
       stmt.run(projectId, amenityId);
     });
   }
-  
-  res.json({ success: true, slug });
-});
+
+  res.json({ success: true });
+}));
 
 // DELETE project
-router.delete("/:id", authenticate, (req, res) => {
+router.delete("/:id", authenticate, safe((req, res) => {
   db.prepare("DELETE FROM projects WHERE id = ?").run(req.params.id);
   res.json({ success: true });
-});
+}));
 
 export default router;

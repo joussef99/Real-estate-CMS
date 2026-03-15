@@ -27,7 +27,7 @@ export default function ManageDevelopers() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this developer?')) return;
     
-    const res = await fetch(`/api/admin/developers/${id}`, {
+    const res = await fetch(`/api/developers/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

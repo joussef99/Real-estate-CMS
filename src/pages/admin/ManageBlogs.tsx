@@ -27,7 +27,7 @@ export default function ManageBlogs() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this blog post?')) return;
     
-    const res = await fetch(`/api/admin/blogs/${id}`, {
+    const res = await fetch(`/api/blogs/${id}`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${token}` }
     });

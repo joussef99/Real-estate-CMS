@@ -40,6 +40,12 @@ async function startServer() {
 
   app.use(handleMulterError);
 
+  // Global JSON error handler for all backend routes
+  app.use((err, req, res, next) => {
+    console.error(err);
+    res.status(500).json({ error: err?.message || 'Internal Server Error' });
+  });
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

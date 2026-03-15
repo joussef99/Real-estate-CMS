@@ -122,7 +122,7 @@ export default function AddProject() {
       return;
     }
 
-    const url = id ? `/api/admin/projects/${id}` : '/api/admin/projects';
+    const url = id ? `/api/projects/${id}` : '/api/projects';
     const method = id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {

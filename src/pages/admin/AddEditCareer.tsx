@@ -37,7 +37,7 @@ export default function AddEditCareer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = id ? `/api/admin/careers/${id}` : '/api/admin/careers';
+    const url = id ? `/api/careers/${id}` : '/api/careers';
     const method = id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {

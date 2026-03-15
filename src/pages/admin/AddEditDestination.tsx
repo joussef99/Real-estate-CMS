@@ -67,7 +67,7 @@ export default function AddEditDestination() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = id ? `/api/admin/destinations/${id}` : '/api/admin/destinations';
+    const url = id ? `/api/destinations/${id}` : '/api/destinations';
     const method = id ? 'PUT' : 'POST';
 
     const res = await fetch(url, {

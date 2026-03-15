@@ -4,7 +4,7 @@ import { upload, uploadDeveloper, uploadDestination, uploadsDir, developerUpload
 const router = Router();
 
 // POST /api/upload (upload multiple project images)
-router.post("/", upload.array('images', 10), (req, res) => {
+router.post("/", upload.array('images', 10), (req: any, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No files uploaded" });
   }
@@ -14,7 +14,7 @@ router.post("/", upload.array('images', 10), (req, res) => {
 });
 
 // POST /api/upload/developer-logo (upload developer logo)
-router.post("/developer-logo", uploadDeveloper.single('logo'), (req, res) => {
+router.post("/developer-logo", uploadDeveloper.single('logo'), (req: any, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
@@ -24,7 +24,7 @@ router.post("/developer-logo", uploadDeveloper.single('logo'), (req, res) => {
 });
 
 // POST /api/upload/destination-image (upload destination image)
-router.post("/destination-image", uploadDestination.single('image'), (req, res) => {
+router.post("/destination-image", uploadDestination.single('image'), (req: any, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
