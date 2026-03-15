@@ -36,16 +36,48 @@ export default function ProjectDetails() {
     const previousTitle = document.title;
     document.title = project.meta_title || project.name;
 
-    let descriptionMeta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
-    if (!descriptionMeta) {
-      descriptionMeta = document.createElement('meta');
-      descriptionMeta.name = 'description';
-      document.head.appendChild(descriptionMeta);
+    const previousDescription = document.querySelector('meta[name="description"]')?.getAttribute('content');
+    const previousOgTitle = document.querySelector('meta[property="og:title"]')?.getAttribute('content');
+    const previousOgDescription = document.querySelector('meta[property="og:description"]')?.getAttribute('content');
+    const previousOgImage = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
+    const previousCanonical = document.querySelector('link[rel="canonical"]')?.getAttribute('href');
+
+    const setMeta = (selector: string, attr: string, value: string) => {
+      let element = document.querySelector(selector) as HTMLElement | null;
+      if (!element) {
+        element = document.createElement('meta');
+        if (selector.startsWith('meta[')) {
+          const key = selector.match(/(name|property)="([^"]+)"/)?.[1];
+          const keyVal = selector.match(/(name|property)="([^"]+)"/)?.[2];
+          if (key && keyVal) {
+            element.setAttribute(key, keyVal);
+          }
+        }
+        document.head.appendChild(element);
+      }
+      element.setAttribute('content', value);
+    };
+
+    setMeta('meta[name="description"]', 'content', project.meta_description || project.description || '');
+    setMeta('meta[property="og:title"]', 'content', project.meta_title || project.name);
+    setMeta('meta[property="og:description"]', 'content', project.meta_description || project.description || '');
+    setMeta('meta[property="og:image"]', 'content', project.main_image || project.gallery?.[0] || '');
+
+    let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.rel = 'canonical';
+      document.head.appendChild(canonicalLink);
     }
-    descriptionMeta.content = project.meta_description || project.description || '';
+    canonicalLink.href = window.location.href;
 
     return () => {
       document.title = previousTitle;
+      if (previousDescription !== undefined) document.querySelector('meta[name="description"]')?.setAttribute('content', previousDescription);
+      if (previousOgTitle !== undefined) document.querySelector('meta[property="og:title"]')?.setAttribute('content', previousOgTitle);
+      if (previousOgDescription !== undefined) document.querySelector('meta[property="og:description"]')?.setAttribute('content', previousOgDescription);
+      if (previousOgImage !== undefined) document.querySelector('meta[property="og:image"]')?.setAttribute('content', previousOgImage);
+      if (previousCanonical !== undefined) document.querySelector('link[rel="canonical"]')?.setAttribute('href', previousCanonical);
     };
   }, [project]);
 

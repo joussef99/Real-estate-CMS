@@ -62,12 +62,13 @@ router.get("/:identifier", safe((req, res) => {
 // CREATE blog
 router.post("/", authenticate, safe((req, res) => {
   const { title, content, image, category, author, slug, meta_title, meta_description } = req.body;
-  
-  const baseSlug = (slug && slug.trim()) || generateSlug(title);
-  const finalSlug = makeUniqueBlogSlug(generateSlug(baseSlug));
+
+  const baseSlugCandidate = (slug && slug.trim()) || title;
+  const baseSlug = generateSlug(baseSlugCandidate || `blog-${Date.now()}`);
+  const finalSlug = makeUniqueBlogSlug(baseSlug);
   const finalMetaTitle = meta_title || title;
-  const finalMetaDescription = meta_description || content.substring(0, 160) || `Read about ${title.toLowerCase()}.`;
-  
+  const finalMetaDescription = meta_description || (content ? content.substring(0, 160) : `Read about ${title.toLowerCase()}.`);
+
   const result = db.prepare("INSERT INTO blogs (title, content, image, category, author, slug, meta_title, meta_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?)").run(title, content, image, category, author, finalSlug, finalMetaTitle, finalMetaDescription);
   res.json({ id: result.lastInsertRowid, slug: finalSlug });
 }));
@@ -76,12 +77,13 @@ router.post("/", authenticate, safe((req, res) => {
 router.put("/:id", authenticate, safe((req, res) => {
   const { title, content, image, category, author, slug, meta_title, meta_description } = req.body;
   const blogId = parseInt(req.params.id);
-  
-  const baseSlug = (slug && slug.trim()) || generateSlug(title);
-  const finalSlug = makeUniqueBlogSlug(generateSlug(baseSlug), blogId);
+
+  const baseSlugCandidate = (slug && slug.trim()) || title;
+  const baseSlug = generateSlug(baseSlugCandidate || `blog-${Date.now()}`);
+  const finalSlug = makeUniqueBlogSlug(baseSlug, blogId);
   const finalMetaTitle = meta_title || title;
-  const finalMetaDescription = meta_description || content.substring(0, 160) || `Read about ${title.toLowerCase()}.`;
-  
+  const finalMetaDescription = meta_description || (content ? content.substring(0, 160) : `Read about ${title.toLowerCase()}.`);
+
   db.prepare("UPDATE blogs SET title=?, content=?, image=?, category=?, author=?, slug=?, meta_title=?, meta_description=? WHERE id=?").run(title, content, image, category, author, finalSlug, finalMetaTitle, finalMetaDescription, blogId);
   res.json({ success: true });
 }));

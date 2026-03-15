@@ -177,40 +177,6 @@ router.get("/search", safe((req, res) => {
   });
 }));
 
-// GET single project by ID or slug
-router.get("/:identifier", safe((req, res) => {
-  const identifier = req.params.identifier;
-
-  if (!identifier) {
-    return res.status(404).json({ error: "Not found" });
-  }
-
-  let project;
-  if (/^\d+$/.test(identifier)) {
-    project = db.prepare(`
-      SELECT p.*, d.name as developer_name, dest.name as destination_name 
-      FROM projects p
-      LEFT JOIN developers d ON p.developer_id = d.id
-      LEFT JOIN destinations dest ON p.destination_id = dest.id
-      WHERE p.id = ?
-    `).get(parseInt(identifier));
-  }
-
-  if (!project) {
-    project = db.prepare(`
-      SELECT p.*, d.name as developer_name, dest.name as destination_name 
-      FROM projects p
-      LEFT JOIN developers d ON p.developer_id = d.id
-      LEFT JOIN destinations dest ON p.destination_id = dest.id
-      WHERE p.slug = ?
-    `).get(identifier);
-  }
-
-  if (!project) return res.status(404).json({ error: "Not found" });
-  res.json(project);
-
-}));
-
 // GET project amenities by project ID
 router.get("/:id/amenities", safe((req, res) => {
   const id = req.params.id;
@@ -229,23 +195,56 @@ router.get("/:id/amenities", safe((req, res) => {
   res.json(amenities);
 }));
 
+// GET single project by ID or slug
+router.get("/:identifier", safe((req, res) => {
+  const identifier = req.params.identifier;
+
+  if (!identifier) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  let project;
+  if (/^\d+$/.test(identifier)) {
+    project = db.prepare(`
+      SELECT p.*, d.name as developer_name, dest.name as destination_name 
+      FROM projects p
+      LEFT JOIN developers d ON p.developer_id = d.id
+      LEFT JOIN destinations dest ON p.destination_id = dest.id
+      WHERE p.id = ?
+    `).get(parseInt(identifier));
+  } else {
+    project = db.prepare(`
+      SELECT p.*, d.name as developer_name, dest.name as destination_name 
+      FROM projects p
+      LEFT JOIN developers d ON p.developer_id = d.id
+      LEFT JOIN destinations dest ON p.destination_id = dest.id
+      WHERE p.slug = ?
+    `).get(identifier);
+  }
+
+  if (!project) return res.status(404).json({ error: "Not found" });
+  res.json(project);
+
+}));
+
 
 // CREATE project
 router.post("/", authenticate, safe((req, res) => {
   const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, beds, size, slug, meta_title, meta_description } = req.body;
-  
-  const baseSlug = (slug && slug.trim()) || generateSlug(name);
-  const finalSlug = makeUniqueSlug(generateSlug(baseSlug));
+
+  const baseSlugCandidate = (slug && slug.trim()) || name;
+  const baseSlug = generateSlug(baseSlugCandidate || `project-${Date.now()}`);
+  const finalSlug = makeUniqueSlug(baseSlug);
   const finalMetaTitle = meta_title || `${name} - Luxury ${type} in ${location}`;
-  const finalMetaDescription = meta_description || description.substring(0, 160) || `Discover ${name}, a premium ${type.toLowerCase()} property in ${location}.`;
-  
+  const finalMetaDescription = meta_description || (description ? description.substring(0, 160) : `Discover ${name}, a premium ${type.toLowerCase()} property in ${location}.`);
+
   const result = db.prepare(`
     INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, beds, size, main_image, slug, meta_title, meta_description)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, beds, size, gallery?.[0] || null, finalSlug, finalMetaTitle, finalMetaDescription);
-  
+
   const projectId = result.lastInsertRowid;
-  
+
   // Insert amenities into project_amenities table
   if (amenities && Array.isArray(amenities) && amenities.length > 0) {
     const stmt = db.prepare("INSERT INTO project_amenities (project_id, amenity_id) VALUES (?, ?)");
@@ -253,7 +252,7 @@ router.post("/", authenticate, safe((req, res) => {
       stmt.run(projectId, amenityId);
     });
   }
-  
+
   res.json({ id: projectId, slug: finalSlug });
 }));
 

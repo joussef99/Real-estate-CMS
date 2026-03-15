@@ -113,9 +113,15 @@ export function initializeDatabase() {
       // ignore if column exists
     }
   };
-  addProjectColumn('slug TEXT UNIQUE');
+  addProjectColumn('slug TEXT');
   addProjectColumn('meta_title TEXT');
   addProjectColumn('meta_description TEXT');
+
+  try {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug)');
+  } catch (e) {
+    console.warn('Could not create projects slug unique index:', e);
+  }
 
   const addBlogColumn = (col: string) => {
     try {
@@ -124,9 +130,46 @@ export function initializeDatabase() {
       // ignore if column exists
     }
   };
-  addBlogColumn('slug TEXT UNIQUE');
+  addBlogColumn('slug TEXT');
   addBlogColumn('meta_title TEXT');
   addBlogColumn('meta_description TEXT');
+
+  try {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON blogs(slug)');
+  } catch (e) {
+    console.warn('Could not create blogs slug unique index:', e);
+  }
+
+  // Ensure existing data has SEO slugs for backwards compatibility
+  try {
+    const projects = db.prepare('SELECT id, name, slug FROM projects').all() as any[];
+    projects.forEach(project => {
+      if (!project.slug || project.slug.trim() === '') {
+        const baseSlug = project.name ? project.name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') : `project-${project.id}`;
+        let slug = baseSlug || `project-${project.id}`;
+        let count = 1;
+        while (db.prepare('SELECT id FROM projects WHERE slug = ? AND id != ?').get(slug, project.id)) {
+          slug = `${baseSlug}-${count++}`;
+        }
+        db.prepare('UPDATE projects SET slug = ? WHERE id = ?').run(slug, project.id);
+      }
+    });
+
+    const blogs = db.prepare('SELECT id, title, slug FROM blogs').all() as any[];
+    blogs.forEach(blog => {
+      if (!blog.slug || blog.slug.trim() === '') {
+        const baseSlug = blog.title ? blog.title.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') : `blog-${blog.id}`;
+        let slug = baseSlug || `blog-${blog.id}`;
+        let count = 1;
+        while (db.prepare('SELECT id FROM blogs WHERE slug = ? AND id != ?').get(slug, blog.id)) {
+          slug = `${baseSlug}-${count++}`;
+        }
+        db.prepare('UPDATE blogs SET slug = ? WHERE id = ?').run(slug, blog.id);
+      }
+    });
+  } catch (e) {
+    console.error('Error normalizing existing slug data', e);
+  }
 
   seedData();
 }

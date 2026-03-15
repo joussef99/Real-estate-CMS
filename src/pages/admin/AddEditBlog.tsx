@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft } from 'lucide-react';
+import { slugify } from '../../utils/slugify';
 
 export default function AddEditBlog() {
   const { id } = useParams();
@@ -20,14 +21,6 @@ export default function AddEditBlog() {
   const token = localStorage.getItem('admin_token');
   const [slugDirty, setSlugDirty] = useState(false);
 
-  const slugify = (text: string) =>
-    text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-
   useEffect(() => {
     if (id) {
       fetch('/api/blogs')
@@ -37,10 +30,13 @@ export default function AddEditBlog() {
           if (blog) {
             setFormData({
               title: blog.title,
+              slug: blog.slug || '',
               content: blog.content,
               image: blog.image,
               category: blog.category,
               author: blog.author,
+              meta_title: blog.meta_title || '',
+              meta_description: blog.meta_description || '',
             });
           }
         });
@@ -52,13 +48,20 @@ export default function AddEditBlog() {
     const url = id ? `/api/blogs/${id}` : '/api/blogs';
     const method = id ? 'PUT' : 'POST';
 
+    const body = {
+      ...formData,
+      slug: formData.slug ? slugify(formData.slug) : slugify(formData.title),
+      meta_title: formData.meta_title.trim(),
+      meta_description: formData.meta_description.trim(),
+    };
+
     const res = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(body),
     });
     if (res.ok) {
       navigate('/admin/blogs');
@@ -83,12 +86,32 @@ export default function AddEditBlog() {
                   type="text"
                   className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                   value={formData.title}
-                  onChange={e => setFormData({ ...formData, title: e.target.value })}
+                  onChange={e => {
+                    const val = e.target.value;
+                    setFormData(prev => ({ ...prev, title: val }));
+                    if (!slugDirty) {
+                      setFormData(prev => ({ ...prev, slug: slugify(val) }));
+                    }
+                  }}
                   required
                 />
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Slug</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.slug}
+                    onChange={e => {
+                      setSlugDirty(true);
+                      setFormData({ ...formData, slug: e.target.value });
+                    }}
+                    placeholder="auto-generated from title"
+                    required
+                  />
+                </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Category</label>
                   <input
@@ -100,6 +123,8 @@ export default function AddEditBlog() {
                     required
                   />
                 </div>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Author</label>
                   <input
@@ -110,6 +135,26 @@ export default function AddEditBlog() {
                     required
                   />
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Meta Title</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.meta_title}
+                    onChange={e => setFormData({ ...formData, meta_title: e.target.value })}
+                    placeholder="SEO title"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-700">Meta Description</label>
+                <textarea
+                  rows={3}
+                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                  value={formData.meta_description}
+                  onChange={e => setFormData({ ...formData, meta_description: e.target.value })}
+                  placeholder="SEO description"
+                />
               </div>
 
               <div>

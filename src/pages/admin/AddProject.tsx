@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, X, Upload } from 'lucide-react';
+import { slugify } from '../../utils/slugify';
 
 export default function AddProject() {
   const { id } = useParams();
@@ -32,14 +33,6 @@ export default function AddProject() {
   });
   const navigate = useNavigate();
   const token = localStorage.getItem('admin_token');
-
-  const slugify = (text: string) =>
-    text
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
 
   useEffect(() => {
     fetch('/api/developers').then(res => res.json()).then(setDevelopers);
