@@ -28,7 +28,7 @@ export default function Blogs() {
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {blogs.map(blog => (
-            <Link key={blog.id} to={`/blogs/${blog.id}`}>
+            <Link key={blog.id} to={`/blogs/${blog.slug || blog.id}`}>
               <article className="group overflow-hidden rounded-3xl bg-white shadow-sm transition-all hover:shadow-xl h-full cursor-pointer">
                 <div className="aspect-[16/10] overflow-hidden">
                   <img src={blog.image} alt={blog.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" referrerPolicy="no-referrer" />

@@ -18,6 +18,8 @@ export const ProjectCard = (props: any) => {
     return project.main_image || 'https://picsum.photos/seed/realestate/800/600';
   };
 
+  const projectUrl = project.slug || project.id;
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -25,7 +27,7 @@ export const ProjectCard = (props: any) => {
       viewport={{ once: true }}
       className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:shadow-xl"
     >
-      <Link to={`/projects/${project.id}`}>
+      <Link to={`/projects/${projectUrl}`}>
         <div className="aspect-[4/3] overflow-hidden">
           <img
             src={getCardImage()}

@@ -5,7 +5,7 @@ import { ChevronLeft, Calendar, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function BlogDetails() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [blog, setBlog] = useState<Blog | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +14,7 @@ export default function BlogDetails() {
     setLoading(true);
     setError(null);
     
-    fetch(`/api/blogs/${id}`)
+    fetch(`/api/blogs/${slug}`)
       .then(res => {
         if (!res.ok) {
           throw new Error('Blog not found');
@@ -29,7 +29,26 @@ export default function BlogDetails() {
         setError(err.message || 'Failed to load blog');
         setLoading(false);
       });
-  }, [id]);
+  }, [slug]);
+
+  useEffect(() => {
+    if (!blog) return;
+
+    const previousTitle = document.title;
+    document.title = blog.meta_title || blog.title;
+
+    let descriptionMeta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (!descriptionMeta) {
+      descriptionMeta = document.createElement('meta');
+      descriptionMeta.name = 'description';
+      document.head.appendChild(descriptionMeta);
+    }
+    descriptionMeta.content = blog.meta_description || blog.content.substring(0, 160) || '';
+
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [blog]);
 
   if (loading) {
     return (

@@ -306,7 +306,7 @@ export default function Home() {
                   transition={{ delay: i * 0.1 }}
                   className="group relative aspect-[16/9] overflow-hidden rounded-[2.5rem] bg-zinc-800"
                 >
-                  <Link to={`/projects/${project.id}`}>
+                  <Link to={`/projects/${project.slug || project.id}`}>
                     <img
                       src={(() => {
                         if (project.gallery) {

@@ -13,13 +13,17 @@ export default function AddProject() {
   const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
   const [gallery, setGallery] = useState<string[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [slugDirty, setSlugDirty] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
+    slug: '',
     location: '',
     price_range: '',
     type: '',
     status: 'Off-Plan',
     description: '',
+    meta_title: '',
+    meta_description: '',
     developer_id: '',
     destination_id: '',
     is_featured: false,
@@ -28,6 +32,14 @@ export default function AddProject() {
   });
   const navigate = useNavigate();
   const token = localStorage.getItem('admin_token');
+
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
 
   useEffect(() => {
     fetch('/api/developers').then(res => res.json()).then(setDevelopers);
@@ -46,11 +58,14 @@ export default function AddProject() {
         .then(data => {
           setFormData({
             name: data.name,
+            slug: data.slug || '',
             location: data.location,
             price_range: data.price_range,
             type: data.type,
             status: data.status,
             description: data.description,
+            meta_title: data.meta_title || '',
+            meta_description: data.meta_description || '',
             developer_id: data.developer_id,
             destination_id: data.destination_id,
             is_featured: data.is_featured === 1,
@@ -125,6 +140,8 @@ export default function AddProject() {
     const url = id ? `/api/projects/${id}` : '/api/projects';
     const method = id ? 'PUT' : 'POST';
 
+    const normalizedSlug = formData.slug ? slugify(formData.slug) : slugify(formData.name);
+
     const res = await fetch(url, {
       method,
       headers: {
@@ -133,8 +150,11 @@ export default function AddProject() {
       },
       body: JSON.stringify({
         ...formData,
+        slug: normalizedSlug,
+        meta_title: formData.meta_title,
+        meta_description: formData.meta_description,
         images: gallery,
-        gallery: gallery,
+        gallery,
         amenities: selectedAmenities
       }),
     });
@@ -162,17 +182,27 @@ export default function AddProject() {
                     type="text"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                     value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    onChange={e => {
+                      const value = e.target.value;
+                      setFormData(prev => ({ ...prev, name: value }));
+                      if (!slugDirty) {
+                        setFormData(prev => ({ ...prev, slug: slugify(value) }));
+                      }
+                    }}
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Location</label>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Slug</label>
                   <input
                     type="text"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.location}
-                    onChange={e => setFormData({ ...formData, location: e.target.value })}
+                    value={formData.slug}
+                    onChange={e => {
+                      setFormData(prev => ({ ...prev, slug: e.target.value }));
+                      setSlugDirty(true);
+                    }}
+                    placeholder="auto-generated from name"
                     required
                   />
                 </div>
@@ -180,27 +210,77 @@ export default function AddProject() {
 
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Location</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.location}
+                    onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    required
+                  />
+                </div>
+                <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Price Range</label>
                   <input
                     type="text"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                     value={formData.price_range}
-                    onChange={e => setFormData({ ...formData, price_range: e.target.value })}
+                    onChange={e => setFormData(prev => ({ ...prev, price_range: e.target.value }))}
                     placeholder="e.g. $1.2M - $5M"
                     required
                   />
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Status</label>
+                  <select
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.status}
+                    onChange={e => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                    required
+                  >
+                    <option value="Off-Plan">Off-Plan</option>
+                    <option value="Under Construction">Under Construction</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Available">Available</option>
+                  </select>
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Property Type</label>
                   <select
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                     value={formData.type}
-                    onChange={e => setFormData({ ...formData, type: e.target.value })}
+                    onChange={e => setFormData(prev => ({ ...prev, type: e.target.value }))}
                     required
                   >
                     <option value="">Select Property Type</option>
                     {propertyTypes.map(pt => <option key={pt.id} value={pt.name}>{pt.name}</option>)}
                   </select>
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Meta Title</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.meta_title}
+                    onChange={e => setFormData(prev => ({ ...prev, meta_title: e.target.value }))}
+                    placeholder="SEO title"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Meta Description</label>
+                  <textarea
+                    rows={2}
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.meta_description}
+                    onChange={e => setFormData(prev => ({ ...prev, meta_description: e.target.value }))}
+                    placeholder="SEO description"
+                  />
                 </div>
               </div>
 

@@ -113,6 +113,7 @@ export function initializeDatabase() {
       // ignore if column exists
     }
   };
+  addProjectColumn('slug TEXT UNIQUE');
   addProjectColumn('meta_title TEXT');
   addProjectColumn('meta_description TEXT');
 
@@ -123,6 +124,7 @@ export function initializeDatabase() {
       // ignore if column exists
     }
   };
+  addBlogColumn('slug TEXT UNIQUE');
   addBlogColumn('meta_title TEXT');
   addBlogColumn('meta_description TEXT');
 

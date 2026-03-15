@@ -8,13 +8,25 @@ export default function AddEditBlog() {
   const { id } = useParams();
   const [formData, setFormData] = useState({
     title: '',
+    slug: '',
     content: '',
     image: '',
     category: '',
     author: '',
+    meta_title: '',
+    meta_description: '',
   });
   const navigate = useNavigate();
   const token = localStorage.getItem('admin_token');
+  const [slugDirty, setSlugDirty] = useState(false);
+
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
 
   useEffect(() => {
     if (id) {

@@ -22,6 +22,9 @@ export interface Project {
   beds: string;
   size: string;
   developer_name?: string;
+  slug?: string;
+  meta_title?: string;
+  meta_description?: string;
   destination_name?: string;
 }
 
@@ -43,11 +46,14 @@ export interface Destination {
 export interface Blog {
   id: number;
   title: string;
+  slug?: string;
   content: string;
   image: string;
   category: string;
   author: string;
   created_at: string;
+  meta_title?: string;
+  meta_description?: string;
 }
 
 export interface Career {

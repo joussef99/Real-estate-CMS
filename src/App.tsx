@@ -44,12 +44,12 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:id" element={<ProjectDetails />} />
+          <Route path="/projects/:slug" element={<ProjectDetails />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/careers" element={<Careers />} />
           <Route path="/blogs" element={<Blogs />} />
-          <Route path="/blogs/:id" element={<BlogDetails />} />
+          <Route path="/blogs/:slug" element={<BlogDetails />} />
           <Route path="/developers" element={<Developers />} />
           <Route path="/destinations" element={<Destinations />} />
           

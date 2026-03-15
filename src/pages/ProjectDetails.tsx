@@ -6,7 +6,7 @@ import { Button } from '../components/Button';
 import { motion } from 'motion/react';
 
 export default function ProjectDetails() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const [project, setProject] = useState<Project | null>(null);
   const [projectAmenities, setProjectAmenities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +16,7 @@ export default function ProjectDetails() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/projects/${id}`)
+    fetch(`/api/projects/${slug}`)
       .then(res => res.json())
       .then(data => {
         setProject(data);
@@ -25,10 +25,29 @@ export default function ProjectDetails() {
       });
     
     // Fetch project amenities
-    fetch(`/api/projects/${id}/amenities`)
+    fetch(`/api/projects/${slug}/amenities`)
       .then(res => res.json())
       .then(data => setProjectAmenities(data || []));
-  }, [id]);
+  }, [slug]);
+
+  useEffect(() => {
+    if (!project) return;
+
+    const previousTitle = document.title;
+    document.title = project.meta_title || project.name;
+
+    let descriptionMeta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (!descriptionMeta) {
+      descriptionMeta = document.createElement('meta');
+      descriptionMeta.name = 'description';
+      document.head.appendChild(descriptionMeta);
+    }
+    descriptionMeta.content = project.meta_description || project.description || '';
+
+    return () => {
+      document.title = previousTitle;
+    };
+  }, [project]);
 
   const handleEnquire = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +62,7 @@ export default function ProjectDetails() {
           email: formData.email,
           phone: formData.phone || null,
           message: formData.message,
-          project_id: id
+          project_id: project?.id || null
         })
       });
       
