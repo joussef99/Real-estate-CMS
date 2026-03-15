@@ -32,6 +32,17 @@ const makeUniqueSlug = (baseSlug: string, currentId?: number): string => {
   return slug;
 };
 
+// Helper to resolve project by id or slug
+const resolveProject = (identifier: string) => {
+  if (!identifier) return null;
+
+  if (/^\d+$/.test(identifier)) {
+    return db.prepare("SELECT * FROM projects WHERE id = ?").get(parseInt(identifier));
+  }
+
+  return db.prepare("SELECT * FROM projects WHERE slug = ?").get(identifier);
+};
+
 // GET all projects with optional pagination
 router.get("/", safe((req, res) => {
   const limit = parseInt(req.query.limit as string) || 1000; // Default to 1000 if not specified
@@ -177,12 +188,13 @@ router.get("/search", safe((req, res) => {
   });
 }));
 
-// GET project amenities by project ID
-router.get("/:id/amenities", safe((req, res) => {
-  const id = req.params.id;
+// GET project amenities by project identifier
+router.get("/:identifier/amenities", safe((req, res) => {
+  const identifier = req.params.identifier;
+  const project = resolveProject(identifier);
 
-  if (!/^\d+$/.test(id)) {
-    return res.status(404).json({ error: "Not found" });
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
   }
 
   const amenities = db.prepare(`
@@ -190,9 +202,32 @@ router.get("/:id/amenities", safe((req, res) => {
     FROM project_amenities pa
     JOIN amenities a ON pa.amenity_id = a.id
     WHERE pa.project_id = ?
-  `).all(parseInt(id)) as any;
+  `).all(project.id) as any;
 
-  res.json(amenities);
+  res.json(Array.isArray(amenities) ? amenities : []);
+}));
+
+// GET project gallery by project identifier
+router.get("/:identifier/gallery", safe((req, res) => {
+  const identifier = req.params.identifier;
+  const project = resolveProject(identifier);
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  let gallery = [] as string[];
+  try {
+    const rawGallery = project.gallery;
+    if (rawGallery) {
+      gallery = typeof rawGallery === 'string' ? JSON.parse(rawGallery) : rawGallery;
+    }
+  } catch (err) {
+    gallery = [];
+  }
+
+  const images = [project.main_image, ...(Array.isArray(gallery) ? gallery : [])].filter((img: any) => img);
+  res.json(images);
 }));
 
 // GET single project by ID or slug
