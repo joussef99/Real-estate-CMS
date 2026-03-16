@@ -24,6 +24,7 @@ export const Navbar = () => {
     { name: 'Blogs', path: '/blogs' },
     { name: 'Careers', path: '/careers' },
     { name: 'Contact', path: '/contact' },
+    { name: 'About', path: '/about' },
   ];
 
   return (
@@ -34,10 +35,10 @@ export const Navbar = () => {
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg">
-            <Building2 className="h-5 w-5" />
+          <span className="inline-flex h-9 w-25 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg">
+            {/* <Building2 className="h-10 w-auto" /> */}
+            <img src="../../uploads/livin-copy.png" alt="LIVIN Logo" className="h-15 w-auto" />
           </span>
-          LIVIN
         </Link>
 
         {/* Desktop Nav */}
@@ -54,11 +55,13 @@ export const Navbar = () => {
             </Link>
           ))}
           <button className="text-slate-500 hover:text-slate-950" aria-label="Search projects">
-            <Search className="h-5 w-5" />
+            <Link to="/projects" aria-label="Explore projects">
+              <Search className="h-5 w-5" />
+            </Link>
           </button>
-          <Link to="/admin/login" className="text-slate-500 hover:text-slate-950" aria-label="Admin login">
+          {/* <Link to="/admin/login" className="text-slate-500 hover:text-slate-950" aria-label="Admin login">
             <User className="h-5 w-5" />
-          </Link>
+          </Link> */}
           <Button size="sm" asChild>
             <Link to="/projects">Explore Projects</Link>
           </Button>

@@ -24,7 +24,7 @@ export function AdminSidebar() {
 
   return (
     <aside className="w-64 border-r bg-white p-6 flex flex-col h-screen sticky top-0">
-      <h2 className="mb-10 text-xl font-bold tracking-tighter">LUXE ADMIN</h2>
+      <h2 className="mb-10 text-xl font-bold tracking-tighter">LIVIN ADMIN</h2>
       <nav className="space-y-2 flex-1">
         {menuItems.map((item) => {
           const isActive = location.pathname === item.path;

@@ -111,7 +111,7 @@ function Footer() {
         <div className="relative grid gap-12 md:grid-cols-4">
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="text-2xl font-semibold tracking-tight text-white">
-              LIVIN <span className="font-light text-slate-400">PRESTIGE</span>
+              LIVIN <span className="font-light text-slate-400">INVESTMENT</span>
             </Link>
             <p className="mt-6 text-sm leading-relaxed text-slate-300">
               A premium real estate platform connecting modern investors with extraordinary properties and trusted developers.
@@ -160,7 +160,7 @@ function Footer() {
           </div>
         </div>
         <div className="relative mt-16 border-t border-white/10 pt-8 text-center text-xs text-slate-400">
-          © 2026 Livin Prestige. All rights reserved.
+          © 2026 Livin Investment. All rights reserved.
         </div>
       </div>
     </footer>
