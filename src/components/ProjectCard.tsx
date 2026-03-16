@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { MapPin, Building2, Bed, Maximize2 } from 'lucide-react';
-import { Project } from '../types';
-import { motion } from 'motion/react';
+import { MapPin, Building2, Bed, Maximize2, ArrowUpRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Button } from './Button';
 
 export const ProjectCard = (props: any) => {
   const { project } = props;
@@ -21,55 +21,61 @@ export const ProjectCard = (props: any) => {
   const projectUrl = project.slug || project.id;
 
   return (
-    <motion.div 
+    <motion.article
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="group relative overflow-hidden rounded-2xl bg-white shadow-sm transition-all hover:shadow-xl"
+      whileHover={{ y: -8 }}
+      transition={{ duration: 0.3 }}
+      className="group overflow-hidden rounded-2xl border border-white/40 bg-white/85 shadow-lg transition-all duration-300 hover:shadow-2xl"
     >
-      <Link to={`/projects/${projectUrl}`}>
-        <div className="aspect-[4/3] overflow-hidden">
+      <Link to={`/projects/${projectUrl}`} className="block">
+        <div className="relative aspect-16/11 overflow-hidden">
           <img
             src={getCardImage()}
             alt={project.name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             referrerPolicy="no-referrer"
           />
-        </div>
-        <div className="p-6">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              {project.type}
-            </span>
-            <span className="text-sm font-medium text-black">
-              {project.price_range}
-            </span>
+          <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
+          <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
+            {project.price_range || 'Price on request'}
           </div>
-          <h3 className="mb-4 text-xl font-semibold text-zinc-900">{project.name}</h3>
-          
-          <div className="mb-4 grid grid-cols-2 gap-4 border-y border-zinc-100 py-4">
-            <div className="flex items-center text-sm text-zinc-600">
-              <Bed className="mr-2 h-4 w-4 text-emerald-600" />
-              <span className="font-medium">{project.beds || 'N/A'}</span>
+          <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
+            <p className="mb-1 text-xs uppercase tracking-[0.2em] text-white/80">{project.type || 'Property'}</p>
+            <h3 className="line-clamp-1 text-2xl font-semibold">{project.name}</h3>
+            <div className="mt-2 flex items-center text-sm text-white/85">
+              <MapPin className="mr-2 h-4 w-4" />
+              <span className="line-clamp-1">{project.location}</span>
             </div>
-            <div className="flex items-center text-sm text-zinc-600">
-              <Maximize2 className="mr-2 h-4 w-4 text-emerald-600" />
-              <span className="font-medium">{project.size || 'N/A'}</span>
+          </div>
+        </div>
+
+        <div className="space-y-5 p-6">
+          <div className="grid grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4">
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Bed className="h-4 w-4 text-slate-900" />
+              <span className="font-medium">{project.beds || 'N/A'} Beds</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-slate-600">
+              <Maximize2 className="h-4 w-4 text-slate-900" />
+              <span className="font-medium">{project.size || 'Area N/A'}</span>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center text-sm text-zinc-500">
-              <MapPin className="mr-2 h-4 w-4" />
-              {project.location}
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0 text-sm text-slate-500">
+              <div className="flex items-center gap-2">
+                <Building2 className="h-4 w-4 shrink-0" />
+                <span className="line-clamp-1">{project.developer_name || 'Top Developer'}</span>
+              </div>
             </div>
-            <div className="flex items-center text-sm text-zinc-500">
-              <Building2 className="mr-2 h-4 w-4" />
-              {project.developer_name}
-            </div>
+            <Button size="sm" className="min-w-34.5">
+              View Details <ArrowUpRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </Link>
-    </motion.div>
+    </motion.article>
   );
 };

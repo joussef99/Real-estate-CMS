@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Developer, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
+import { SectionHeading } from '../components/ui/section-heading';
 
 export default function Developers() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
@@ -25,25 +27,48 @@ export default function Developers() {
   }, []);
 
   return (
-    <div className="pt-32 pb-24 px-6">
+    <div className="px-6 pb-24 pt-32">
       <div className="mx-auto max-w-7xl">
-        <h1 className="mb-12 text-4xl font-bold">Our Partner Developers</h1>
+        <SectionHeading
+          eyebrow="Developers"
+          title="Our Partner Developers"
+          description="Discover the visionary firms behind Egypt's most sought-after communities."
+        />
+
+        <div className="scrollbar-hide -mx-2 mb-16 flex gap-5 overflow-x-auto px-2 pb-2">
+          {developers.map((dev, index) => (
+            <motion.article
+              key={dev.id}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.3, delay: index * 0.04 }}
+              whileHover={{ scale: 1.03 }}
+              className="min-w-60 rounded-2xl border border-slate-100 bg-white p-5 shadow-lg transition-all duration-300 hover:shadow-2xl"
+            >
+              <div className="mb-4 flex h-20 items-center justify-center rounded-xl bg-slate-50">
+                <img src={dev.logo} alt={dev.name} className="max-h-14 object-contain" referrerPolicy="no-referrer" />
+              </div>
+              <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{dev.name}</h3>
+            </motion.article>
+          ))}
+        </div>
         
         <div className="space-y-24">
           {developers.map(dev => (
-            <div key={dev.id} className="border-t pt-16">
+            <div key={dev.id} className="rounded-2xl border border-slate-100 bg-white/80 p-8 shadow-lg md:p-10">
               <div className="mb-12 grid gap-12 lg:grid-cols-3">
                 <div className="lg:col-span-1">
-                  <div className="mb-6 h-32 w-32 overflow-hidden rounded-2xl bg-zinc-50 p-6">
+                  <div className="mb-6 h-32 w-32 overflow-hidden rounded-2xl bg-slate-50 p-6">
                     <img src={dev.logo} alt={dev.name} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
                   </div>
-                  <h2 className="mb-4 text-3xl font-bold">{dev.name}</h2>
-                  <p className="mb-6 text-zinc-500 leading-relaxed">{dev.description}</p>
+                  <h2 className="mb-4 text-3xl font-semibold text-slate-950">{dev.name}</h2>
+                  <p className="mb-6 leading-relaxed text-gray-500">{dev.description}</p>
                 </div>
                 
                 <div className="lg:col-span-2">
-                  <h3 className="mb-6 text-xl font-bold">Projects by {dev.name}</h3>
-                  <div className="grid gap-6 sm:grid-cols-2">
+                  <h3 className="mb-6 text-xl font-semibold text-slate-900">Projects by {dev.name}</h3>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {projects.filter(p => p.developer_id === dev.id).map(p => (
                       <ProjectCard key={p.id} project={p} />
                     ))}
