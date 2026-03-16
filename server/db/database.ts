@@ -42,6 +42,7 @@ export function initializeDatabase() {
       developer_id INTEGER,
       destination_id INTEGER,
       is_featured INTEGER DEFAULT 0,
+      featured INTEGER DEFAULT 0,
       beds TEXT,
       size TEXT,
       slug TEXT UNIQUE,
@@ -116,6 +117,7 @@ export function initializeDatabase() {
   addProjectColumn('slug TEXT');
   addProjectColumn('meta_title TEXT');
   addProjectColumn('meta_description TEXT');
+  addProjectColumn('featured INTEGER DEFAULT 0');
 
   try {
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug)');

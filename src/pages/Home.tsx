@@ -50,7 +50,12 @@ export default function Home() {
         const projectsData = normalize<Project>(data, 'projects');
         setAllProjects(projectsData);
         setLatestProjects(projectsData.slice(0, 3));
-        setFeaturedProjects(projectsData.filter((p: Project) => p.is_featured === 1).slice(0, 2));
+      });
+
+    fetch('/api/projects/featured')
+      .then(res => res.json())
+      .then(data => {
+        setFeaturedProjects(Array.isArray(data) ? data : (Array.isArray(data.projects) ? data.projects : []));
       });
 
     fetch('/api/destinations')
@@ -59,7 +64,7 @@ export default function Home() {
 
     fetch('/api/developers')
       .then(res => res.json())
-      .then(data => setDevelopers(normalize<Developer>(data, 'developers').slice(0, 4)));
+      .then(data => setDevelopers(normalize<Developer>(data, 'developers')));
 
     fetch('/api/blogs')
       .then(res => res.json())
@@ -284,8 +289,7 @@ export default function Home() {
       </section>
 
       {/* Featured Projects */}
-      {featuredProjects.length > 0 && (
-        <section className="bg-zinc-900 py-16 px-6 text-white">
+      <section className="bg-zinc-900 py-16 px-6 text-white">
           <div className="mx-auto max-w-7xl">
             <div className="mb-10 flex items-end justify-between">
               <div>
@@ -342,7 +346,6 @@ export default function Home() {
             </div>
           </div>
         </section>
-      )}
 
       {/* Latest Projects */}
       <section className="py-24 px-6">
@@ -453,18 +456,19 @@ export default function Home() {
                         }
                       }
                     }}
-                    className={`group relative flex h-32 w-48 flex-shrink-0 items-center justify-center rounded-2xl bg-white p-6 shadow-sm transition-all hover:shadow-md ${
+                    className={`group relative flex h-32 w-48 flex-shrink-0 flex-col items-center justify-center rounded-2xl bg-white p-6 shadow-sm transition-all hover:shadow-md ${
                       selectedDeveloperId === dev.id ? 'ring-2 ring-black' : ''
                     }`}
                   >
                     <img
                       src={dev.logo}
                       alt={dev.name}
-                      className={`h-full w-full object-contain transition-all group-hover:scale-110 ${
-                        selectedDeveloperId === dev.id ? 'opacity-100' : 'opacity-50 grayscale group-hover:opacity-100 group-hover:grayscale-0'
+                      className={`h-20 w-20 object-contain transition-all group-hover:scale-110 ${
+                        selectedDeveloperId === dev.id ? 'opacity-100' : 'opacity-80 grayscale group-hover:opacity-100 group-hover:grayscale-0'
                       }`}
                       referrerPolicy="no-referrer"
                     />
+                    <span className="mt-3 text-center text-sm font-bold text-zinc-700">{dev.name}</span>
                   </button>
                 ))}
               </motion.div>

@@ -59,12 +59,13 @@ router.get("/", safe((req, res) => {
     return res.status(400).json({ error: "Invalid page number" });
   }
 
-  // Get paginated projects
+  // Get paginated projects with newest first
   const projects = db.prepare(`
     SELECT p.*, d.name as developer_name, dest.name as destination_name 
     FROM projects p
     LEFT JOIN developers d ON p.developer_id = d.id
     LEFT JOIN destinations dest ON p.destination_id = dest.id
+    ORDER BY p.id DESC
     LIMIT ? OFFSET ?
   `).all(limit, offset);
 
@@ -160,6 +161,7 @@ router.get("/search", safe((req, res) => {
     LEFT JOIN developers d ON p.developer_id = d.id
     LEFT JOIN destinations dest ON p.destination_id = dest.id
     ${whereClause}
+    ORDER BY p.id DESC
     LIMIT ? OFFSET ?
   `;
 
@@ -186,6 +188,20 @@ router.get("/search", safe((req, res) => {
     total,
     limit
   });
+}));
+
+// GET featured projects
+router.get("/featured", safe((req, res) => {
+  const featuredProjects = db.prepare(`
+    SELECT p.*, d.name as developer_name, dest.name as destination_name
+    FROM projects p
+    LEFT JOIN developers d ON p.developer_id = d.id
+    LEFT JOIN destinations dest ON p.destination_id = dest.id
+    WHERE IFNULL(p.featured, p.is_featured) = 1
+    ORDER BY p.id DESC
+  `).all();
+
+  res.json({ projects: featuredProjects });
 }));
 
 // GET project amenities by project identifier
@@ -265,7 +281,8 @@ router.get("/:identifier", safe((req, res) => {
 
 // CREATE project
 router.post("/", authenticate, safe((req, res) => {
-  const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, beds, size, slug, meta_title, meta_description } = req.body;
+  const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, featured, beds, size, slug, meta_title, meta_description } = req.body;
+  const featuredValue = featured !== undefined ? (featured ? 1 : 0) : (is_featured ? 1 : 0);
 
   const baseSlugCandidate = (slug && slug.trim()) || name;
   const baseSlug = generateSlug(baseSlugCandidate || `project-${Date.now()}`);
@@ -274,9 +291,9 @@ router.post("/", authenticate, safe((req, res) => {
   const finalMetaDescription = meta_description || (description ? description.substring(0, 160) : `Discover ${name}, a premium ${type.toLowerCase()} property in ${location}.`);
 
   const result = db.prepare(`
-    INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, beds, size, main_image, slug, meta_title, meta_description)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, beds, size, gallery?.[0] || null, finalSlug, finalMetaTitle, finalMetaDescription);
+    INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, featured, beds, size, main_image, slug, meta_title, meta_description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, featuredValue, beds, size, gallery?.[0] || null, finalSlug, finalMetaTitle, finalMetaDescription);
 
   const projectId = result.lastInsertRowid;
 
@@ -293,8 +310,9 @@ router.post("/", authenticate, safe((req, res) => {
 
 // UPDATE project
 router.put("/:id", authenticate, safe((req, res) => {
-  const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, beds, size, slug, meta_title, meta_description } = req.body;
+  const { name, location, price_range, type, status, description, gallery, amenities, developer_id, destination_id, is_featured, featured, beds, size, slug, meta_title, meta_description } = req.body;
   const projectId = parseInt(req.params.id);
+  const featuredValue = featured !== undefined ? (featured ? 1 : 0) : (is_featured ? 1 : 0);
 
   const baseSlug = (slug && slug.trim()) || generateSlug(name);
   const finalSlug = makeUniqueSlug(generateSlug(baseSlug), projectId);
@@ -302,7 +320,7 @@ router.put("/:id", authenticate, safe((req, res) => {
   const finalMetaDescription = meta_description || description.substring(0, 160) || `Discover ${name}, a premium ${type.toLowerCase()} property in ${location}.`;
 
   db.prepare(`
-    UPDATE projects SET name=?, location=?, price_range=?, type=?, status=?, description=?, gallery=?, developer_id=?, destination_id=?, is_featured=?, beds=?, size=?, slug=?, meta_title=?, meta_description=?
+    UPDATE projects SET name=?, location=?, price_range=?, type=?, status=?, description=?, gallery=?, developer_id=?, destination_id=?, is_featured=?, featured=?, beds=?, size=?, slug=?, meta_title=?, meta_description=?
     WHERE id=?
   `).run(
     name,
@@ -315,6 +333,7 @@ router.put("/:id", authenticate, safe((req, res) => {
     developer_id,
     destination_id,
     is_featured ? 1 : 0,
+    featuredValue,
     beds,
     size,
     finalSlug,
