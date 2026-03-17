@@ -22,6 +22,60 @@ const PROJECT_CARD_SELECT = `
   dest.slug as destination_slug
 `;
 
+const toPositiveInteger = (value: unknown) => {
+  const parsed = parseInt(String(value ?? ""), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const toNullableNumber = (value: unknown) => {
+  if (value === undefined || value === null || value === "") return null;
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getProjectPriceBounds = (priceRange?: string | null) => {
+  if (!priceRange) {
+    return { min: null as number | null, max: null as number | null };
+  }
+
+  const regex = /(\d+(?:[.,]\d+)?)\s*([kmb])?/gi;
+  const values: number[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(priceRange)) !== null) {
+    const normalizedNumber = match[1].replace(/,/g, "");
+    let value = parseFloat(normalizedNumber);
+
+    if (!Number.isFinite(value)) continue;
+
+    switch ((match[2] || "").toLowerCase()) {
+      case "b":
+        value *= 1000000000;
+        break;
+      case "m":
+        value *= 1000000;
+        break;
+      case "k":
+        value *= 1000;
+        break;
+      default:
+        break;
+    }
+
+    values.push(value);
+  }
+
+  if (!values.length) {
+    return { min: null as number | null, max: null as number | null };
+  }
+
+  return {
+    min: values[0] ?? null,
+    max: values[values.length - 1] ?? values[0] ?? null,
+  };
+};
+
 const safe = (handler: (req: Request, res: Response, next: NextFunction) => any) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -110,27 +164,27 @@ router.get("/", safe((req, res) => {
 
 // SEARCH projects with advanced filters
 router.get("/search", safe((req, res) => {
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 12;
+  const page = Math.max(parseInt(req.query.page as string) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(req.query.limit as string) || 12, 1), 48);
   const offset = (page - 1) * limit;
 
   // Extract filters
-  const destination_id = req.query.destination_id ? parseInt(req.query.destination_id as string) : null;
-  const developer_id = req.query.developer_id ? parseInt(req.query.developer_id as string) : null;
-  const property_type = req.query.property_type as string || null;
-  const price_min = req.query.price_min ? parseFloat(req.query.price_min as string) : null;
-  const price_max = req.query.price_max ? parseFloat(req.query.price_max as string) : null;
+  const destination_id = toPositiveInteger(req.query.destination ?? req.query.destination_id);
+  const developer_id = toPositiveInteger(req.query.developer ?? req.query.developer_id);
+  const property_type = String(req.query.property_type ?? req.query.types ?? "").split(",").map((value) => value.trim()).find(Boolean) || null;
+  const price_min = toNullableNumber(req.query.price_min);
+  const price_max = toNullableNumber(req.query.price_max);
   const bedrooms = req.query.bedrooms as string || null;
   const amenities = req.query.amenities ? (req.query.amenities as string).split(',').map(a => parseInt(a)) : null;
-  const search = (req.query.q as string || '').toLowerCase();
+  const keyword = String(req.query.keyword ?? req.query.q ?? '').trim();
 
   // Build WHERE clause dynamically
   const whereConditions: string[] = [];
   const params: any[] = [];
 
-  if (search) {
-    whereConditions.push("(p.name LIKE ? OR p.location LIKE ?)");
-    params.push(`%${search}%`, `%${search}%`);
+  if (keyword) {
+    whereConditions.push("(p.name LIKE ? OR p.location LIKE ? OR d.name LIKE ? OR dest.name LIKE ?)");
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
   }
 
   if (destination_id) {
@@ -153,38 +207,8 @@ router.get("/search", safe((req, res) => {
     params.push(`%${bedrooms}%`);
   }
 
-  // Price range filter (approximate based on price range text)
-  if (price_min || price_max) {
-    // Note: price_range is stored as text like "EGP 5M - EGP 25M"
-    // For more accurate filtering, we can add min_price and max_price columns
-    // For now, we'll filter by the minimum value in the range
-    if (price_min) {
-      whereConditions.push("p.price_range LIKE ?");
-      params.push(`%${price_min}%`);
-    }
-  }
-
   const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
 
-  // Get total count with filters
-  const countQuery = `
-    SELECT COUNT(DISTINCT p.id) as count 
-    FROM projects p
-    LEFT JOIN developers d ON p.developer_id = d.id
-    LEFT JOIN destinations dest ON p.destination_id = dest.id
-    ${whereClause}
-  `;
-
-  const countResult = db.prepare(countQuery).all(...params) as any;
-  const total = countResult[0]?.count || 0;
-  const total_pages = Math.ceil(total / limit);
-
-  // Validate page
-  if (page < 1 || (total > 0 && page > total_pages)) {
-    return res.status(400).json({ error: "Invalid page number" });
-  }
-
-  // Get paginated projects with filters
   let mainQuery = `
     SELECT DISTINCT ${PROJECT_CARD_SELECT}
     FROM projects p
@@ -192,16 +216,13 @@ router.get("/search", safe((req, res) => {
     LEFT JOIN destinations dest ON p.destination_id = dest.id
     ${whereClause}
     ORDER BY p.id DESC
-    LIMIT ? OFFSET ?
   `;
 
-  const queryParams = [...params, limit, offset];
-  const projects = db.prepare(mainQuery).all(...queryParams);
+  let projects = db.prepare(mainQuery).all(...params) as Array<Record<string, any>>;
 
   // If amenities filter is provided, fetch and filter separately
-  let filteredProjects = projects;
   if (amenities && amenities.length > 0) {
-    filteredProjects = (projects as any).filter(project => {
+    projects = projects.filter(project => {
       const projectAmenities = db.prepare(`
         SELECT amenity_id FROM project_amenities WHERE project_id = ?
       `).all(project.id) as any;
@@ -211,8 +232,39 @@ router.get("/search", safe((req, res) => {
     });
   }
 
+  if (price_min !== null || price_max !== null) {
+    projects = projects.filter((project) => {
+      const { min, max } = getProjectPriceBounds(project.price_range as string | null);
+      const lowerBound = min ?? max;
+      const upperBound = max ?? min;
+
+      if (lowerBound === null || upperBound === null) {
+        return false;
+      }
+
+      if (price_min !== null && upperBound < price_min) {
+        return false;
+      }
+
+      if (price_max !== null && lowerBound > price_max) {
+        return false;
+      }
+
+      return true;
+    });
+  }
+
+  const total = projects.length;
+  const total_pages = Math.max(Math.ceil(total / limit), 1);
+
+  if (page > total_pages && total > 0) {
+    return res.status(400).json({ error: "Invalid page number" });
+  }
+
+  const paginatedProjects = projects.slice(offset, offset + limit);
+
   res.json({
-    projects: filteredProjects,
+    projects: paginatedProjects,
     total_pages,
     current_page: page,
     total,
