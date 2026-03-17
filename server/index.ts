@@ -38,6 +38,11 @@ async function startServer() {
   app.use("/api/admin/stats", statsRoutes);
   app.use("/api/upload", uploadRoutes);
 
+  // Ensure unknown API routes always return JSON, never SPA HTML.
+  app.use("/api/*", (req, res) => {
+    res.status(404).json({ error: "API route not found" });
+  });
+
   // SEO endpoints
   app.get('/sitemap.xml', async (req, res) => {
     const hostname = `${req.protocol}://${req.get('host')}`;

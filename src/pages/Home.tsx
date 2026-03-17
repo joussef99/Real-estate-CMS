@@ -2,6 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowRight, Building2, MapPin, Search } from 'lucide-react';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import { Autoplay } from 'swiper/modules';
+import 'swiper/css';
 import { Button } from '../components/Button';
 import { ProjectCard } from '../components/ProjectCard';
 import { GlassPanel } from '../components/ui/glass-panel';
@@ -49,7 +52,9 @@ export default function Home() {
 
     fetch('/api/developers')
       .then((res) => res.json())
-      .then((data) => setDevelopers(normalize<Developer>(data, 'developers')));
+      .then((data) => {
+        setDevelopers(Array.isArray(data) ? data : data?.developers || []);
+      });
 
     fetch('/api/blogs')
       .then((res) => res.json())
@@ -57,6 +62,12 @@ export default function Home() {
   }, []);
 
   const latestProjects = useMemo(() => projects.slice(0, 3), [projects]);
+  const developersForSlider = useMemo(() => {
+    if (!developers.length) return [] as Developer[];
+    const minimumSlides = 10;
+    const repeatCount = Math.ceil(minimumSlides / developers.length);
+    return Array.from({ length: repeatCount }, () => developers).flat();
+  }, [developers]);
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -249,30 +260,46 @@ export default function Home() {
             description="Browse the developers shaping premium real estate experiences."
           />
 
-          <div className="scrollbar-hide -mx-2 flex gap-5 overflow-x-auto px-2 pb-2">
-            {developers.map((developer, index) => (
-              <motion.div
-                key={developer.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: index * 0.05 }}
-                whileHover={{ scale: 1.03 }}
-                className="min-w-57.5 rounded-2xl border border-slate-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-2xl"
-              >
-                <div className="mb-5 flex h-20 items-center justify-center rounded-xl bg-slate-50">
-                  <img
-                    src={developer.logo}
-                    alt={developer.name}
-                    className="max-h-14 max-w-full object-contain"
-                    referrerPolicy="no-referrer"
-                  />
-                </div>
-                <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{developer.name}</h3>
-                <p className="mt-2 line-clamp-2 text-sm text-gray-500">{developer.description}</p>
-              </motion.div>
+          <Swiper
+            modules={[Autoplay]}
+            spaceBetween={30}
+            speed={850}
+            loop
+            grabCursor
+            autoplay={{
+              delay: 2000,
+              disableOnInteraction: false,
+            }}
+            breakpoints={{
+              640: { slidesPerView: 2 },
+              768: { slidesPerView: 3 },
+              1024: { slidesPerView: 5 },
+            }}
+            className="pb-2"
+          >
+            {developersForSlider.map((developer, index) => (
+              <SwiperSlide key={`${developer.id}-${index}`} className="h-auto">
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.35, delay: index * 0.04 }}
+                  whileHover={{ y: -6, scale: 1.03 }}
+                  className="h-full rounded-2xl border border-slate-100 bg-white p-4 shadow-lg transition-all duration-300 hover:shadow-2xl md:p-5"
+                >
+                  <div className="mb-4 flex h-16 items-center justify-center rounded-xl bg-slate-50 md:h-20">
+                    <img
+                      src={developer.logo}
+                      alt={developer.name}
+                      className="max-h-11 max-w-full object-contain md:max-h-14"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  <h3 className="line-clamp-1 text-center text-sm font-semibold text-slate-900 md:text-base">{developer.name}</h3>
+                </motion.div>
+              </SwiperSlide>
             ))}
-          </div>
+          </Swiper>
 
           <div className="mt-10">
             <Button asChild>

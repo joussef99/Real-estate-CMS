@@ -43,14 +43,17 @@ const resolveProject = (identifier: string) => {
   return db.prepare("SELECT * FROM projects WHERE slug = ?").get(identifier);
 };
 
-// GET all projects with optional pagination
+// GET all projects with optional pagination and developer_id filter
 router.get("/", safe((req, res) => {
-  const limit = parseInt(req.query.limit as string) || 1000; // Default to 1000 if not specified
+  const limit = parseInt(req.query.limit as string) || 1000;
   const page = parseInt(req.query.page as string) || 1;
   const offset = (page - 1) * limit;
+  const developer_id = req.query.developer_id ? parseInt(req.query.developer_id as string) : null;
 
-  // Get total count
-  const totalResult = db.prepare("SELECT COUNT(*) as count FROM projects").get() as any;
+  // Get total count (with optional developer filter)
+  const totalResult = developer_id
+    ? db.prepare("SELECT COUNT(*) as count FROM projects WHERE developer_id = ?").get(developer_id) as any
+    : db.prepare("SELECT COUNT(*) as count FROM projects").get() as any;
   const total = totalResult.count;
   const total_pages = Math.ceil(total / limit);
 
@@ -59,15 +62,25 @@ router.get("/", safe((req, res) => {
     return res.status(400).json({ error: "Invalid page number" });
   }
 
-  // Get paginated projects with newest first
-  const projects = db.prepare(`
-    SELECT p.*, d.name as developer_name, dest.name as destination_name 
-    FROM projects p
-    LEFT JOIN developers d ON p.developer_id = d.id
-    LEFT JOIN destinations dest ON p.destination_id = dest.id
-    ORDER BY p.id DESC
-    LIMIT ? OFFSET ?
-  `).all(limit, offset);
+  // Get paginated projects with newest first (with optional developer filter)
+  const projects = developer_id
+    ? db.prepare(`
+        SELECT p.*, d.name as developer_name, dest.name as destination_name
+        FROM projects p
+        LEFT JOIN developers d ON p.developer_id = d.id
+        LEFT JOIN destinations dest ON p.destination_id = dest.id
+        WHERE p.developer_id = ?
+        ORDER BY p.id DESC
+        LIMIT ? OFFSET ?
+      `).all(developer_id, limit, offset)
+    : db.prepare(`
+        SELECT p.*, d.name as developer_name, dest.name as destination_name
+        FROM projects p
+        LEFT JOIN developers d ON p.developer_id = d.id
+        LEFT JOIN destinations dest ON p.destination_id = dest.id
+        ORDER BY p.id DESC
+        LIMIT ? OFFSET ?
+      `).all(limit, offset);
 
   res.json({
     projects,

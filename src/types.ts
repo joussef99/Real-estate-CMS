@@ -33,6 +33,7 @@ export interface Developer {
   name: string;
   logo: string;
   description: string;
+  slug?: string;
 }
 
 export interface Destination {

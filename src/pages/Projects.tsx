@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ProjectCard } from '../components/ProjectCard';
 import { Project } from '../types';
 import { Search, Filter, X, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { useSearchParams } from 'react-router-dom';
 
 const BED_OPTIONS = ['1', '2', '3', '4', '5'];
 const PRICE_RANGES = [
@@ -15,6 +15,7 @@ const PRICE_RANGES = [
 
 export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const developerFilter = searchParams.get('developer');
   const [projects, setProjects] = useState<Project[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<any[]>([]);
   const [search, setSearch] = useState(searchParams.get('q') || '');
@@ -32,7 +33,10 @@ export default function Projects() {
       return [];
     };
 
-    fetch('/api/projects')
+    const projectUrl = developerFilter
+      ? `/api/projects?developer_id=${encodeURIComponent(developerFilter)}`
+      : '/api/projects';
+    fetch(projectUrl)
       .then(res => res.json())
       .then(data => setProjects(normalize<Project>(data, 'projects')));
 
@@ -49,8 +53,9 @@ export default function Projects() {
     if (selectedBeds.length) params.set('beds', selectedBeds.join(','));
     if (selectedPriceRanges.length) params.set('prices', selectedPriceRanges.join(','));
     if (selectedDestinations.length) params.set('destinations', selectedDestinations.join(','));
+    if (developerFilter) params.set('developer', developerFilter);
     setSearchParams(params, { replace: true });
-  }, [search, selectedTypes, selectedBeds, selectedPriceRanges, selectedDestinations, setSearchParams]);
+  }, [search, selectedTypes, selectedBeds, selectedPriceRanges, selectedDestinations, developerFilter, setSearchParams]);
 
   const toggleFilter = (list: string[], setList: (val: string[]) => void, item: string) => {
     if (list.includes(item)) {
@@ -97,8 +102,24 @@ export default function Projects() {
       <div className="mx-auto max-w-7xl">
         <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <h1 className="mb-4 text-4xl font-bold text-zinc-900">All Projects</h1>
+            <h1 className="mb-4 text-4xl font-bold text-zinc-900">
+              {developerFilter && projects[0]?.developer_name
+                ? `${projects[0].developer_name} Projects`
+                : 'All Projects'}
+            </h1>
             <p className="text-zinc-500">Discover our full collection of luxury properties across prime locations.</p>
+            {developerFilter && (
+              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm font-medium text-slate-700">
+                <span>Filtered by developer</span>
+                <Link
+                  to="/projects"
+                  className="flex items-center gap-1 text-slate-400 transition-colors hover:text-slate-900"
+                  aria-label="Clear developer filter"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            )}
           </div>
           <button 
             onClick={() => setShowFilters(!showFilters)}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Developer, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
@@ -37,20 +38,21 @@ export default function Developers() {
 
         <div className="scrollbar-hide -mx-2 mb-16 flex gap-5 overflow-x-auto px-2 pb-2">
           {developers.map((dev, index) => (
-            <motion.article
-              key={dev.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.3, delay: index * 0.04 }}
-              whileHover={{ scale: 1.03 }}
-              className="min-w-60 rounded-2xl border border-slate-100 bg-white p-5 shadow-lg transition-all duration-300 hover:shadow-2xl"
-            >
-              <div className="mb-4 flex h-20 items-center justify-center rounded-xl bg-slate-50">
-                <img src={dev.logo} alt={dev.name} className="max-h-14 object-contain" referrerPolicy="no-referrer" />
-              </div>
-              <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{dev.name}</h3>
-            </motion.article>
+            <Link key={dev.id} to={`/developers/${dev.slug}`}>
+              <motion.article
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.3, delay: index * 0.04 }}
+                whileHover={{ scale: 1.03 }}
+                className="min-w-60 cursor-pointer rounded-2xl border border-slate-100 bg-white p-5 shadow-lg transition-all duration-300 hover:border-slate-300 hover:shadow-2xl"
+              >
+                <div className="mb-4 flex h-20 items-center justify-center rounded-xl bg-slate-50">
+                  <img src={dev.logo} alt={dev.name} className="max-h-14 object-contain" referrerPolicy="no-referrer" />
+                </div>
+                <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{dev.name}</h3>
+              </motion.article>
+            </Link>
           ))}
         </div>
         
@@ -64,6 +66,12 @@ export default function Developers() {
                   </div>
                   <h2 className="mb-4 text-3xl font-semibold text-slate-950">{dev.name}</h2>
                   <p className="mb-6 leading-relaxed text-gray-500">{dev.description}</p>
+                  <Link
+                    to={`/developers/${dev.slug}`}
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-slate-700"
+                  >
+                    View All Projects
+                  </Link>
                 </div>
                 
                 <div className="lg:col-span-2">

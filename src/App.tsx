@@ -11,6 +11,7 @@ import Careers from './pages/Careers';
 import Blogs from './pages/Blogs';
 import BlogDetails from './pages/BlogDetails';
 import Developers from './pages/Developers';
+import DeveloperProjects from './pages/DeveloperProjects';
 import Destinations from './pages/Destinations';
 import Login from './pages/admin/Login';
 import Dashboard from './pages/admin/Dashboard';
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/blogs" element={<Blogs />} />
           <Route path="/blogs/:slug" element={<BlogDetails />} />
           <Route path="/developers" element={<Developers />} />
+          <Route path="/developers/:slug" element={<DeveloperProjects />} />
           <Route path="/destinations" element={<Destinations />} />
           
           {/* Admin Routes */}

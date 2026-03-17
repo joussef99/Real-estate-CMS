@@ -18,7 +18,8 @@ export function initializeDatabase() {
       name TEXT NOT NULL,
       logo TEXT,
       description TEXT,
-      website TEXT
+      website TEXT,
+      slug TEXT UNIQUE
     );
 
     CREATE TABLE IF NOT EXISTS destinations (
@@ -105,6 +106,42 @@ export function initializeDatabase() {
       FOREIGN KEY (amenity_id) REFERENCES amenities(id)
     );
   `);
+
+  // Add slug column to developers (migration for backward compatibility)
+  const addDeveloperColumn = (col: string) => {
+    try {
+      db.exec(`ALTER TABLE developers ADD COLUMN ${col}`);
+    } catch (e) {
+      // ignore if column exists
+    }
+  };
+  addDeveloperColumn('slug TEXT');
+
+  try {
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_developers_slug ON developers(slug)');
+  } catch (e) {
+    // ignore if index exists
+  }
+
+  // Backfill slugs for existing developers
+  try {
+    const devs = db.prepare('SELECT id, name, slug FROM developers').all() as any[];
+    devs.forEach(dev => {
+      if (!dev.slug || dev.slug.trim() === '') {
+        const baseSlug = dev.name
+          ? dev.name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '')
+          : `developer-${dev.id}`;
+        let slug = baseSlug || `developer-${dev.id}`;
+        let count = 1;
+        while (db.prepare('SELECT id FROM developers WHERE slug = ? AND id != ?').get(slug, dev.id)) {
+          slug = `${baseSlug}-${count++}`;
+        }
+        db.prepare('UPDATE developers SET slug = ? WHERE id = ?').run(slug, dev.id);
+      }
+    });
+  } catch (e) {
+    console.error('Error backfilling developer slugs', e);
+  }
 
   // Add SEO columns to existing tables (migration for backward compatibility)
   const addProjectColumn = (col: string) => {
