@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, Upload, X } from 'lucide-react';
+import { optimizeImageFile } from '../../utils/imageUpload';
 
 export default function AddEditDestination() {
   const { id } = useParams();
@@ -37,10 +38,18 @@ export default function AddEditDestination() {
     if (!file) return;
 
     setUploadingImage(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('image', file);
 
     try {
+      const optimizedFile = await optimizeImageFile(file, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.70,
+        fileNamePrefix: 'destination',
+      });
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('image', optimizedFile);
+
       const res = await fetch('/api/upload/destination-image', {
         method: 'POST',
         body: formDataUpload,
@@ -125,7 +134,7 @@ export default function AddEditDestination() {
                     <p className="text-sm font-medium text-zinc-700">
                       {uploadingImage ? 'Uploading...' : 'Click to upload image or drag and drop'}
                     </p>
-                    <p className="text-xs text-zinc-500">PNG, JPG, WebP up to 5MB</p>
+                    <p className="text-xs text-zinc-500">Auto-compressed to WebP, max 1600px, up to 5MB source</p>
                   </label>
                 </div>
 

@@ -1,42 +1,36 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Destination, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
+import { DestinationSkeleton } from '../components/ui/destination-skeleton';
 
 export default function Destinations() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
-
-  const projectsByDestination = useMemo(() => {
-    return projects.reduce<Record<number, Project[]>>((acc, project) => {
-      if (!project.destination_id) return acc;
-      if (!acc[project.destination_id]) {
-        acc[project.destination_id] = [];
-      }
-      acc[project.destination_id].push(project);
-      return acc;
-    }, {});
-  }, [projects]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const normalize = <T,>(data: any, key?: string): T[] => {
       if (Array.isArray(data)) return data;
       if (key && data && Array.isArray(data[key])) return data[key];
       if (data && Array.isArray(data.destinations)) return data.destinations;
-      if (data && Array.isArray(data.projects)) return data.projects;
       return [];
     };
 
-    fetch('/api/destinations')
+    setLoading(true);
+    fetch(`/api/destinations?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
       .then(res => res.json())
-      .then(data => setDestinations(normalize<Destination>(data, 'destinations')));
-
-    fetch('/api/projects')
-      .then(res => res.json())
-      .then(data => setProjects(normalize<Project>(data, 'projects')));
-  }, []);
+      .then(data => {
+        setDestinations(normalize<Destination>(data, 'destinations'));
+        setCurrentPage(data?.current_page || 1);
+        setTotalPages(Math.max(data?.total_pages || 1, 1));
+      })
+      .finally(() => setLoading(false));
+  }, [currentPage]);
 
   return (
     <div className="bg-slate-50 px-6 pb-24 pt-32">
@@ -48,9 +42,10 @@ export default function Destinations() {
         />
         
         <div className="space-y-24">
-          {destinations.map(dest => {
-            const destinationProjects = projectsByDestination[dest.id] || [];
-            const previewProjects = destinationProjects.slice(0, 2);
+          {loading
+            ? Array.from({ length: 3 }).map((_, index) => <DestinationSkeleton key={index} />)
+            : destinations.map(dest => {
+            const previewProjects = (dest.preview_projects || []).slice(0, 2);
 
             return (
               <motion.div
@@ -66,7 +61,7 @@ export default function Destinations() {
                       <img src={dest.image} alt={dest.name} className="h-full w-full object-cover" loading="lazy" decoding="async" sizes="(max-width: 1024px) 100vw, 33vw" referrerPolicy="no-referrer" />
                       <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
                       <div className="absolute bottom-6 left-6 rounded-2xl border border-white/30 bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-xl">
-                        {destinationProjects.length} active projects
+                        {dest.project_count || 0} active projects
                       </div>
                     </div>
                   </div>
@@ -94,6 +89,32 @@ export default function Destinations() {
             );
           })}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white px-6 py-4 shadow-sm md:flex-row">
+            <p className="text-sm text-slate-500">Page {currentPage} of {totalPages}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

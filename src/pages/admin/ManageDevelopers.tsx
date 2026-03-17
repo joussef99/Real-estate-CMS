@@ -70,7 +70,7 @@ export default function ManageDevelopers() {
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="mr-3 h-10 w-10 rounded-lg bg-zinc-100 p-1">
-                        <img src={dev.logo} alt="" className="h-full w-full object-contain" />
+                        <img src={dev.logo} alt="" className="h-full w-full object-contain" loading="lazy" decoding="async" />
                       </div>
                       <span className="font-medium">{dev.name}</span>
                     </div>

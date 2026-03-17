@@ -36,6 +36,7 @@ export interface Developer {
   logo: string;
   description: string;
   slug?: string;
+  preview_projects?: Project[];
 }
 
 export interface Destination {
@@ -45,6 +46,7 @@ export interface Destination {
   description: string;
   slug?: string;
   project_count?: number;
+  preview_projects?: Project[];
 }
 
 export interface Blog {

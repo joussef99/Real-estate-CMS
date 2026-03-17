@@ -46,11 +46,11 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => setFeaturedProjects(normalize<Project>(data, 'projects')));
 
-    fetch('/api/destinations')
+    fetch('/api/destinations?limit=6&page=1')
       .then((res) => res.json())
       .then((data) => setDestinations(normalize<Destination>(data, 'destinations')));
 
-    fetch('/api/developers')
+    fetch('/api/developers?limit=10&page=1')
       .then((res) => res.json())
       .then((data) => {
         setDevelopers(Array.isArray(data) ? data : data?.developers || []);

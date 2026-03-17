@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, X, Upload } from 'lucide-react';
 import { slugify } from '../../utils/slugify';
+import { optimizeImageFiles } from '../../utils/imageUpload';
 
 export default function AddProject() {
   const { id } = useParams();
@@ -91,12 +92,20 @@ export default function AddProject() {
     }
 
     setUploadingImages(true);
-    const formDataUpload = new FormData();
-    for (let i = 0; i < files.length; i++) {
-      formDataUpload.append('images', files[i]);
-    }
 
     try {
+      const optimizedFiles = await optimizeImageFiles(files, {
+        maxWidth: 1200,
+        maxHeight: 1200,
+        quality: 0.70,
+        fileNamePrefix: 'project',
+      });
+
+      const formDataUpload = new FormData();
+      optimizedFiles.forEach((file) => {
+        formDataUpload.append('images', file);
+      });
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formDataUpload,
@@ -358,7 +367,7 @@ export default function AddProject() {
                     <p className="text-sm font-medium text-zinc-700">
                       {uploadingImages ? 'Uploading...' : 'Click to upload images or drag and drop'}
                     </p>
-                    <p className="text-xs text-zinc-500">PNG, JPG, WebP up to 5MB</p>
+                    <p className="text-xs text-zinc-500">Auto-compressed to WebP, max 1600px, up to 5MB source</p>
                   </label>
                 </div>
 

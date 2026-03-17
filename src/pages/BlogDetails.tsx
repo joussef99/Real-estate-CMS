@@ -39,11 +39,11 @@ export default function BlogDetails() {
         if (!res.ok) throw new Error('Blog not found');
         return res.json();
       }),
-      fetch('/api/blogs').then((res) => res.json()),
+      fetch('/api/blogs?limit=4&page=1').then((res) => res.json()),
     ])
       .then(([blogData, blogsData]) => {
         setBlog(blogData);
-        setBlogs(Array.isArray(blogsData) ? blogsData : []);
+        setBlogs(Array.isArray(blogsData) ? blogsData : blogsData?.blogs || []);
       })
       .catch((err) => {
         setError(err?.message || 'Failed to load blog');
@@ -321,6 +321,8 @@ export default function BlogDetails() {
                     src={`https://ui-avatars.com/api/?name=${encodeURIComponent(blog.author)}&background=0f172a&color=ffffff&size=240`}
                     alt={blog.author}
                     className="h-16 w-16 rounded-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                   />
                   <div>

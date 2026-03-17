@@ -30,10 +30,68 @@ const makeUniqueSlug = (baseName: string, currentId?: number): string => {
   return slug;
 };
 
+const PROJECT_PREVIEW_SELECT = `
+  p.id,
+  p.name,
+  p.location,
+  p.price_range,
+  p.type,
+  p.main_image,
+  p.developer_id,
+  p.destination_id,
+  p.beds,
+  p.size,
+  p.slug,
+  d.name as developer_name,
+  dest.name as destination_name,
+  dest.slug as destination_slug
+`;
+
+const DEVELOPER_LIST_SELECT = "id, name, logo, description, slug";
+
 // GET all developers
 router.get("/", safe((req, res) => {
-  const developers = db.prepare("SELECT * FROM developers").all();
-  res.json(developers);
+  const limit = parseInt(req.query.limit as string) || 0;
+  const page = parseInt(req.query.page as string) || 1;
+  const includeProjectPreviews = ['1', 'true'].includes(String(req.query.include_project_previews || '').toLowerCase());
+  const previewLimit = parseInt(req.query.project_preview_limit as string) || 2;
+
+  if (limit <= 0 && !req.query.page && !includeProjectPreviews) {
+    const developers = db.prepare(`SELECT ${DEVELOPER_LIST_SELECT} FROM developers`).all();
+    return res.json(developers);
+  }
+
+  const totalResult = db.prepare("SELECT COUNT(*) as count FROM developers").get() as { count: number };
+  const total = totalResult.count;
+  const total_pages = Math.max(Math.ceil(total / Math.max(limit, 1)), 1);
+  const offset = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+
+  const developers = (limit > 0
+    ? db.prepare(`SELECT ${DEVELOPER_LIST_SELECT} FROM developers ORDER BY id DESC LIMIT ? OFFSET ?`).all(limit, offset)
+    : db.prepare(`SELECT ${DEVELOPER_LIST_SELECT} FROM developers ORDER BY id DESC`).all()) as Array<Record<string, any>>;
+
+  const enrichedDevelopers = includeProjectPreviews
+    ? developers.map((developer) => ({
+        ...developer,
+        preview_projects: db.prepare(`
+          SELECT ${PROJECT_PREVIEW_SELECT}
+          FROM projects p
+          LEFT JOIN developers d ON p.developer_id = d.id
+          LEFT JOIN destinations dest ON p.destination_id = dest.id
+          WHERE p.developer_id = ?
+          ORDER BY p.id DESC
+          LIMIT ?
+        `).all(developer.id, previewLimit),
+      }))
+    : developers;
+
+  res.json({
+    developers: enrichedDevelopers,
+    total,
+    total_pages,
+    current_page: Math.max(page, 1),
+    limit: limit || total,
+  });
 }));
 
 // CREATE developer

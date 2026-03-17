@@ -148,6 +148,8 @@ export default function DeveloperProjects() {
                   src={developer.logo}
                   alt={developer.name}
                   className="h-full w-full object-contain"
+                  loading="lazy"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                 />
               ) : (

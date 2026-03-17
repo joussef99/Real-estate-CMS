@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Blog } from '../types';
 import { SectionHeading } from '../components/ui/section-heading';
+import { BlogCardSkeleton } from '../components/ui/blog-card-skeleton';
 
 export default function Blogs() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const normalize = <T,>(data: any, key?: string): T[] => {
@@ -16,10 +20,16 @@ export default function Blogs() {
       return [];
     };
 
-    fetch('/api/blogs')
+    setLoading(true);
+    fetch(`/api/blogs?limit=9&page=${currentPage}`)
       .then(res => res.json())
-      .then(data => setBlogs(normalize<Blog>(data, 'blogs')));
-  }, []);
+      .then(data => {
+        setBlogs(normalize<Blog>(data, 'blogs'));
+        setCurrentPage(data?.current_page || 1);
+        setTotalPages(Math.max(data?.total_pages || 1, 1));
+      })
+      .finally(() => setLoading(false));
+  }, [currentPage]);
 
   return (
     <div className="bg-slate-50 px-6 pb-24 pt-32">
@@ -31,7 +41,9 @@ export default function Blogs() {
         />
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {blogs.map((blog, index) => (
+          {loading
+            ? Array.from({ length: 9 }).map((_, index) => <BlogCardSkeleton key={index} />)
+            : blogs.map((blog, index) => (
             <motion.article
               key={blog.id}
               initial={{ opacity: 0, y: 16 }}
@@ -70,6 +82,32 @@ export default function Blogs() {
             </motion.article>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white px-6 py-4 shadow-sm md:flex-row">
+            <p className="text-sm text-slate-500">Page {currentPage} of {totalPages}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

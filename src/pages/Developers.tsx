@@ -1,31 +1,32 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Developer, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 
 export default function Developers() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
     const normalize = <T,>(data: any, key?: string): T[] => {
       if (Array.isArray(data)) return data;
       if (key && data && Array.isArray(data[key])) return data[key];
       if (data && Array.isArray(data.developers)) return data.developers;
-      if (data && Array.isArray(data.projects)) return data.projects;
       return [];
     };
 
-    fetch('/api/developers')
+    fetch(`/api/developers?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
       .then(res => res.json())
-      .then(data => setDevelopers(normalize<Developer>(data, 'developers')));
-
-    fetch('/api/projects')
-      .then(res => res.json())
-      .then(data => setProjects(normalize<Project>(data, 'projects')));
-  }, []);
+      .then(data => {
+        setDevelopers(normalize<Developer>(data, 'developers'));
+        setCurrentPage(data?.current_page || 1);
+        setTotalPages(Math.max(data?.total_pages || 1, 1));
+      });
+  }, [currentPage]);
 
   return (
     <div className="px-6 pb-24 pt-32">
@@ -48,7 +49,7 @@ export default function Developers() {
                 className="min-w-60 cursor-pointer rounded-2xl border border-slate-100 bg-white p-5 shadow-lg transition-all duration-300 hover:border-slate-300 hover:shadow-2xl"
               >
                 <div className="mb-4 flex h-20 items-center justify-center rounded-xl bg-slate-50">
-                  <img src={dev.logo} alt={dev.name} className="max-h-14 object-contain" referrerPolicy="no-referrer" />
+                  <img src={dev.logo} alt={dev.name} className="max-h-14 object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                 </div>
                 <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{dev.name}</h3>
               </motion.article>
@@ -77,7 +78,7 @@ export default function Developers() {
                 <div className="lg:col-span-2">
                   <h3 className="mb-6 text-xl font-semibold text-slate-900">Projects by {dev.name}</h3>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {projects.filter(p => p.developer_id === dev.id).map(p => (
+                    {(dev.preview_projects || []).map((p: Project) => (
                       <ProjectCard key={p.id} project={p} />
                     ))}
                   </div>
@@ -86,6 +87,32 @@ export default function Developers() {
             </div>
           ))}
         </div>
+
+        {totalPages > 1 && (
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-slate-100 bg-white px-6 py-4 shadow-sm md:flex-row">
+            <p className="text-sm text-slate-500">Page {currentPage} of {totalPages}</p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

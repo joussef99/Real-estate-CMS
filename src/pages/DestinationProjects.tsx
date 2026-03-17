@@ -130,6 +130,8 @@ export default function DestinationProjects() {
                 src={destination.image || `https://picsum.photos/seed/destination-${destination.id}/1200/900`}
                 alt={destination.name}
                 className="h-full w-full object-cover"
+                fetchPriority="high"
+                decoding="async"
                 referrerPolicy="no-referrer"
               />
               <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 via-slate-900/20 to-transparent" />

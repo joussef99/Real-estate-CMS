@@ -121,6 +121,8 @@ export default function About() {
               src="https://images.unsplash.com/photo-1460317442991-0ec209397118?auto=format&fit=crop&q=80&w=1800"
               alt="Modern city skyline"
               className="h-full min-h-105 w-full object-cover"
+              loading="lazy"
+              decoding="async"
               referrerPolicy="no-referrer"
             />
             <div className="absolute inset-0 bg-linear-to-t from-slate-950/60 via-slate-900/10 to-transparent" />
@@ -153,6 +155,8 @@ export default function About() {
                     src={founder.image}
                     alt={founder.name}
                     className="h-full w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950/65 via-transparent to-transparent" />

@@ -7,6 +7,12 @@ interface UploadedImageFile {
   originalname: string;
 }
 
+interface OptimizeImageOptions {
+  maxWidth: number;
+  maxHeight: number;
+  quality?: number;
+}
+
 const sanitizeFileName = (name: string) =>
   name
     .toLowerCase()
@@ -19,6 +25,7 @@ export async function optimizeAndSaveImage(
   file: UploadedImageFile,
   targetDir: string,
   publicBasePath: string,
+  options: OptimizeImageOptions,
 ) {
   fs.mkdirSync(targetDir, { recursive: true });
 
@@ -26,10 +33,12 @@ export async function optimizeAndSaveImage(
   const fileName = `${safeName}-${Date.now()}.webp`;
   const outputPath = path.join(targetDir, fileName);
 
+  const { maxWidth, maxHeight, quality = 70 } = options;
+
   await sharp(file.buffer)
     .rotate()
-    .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
-    .webp({ quality: 78, effort: 5 })
+    .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
+    .webp({ quality, effort: 4 })
     .toFile(outputPath);
 
   return `${publicBasePath}/${fileName}`;

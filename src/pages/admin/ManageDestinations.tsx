@@ -69,7 +69,7 @@ export default function ManageDestinations() {
                 <tr key={dest.id} className="hover:bg-zinc-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img src={dest.image} alt="" className="mr-3 h-10 w-10 rounded-lg object-cover" />
+                      <img src={dest.image} alt="" className="mr-3 h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
                       <span className="font-medium">{dest.name}</span>
                     </div>
                   </td>

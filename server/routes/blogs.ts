@@ -32,13 +32,34 @@ const makeUniqueBlogSlug = (baseSlug: string, currentId?: number): string => {
   return slug;
 };
 
+const BLOG_LIST_SELECT = "id, title, image, category, author, created_at, slug";
+
 // GET all blogs
 router.get("/", safe((req, res) => {
   const limit = parseInt(req.query.limit as string) || 0;
+  const page = parseInt(req.query.page as string) || 1;
+
+  if (limit <= 0 && !req.query.page) {
+    const blogs = db.prepare(`SELECT ${BLOG_LIST_SELECT} FROM blogs ORDER BY created_at DESC`).all();
+    return res.json(blogs);
+  }
+
+  const totalResult = db.prepare("SELECT COUNT(*) as count FROM blogs").get() as { count: number };
+  const total = totalResult.count;
+  const total_pages = Math.max(Math.ceil(total / Math.max(limit, 1)), 1);
+  const offset = (Math.max(page, 1) - 1) * Math.max(limit, 1);
+
   const blogs = limit > 0
-    ? db.prepare("SELECT * FROM blogs ORDER BY created_at DESC LIMIT ?").all(limit)
-    : db.prepare("SELECT * FROM blogs ORDER BY created_at DESC").all();
-  res.json(blogs);
+    ? db.prepare(`SELECT ${BLOG_LIST_SELECT} FROM blogs ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(limit, offset)
+    : db.prepare(`SELECT ${BLOG_LIST_SELECT} FROM blogs ORDER BY created_at DESC`).all();
+
+  res.json({
+    blogs,
+    total,
+    total_pages,
+    current_page: Math.max(page, 1),
+    limit: limit || total,
+  });
 }));
 
 // GET single blog by ID or slug

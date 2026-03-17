@@ -17,7 +17,13 @@ router.post("/", upload.array('images', 10), async (req: any, res, next) => {
 
   try {
     const uploadedPaths = await Promise.all(
-      req.files.map((file: UploadedImageFile) => optimizeAndSaveImage(file, uploadsDir, '/uploads')),
+      req.files.map((file: UploadedImageFile) =>
+        optimizeAndSaveImage(file, uploadsDir, '/uploads', {
+          maxWidth: 1200,
+          maxHeight: 1200,
+          quality: 70,
+        }),
+      ),
     );
     res.json({ images: uploadedPaths });
   } catch (error) {
@@ -32,7 +38,11 @@ router.post("/developer-logo", uploadDeveloper.single('logo'), async (req: any, 
   }
 
   try {
-    const logoPath = await optimizeAndSaveImage(req.file, developerUploadsDir, '/uploads/developers');
+    const logoPath = await optimizeAndSaveImage(req.file, developerUploadsDir, '/uploads/developers', {
+      maxWidth: 600,
+      maxHeight: 600,
+      quality: 70,
+    });
     res.json({ logo: logoPath });
   } catch (error) {
     next(error);
@@ -46,7 +56,11 @@ router.post("/destination-image", uploadDestination.single('image'), async (req:
   }
 
   try {
-    const imagePath = await optimizeAndSaveImage(req.file, destinationUploadsDir, '/uploads/destinations');
+    const imagePath = await optimizeAndSaveImage(req.file, destinationUploadsDir, '/uploads/destinations', {
+      maxWidth: 1200,
+      maxHeight: 1200,
+      quality: 70,
+    });
     res.json({ image: imagePath });
   } catch (error) {
     next(error);

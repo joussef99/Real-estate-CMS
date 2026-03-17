@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, Upload, X } from 'lucide-react';
+import { optimizeImageFile } from '../../utils/imageUpload';
 
 export default function AddEditDeveloper() {
   const { id } = useParams();
@@ -37,10 +38,18 @@ export default function AddEditDeveloper() {
     if (!file) return;
 
     setUploadingLogo(true);
-    const formDataUpload = new FormData();
-    formDataUpload.append('logo', file);
 
     try {
+      const optimizedFile = await optimizeImageFile(file, {
+        maxWidth: 600,
+        maxHeight: 600,
+        quality: 0.70,
+        fileNamePrefix: 'developer-logo',
+      });
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('logo', optimizedFile);
+
       const res = await fetch('/api/upload/developer-logo', {
         method: 'POST',
         body: formDataUpload,
@@ -125,7 +134,7 @@ export default function AddEditDeveloper() {
                     <p className="text-sm font-medium text-zinc-700">
                       {uploadingLogo ? 'Uploading...' : 'Click to upload logo or drag and drop'}
                     </p>
-                    <p className="text-xs text-zinc-500">PNG, JPG, WebP up to 5MB</p>
+                    <p className="text-xs text-zinc-500">Auto-converted to WebP, max 800px, up to 5MB source</p>
                   </label>
                 </div>
 
