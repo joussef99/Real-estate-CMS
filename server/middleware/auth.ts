@@ -1,9 +1,12 @@
 import jwt from "jsonwebtoken";
 
 if (!process.env.JWT_SECRET) {
-  console.warn("[WARN] JWT_SECRET env variable is not set. Using insecure default — set JWT_SECRET in production.");
+  throw new Error(
+    "JWT_SECRET environment variable is required. " +
+    "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+  );
 }
-const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-me";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export function authenticate(req, res, next) {
   const token = req.headers.authorization?.split(" ")[1];

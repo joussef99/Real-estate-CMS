@@ -106,3 +106,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_developers_slug ON developers(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON blogs(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_destinations_slug ON destinations(slug);
+
+CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  email TEXT NOT NULL UNIQUE,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);

@@ -1,8 +1,10 @@
+import "dotenv/config";
 import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { initializeDatabase, db } from "./db/database.ts";
 import authRoutes from "./routes/auth.ts";
+import rateLimit from "express-rate-limit";
 import projectsRoutes from "./routes/projects.ts";
 import developersRoutes from "./routes/developers.ts";
 import destinationsRoutes from "./routes/destinations.ts";
@@ -22,8 +24,21 @@ async function startServer() {
 
   const app = express();
 
+  // Trust reverse-proxy headers so req.protocol is 'https' in production
+  app.set("trust proxy", 1);
+
   app.use(express.json());
   app.use("/uploads", express.static(uploadsDir));
+
+  // Rate limiting — login endpoint
+  const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: "Too many login attempts. Please try again in 15 minutes." },
+  });
+  app.use("/api/auth/login", loginLimiter);
 
   // API routes
   app.use("/api/auth", authRoutes);
@@ -39,6 +54,22 @@ async function startServer() {
   app.use("/api/leads", leadsRoutes);
   app.use("/api/admin/stats", statsRoutes);
   app.use("/api/upload", uploadRoutes);
+
+  // Newsletter subscriber endpoint
+  app.post("/api/newsletter", (req, res) => {
+    const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ error: "A valid email address is required." });
+    }
+    try {
+      db.prepare(
+        "INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)"
+      ).run(email);
+      res.json({ success: true, message: "You have been subscribed." });
+    } catch (err: any) {
+      res.status(500).json({ error: "Could not save subscription." });
+    }
+  });
 
   // Ensure unknown API routes always return JSON, never SPA HTML.
   app.use("/api/*", (req, res) => {
@@ -103,7 +134,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    process.stdout.write(`Server running on port ${PORT}\n`);
   });
 }
 

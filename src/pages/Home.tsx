@@ -11,7 +11,6 @@ import { GlassPanel } from '../components/ui/glass-panel';
 import { SectionHeading } from '../components/ui/section-heading';
 import { Blog, Destination, Developer, Project } from '../types';
 
-const PROPERTY_TYPES = ['Apartment', 'Villa', 'Penthouse', 'Townhouse'];
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
 
 export default function Home() {
@@ -20,6 +19,7 @@ export default function Home() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
 
   const [locationQuery, setLocationQuery] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -59,6 +59,13 @@ export default function Home() {
     fetch('/api/blogs?limit=3')
       .then((res) => res.json())
       .then((data) => setBlogs(normalize<Blog>(data, 'blogs')));
+
+    fetch('/api/property-types')
+      .then((res) => res.json())
+      .then((data: { name: string }[]) =>
+        setPropertyTypes(Array.isArray(data) ? data.map((pt) => pt.name) : [])
+      )
+      .catch(() => setPropertyTypes([]));
   }, []);
 
   const latestProjects = useMemo(() => projects.slice(0, 3), [projects]);
@@ -133,7 +140,7 @@ export default function Home() {
                     className="w-full bg-transparent text-sm text-white focus:outline-none"
                   >
                     <option value="" className="text-slate-900">Any Type</option>
-                    {PROPERTY_TYPES.map((type) => (
+                    {propertyTypes.map((type) => (
                       <option key={type} value={type} className="text-slate-900">
                         {type}
                       </option>

@@ -104,7 +104,14 @@ function seedData() {
 
   const adminExists = db.prepare("SELECT id FROM users WHERE username = ?").get("admin");
   if (!adminExists) {
-    const hashedPassword = bcrypt.hashSync("admin123", 10);
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || "admin123";
+    if (initialPassword === "admin123") {
+      process.stderr.write(
+        "[WARN] Default admin password 'admin123' is in use. " +
+        "Set ADMIN_INITIAL_PASSWORD env variable before first run, or change it via the admin panel.\n"
+      );
+    }
+    const hashedPassword = bcrypt.hashSync(initialPassword, 10);
     db.prepare("INSERT INTO users (username, password) VALUES (?, ?)").run("admin", hashedPassword);
   }
 }

@@ -1,4 +1,5 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
+import type { FormEvent } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
@@ -100,6 +101,55 @@ function ConditionalNavbar() {
   return <Navbar />;
 }
 
+function NewsletterForm() {
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setStatus('loading');
+    try {
+      const res = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (res.ok) {
+        setStatus('success');
+        setEmail('');
+      } else {
+        setStatus('error');
+      }
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  if (status === 'success') {
+    return <p className="text-sm text-emerald-400">You're subscribed. Thank you!</p>;
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <input
+        type="email"
+        required
+        value={email}
+        onChange={(e) => { setEmail(e.target.value); setStatus('idle'); }}
+        placeholder="Email"
+        className="flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none"
+      />
+      <Button type="submit" size="sm" disabled={status === 'loading'}>
+        {status === 'loading' ? '...' : 'Join'}
+      </Button>
+      {status === 'error' && (
+        <p className="mt-1 text-xs text-red-400">Try again.</p>
+      )}
+    </form>
+  );
+}
+
 function Footer() {
   const location = useLocation();
   const isAdmin = location.pathname.startsWith('/admin');
@@ -150,14 +200,7 @@ function Footer() {
           <div>
             <h4 className="mb-6 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Stay Updated</h4>
             <p className="mb-4 text-sm text-slate-300">Get curated launches and market updates for premium buyers.</p>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                placeholder="Email"
-                className="flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none"
-              />
-              <Button size="sm" >Join</Button>
-            </div>
+            <NewsletterForm />
           </div>
         </div>
         <div className="relative mt-16 border-t border-white/10 pt-8 text-center text-xs text-slate-400">

@@ -9,22 +9,19 @@ const founders = [
     name: 'Nour Hassan',
     role: 'Chief Executive Officer',
     bio: 'Nour leads strategy and partnerships with a clear focus on long-term value and world-class client experience.',
-    image:
-      'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=900',
+    image: 'https://ui-avatars.com/api/?name=Nour+Hassan&background=1e293b&color=ffffff&size=400&bold=true',
   },
   {
     name: 'Karim Adel',
     role: 'Co-Founder & Investment Director',
     bio: 'Karim shapes our investment lens, selecting high-growth opportunities across Egypt\'s most desirable locations.',
-    image:
-      'https://images.unsplash.com/photo-1557862921-37829c790f19?auto=format&fit=crop&q=80&w=900',
+    image: 'https://ui-avatars.com/api/?name=Karim+Adel&background=0f172a&color=ffffff&size=400&bold=true',
   },
   {
     name: 'Maya Fares',
     role: 'Co-Founder & Design Director',
     bio: 'Maya brings a modern design perspective to every touchpoint, ensuring elegant and intuitive experiences.',
-    image:
-      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=900',
+    image: 'https://ui-avatars.com/api/?name=Maya+Fares&background=334155&color=ffffff&size=400&bold=true',
   },
 ];
 

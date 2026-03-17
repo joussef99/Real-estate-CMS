@@ -32,6 +32,15 @@ export function ensureDatabaseInitialized(dbPath = getDatabasePath()) {
     }
 
     ensureColumnExists(db, "careers", "apply_link", "TEXT");
+
+    // Newsletter subscribers table (added for production)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL UNIQUE,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
   } finally {
     db.close();
   }

@@ -5,7 +5,7 @@ import { db } from "../db/database.ts";
 import { authenticate, getJWTSecret } from "../middleware/auth.ts";
 
 const router = Router();
-const JWT_SECRET = getJWTSecret();
+const JWT_SECRET = getJWTSecret(); // validated at startup; throws if missing
 
 // Login route
 router.post("/login", (req, res) => {
