@@ -3,8 +3,9 @@ import express from "express";
 import path from "path";
 import { createServer as createViteServer } from "vite";
 import { initializeDatabase, db } from "./db/database.ts";
-import authRoutes from "./routes/auth.ts";
 import rateLimit from "express-rate-limit";
+import authRoutes from "./routes/auth.ts";
+import { authenticate } from "./middleware/auth.ts";
 import projectsRoutes from "./routes/projects.ts";
 import developersRoutes from "./routes/developers.ts";
 import destinationsRoutes from "./routes/destinations.ts";
@@ -68,6 +69,28 @@ async function startServer() {
       res.json({ success: true, message: "You have been subscribed." });
     } catch (err: any) {
       res.status(500).json({ error: "Could not save subscription." });
+    }
+  });
+
+  // Get newsletter subscribers (admin only)
+  app.get("/api/newsletter", authenticate, (req, res) => {
+    try {
+      const subscribers = db.prepare(
+        "SELECT id, email, created_at FROM newsletter_subscribers ORDER BY created_at DESC"
+      ).all();
+      res.json(subscribers);
+    } catch (err: any) {
+      res.status(500).json({ error: err?.message || "Could not fetch subscribers." });
+    }
+  });
+
+  // Delete newsletter subscriber (admin only)
+  app.delete("/api/newsletter/:id", authenticate, (req, res) => {
+    try {
+      db.prepare("DELETE FROM newsletter_subscribers WHERE id = ?").run(req.params.id);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: "Could not delete subscriber." });
     }
   });
 
