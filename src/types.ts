@@ -69,4 +69,5 @@ export interface Career {
   type: string;
   description: string;
   requirements: string;
+  apply_link?: string | null;
 }

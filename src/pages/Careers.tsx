@@ -6,6 +6,8 @@ import { Briefcase, MapPin, Clock } from 'lucide-react';
 export default function Careers() {
   const [jobs, setJobs] = useState<Career[]>([]);
 
+  const hasApplyLink = (career: Career) => Boolean(career.apply_link?.trim());
+
   useEffect(() => {
     fetch('/api/careers').then(res => res.json()).then(setJobs);
   }, []);
@@ -29,7 +31,17 @@ export default function Careers() {
                     <span className="flex items-center"><Clock className="mr-1 h-4 w-4" /> {job.type}</span>
                   </div>
                 </div>
-                <Button variant="outline" className="mt-4 md:mt-0">Apply Now</Button>
+                {hasApplyLink(job) ? (
+                  <Button asChild variant="outline" className="mt-4 md:mt-0">
+                    <a href={job.apply_link!} target="_blank" rel="noreferrer">
+                      Apply Now
+                    </a>
+                  </Button>
+                ) : (
+                  <Button variant="outline" className="mt-4 md:mt-0" disabled>
+                    Apply Now
+                  </Button>
+                )}
               </div>
             ))
           ) : (

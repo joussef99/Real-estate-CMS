@@ -12,6 +12,7 @@ export default function AddEditCareer() {
     type: 'Full-time',
     description: '',
     requirements: '',
+    apply_link: '',
   });
   const navigate = useNavigate();
   const token = localStorage.getItem('admin_token');
@@ -29,6 +30,7 @@ export default function AddEditCareer() {
               type: career.type,
               description: career.description,
               requirements: career.requirements,
+              apply_link: career.apply_link || '',
             });
           }
         });
@@ -121,6 +123,17 @@ export default function AddEditCareer() {
                   value={formData.requirements}
                   onChange={e => setFormData({ ...formData, requirements: e.target.value })}
                   required
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-700">Apply Link</label>
+                <input
+                  type="url"
+                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                  value={formData.apply_link}
+                  onChange={e => setFormData({ ...formData, apply_link: e.target.value })}
+                  placeholder="https://jobs.example.com/apply"
                 />
               </div>
 

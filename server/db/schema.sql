@@ -67,7 +67,8 @@ CREATE TABLE IF NOT EXISTS careers (
   location TEXT,
   type TEXT,
   description TEXT,
-  requirements TEXT
+  requirements TEXT,
+  apply_link TEXT
 );
 
 CREATE TABLE IF NOT EXISTS property_types (
