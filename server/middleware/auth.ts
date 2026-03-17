@@ -1,5 +1,8 @@
 import jwt from "jsonwebtoken";
 
+if (!process.env.JWT_SECRET) {
+  console.warn("[WARN] JWT_SECRET env variable is not set. Using insecure default — set JWT_SECRET in production.");
+}
 const JWT_SECRET = process.env.JWT_SECRET || "super-secret-key-change-me";
 
 export function authenticate(req, res, next) {

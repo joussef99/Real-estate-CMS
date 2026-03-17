@@ -118,13 +118,13 @@ function Footer() {
               A premium real estate platform connecting modern investors with extraordinary properties and trusted developers.
             </p>
             <div className="mt-6 flex gap-3">
-              <a href="#" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Instagram">
+              <a href="https://www.instagram.com/livin.investments" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Instagram">
                 <Instagram className="h-4 w-4" />
               </a>
-              <a href="#" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/company/livin-ofo" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="LinkedIn">
                 <Linkedin className="h-4 w-4" />
               </a>
-              <a href="#" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Facebook">
+              <a href="https://www.facebook.com/share/1cQKZQ4fYw/" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Facebook">
                 <Facebook className="h-4 w-4" />
               </a>
             </div>
@@ -156,7 +156,7 @@ function Footer() {
                 placeholder="Email"
                 className="flex-1 rounded-2xl border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-slate-400 focus:outline-none"
               />
-              <Button size="sm">Join</Button>
+              <Button size="sm" >Join</Button>
             </div>
           </div>
         </div>

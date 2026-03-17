@@ -61,7 +61,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold">Email Us</h3>
-                  <p className="text-zinc-500">info@luxeestate.com</p>
+                  <p className="text-zinc-500">operationslivin@gmail.com</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -70,7 +70,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold">Call Us</h3>
-                  <p className="text-zinc-500">+1 234 567 890</p>
+                  <p className="text-zinc-500"> +20 150 108 7033</p>
                 </div>
               </div>
               <div className="flex items-start">
@@ -79,7 +79,7 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="font-bold">Visit Us</h3>
-                  <p className="text-zinc-500">123 Luxury Lane, Beverly Hills, CA 90210</p>
+                  <p className="text-zinc-500">18 ABBAS ELAKKAD, Nacr City, Cairo</p>
                 </div>
               </div>
             </div>

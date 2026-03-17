@@ -376,7 +376,7 @@ router.post("/", authenticate, safe((req, res) => {
 
   const result = db.prepare(`
     INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, featured, beds, size, main_image, slug, meta_title, meta_description)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(name, location, price_range, type, status, description, JSON.stringify(gallery), developer_id, destination_id, is_featured ? 1 : 0, featuredValue, beds, size, gallery?.[0] || null, finalSlug, finalMetaTitle, finalMetaDescription);
 
   const projectId = result.lastInsertRowid;
