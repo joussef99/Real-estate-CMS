@@ -33,6 +33,7 @@ const AddEditCareer = lazy(() => import('./pages/admin/AddEditCareer'));
 const AdminPropertyTypes = lazy(() => import('./pages/admin/AdminPropertyTypes'));
 const AdminAmenities = lazy(() => import('./pages/admin/AdminAmenities'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
+const ChangePassword = lazy(() => import('./pages/admin/ChangePassword'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="/admin/property-types" element={<AdminPropertyTypes />} />
             <Route path="/admin/amenities" element={<AdminAmenities />} />
             <Route path="/admin/leads" element={<AdminLeads />} />
+            <Route path="/admin/change-password" element={<ChangePassword />} />
             <Route path="*" element={<div className="pt-32 text-center">Page Not Found</div>} />
           </Routes>
         </Suspense>

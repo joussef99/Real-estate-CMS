@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Building2, MapPin, Newspaper, Plus, LayoutDashboard } from 'lucide-react';
+import { Building2, MapPin, Newspaper, Plus, LayoutDashboard, KeyRound } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 
@@ -69,6 +69,20 @@ export default function Dashboard() {
             </Link>
             <Link to="/admin/careers/new">
               <Button variant="outline" className="w-full justify-start">Post Job Opening</Button>
+            </Link>
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-3xl border border-zinc-100 bg-white p-8 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-zinc-900">Account Security</h2>
+              <p className="mt-2 text-sm text-zinc-500">Rotate the admin password without leaving the dashboard.</p>
+            </div>
+            <Link to="/admin/change-password">
+              <Button className="flex items-center">
+                <KeyRound className="mr-2 h-4 w-4" /> Change Password
+              </Button>
             </Link>
           </div>
         </div>

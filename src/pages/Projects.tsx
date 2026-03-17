@@ -13,6 +13,7 @@ interface ProjectFilters {
   keyword: string;
   developer: string;
   destination: string;
+  property_type: string;
   price_min: string;
   price_max: string;
 }
@@ -37,6 +38,7 @@ const getInitialFilters = (searchParams: URLSearchParams): ProjectFilters => {
     keyword: searchParams.get('keyword') || searchParams.get('q') || '',
     developer: searchParams.get('developer') || '',
     destination: searchParams.get('destination') || '',
+    property_type: searchParams.get('property_type') || searchParams.get('types')?.split(',').map((value) => value.trim()).find(Boolean) || '',
     price_min: searchParams.get('price_min') || legacyPriceRange.price_min,
     price_max: searchParams.get('price_max') || legacyPriceRange.price_max,
   };
@@ -48,6 +50,7 @@ export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1));
@@ -55,24 +58,23 @@ export default function Projects() {
   const [totalResults, setTotalResults] = useState(0);
   const [filters, setFilters] = useState<ProjectFilters>(() => getInitialFilters(searchParams));
   const [debouncedFilters, setDebouncedFilters] = useState<ProjectFilters>(() => getInitialFilters(searchParams));
-  const [legacyPropertyType, setLegacyPropertyType] = useState(() => searchParams.get('property_type') || searchParams.get('types')?.split(',').map((value) => value.trim()).find(Boolean) || '');
   const [showFilters, setShowFilters] = useState(searchParams.toString().length > 0);
   const hasActiveQuery = Boolean(
     debouncedFilters.keyword.trim() ||
     debouncedFilters.developer ||
     debouncedFilters.destination ||
+    debouncedFilters.property_type ||
     debouncedFilters.price_min ||
-    debouncedFilters.price_max ||
-    legacyPropertyType,
+    debouncedFilters.price_max,
   );
 
   const activeFiltersCount = [
     filters.keyword.trim(),
     filters.developer,
     filters.destination,
+    filters.property_type,
     filters.price_min,
     filters.price_max,
-    legacyPropertyType,
   ].filter(Boolean).length;
 
   const selectedDeveloper = developers.find((developer) => String(developer.id) === filters.developer);
@@ -119,6 +121,17 @@ export default function Projects() {
       });
     }
 
+    if (filters.property_type) {
+      chips.push({
+        key: 'property_type',
+        label: `Type: ${filters.property_type}`,
+        clear: () => {
+          setFilters((current) => ({ ...current, property_type: '' }));
+          setCurrentPage(1);
+        },
+      });
+    }
+
     if (filters.price_min) {
       chips.push({
         key: 'price_min',
@@ -141,19 +154,8 @@ export default function Projects() {
       });
     }
 
-    if (legacyPropertyType) {
-      chips.push({
-        key: 'property_type',
-        label: `Type: ${legacyPropertyType}`,
-        clear: () => {
-          setLegacyPropertyType('');
-          setCurrentPage(1);
-        },
-      });
-    }
-
     return chips;
-  }, [filters, legacyPropertyType, selectedDeveloper, selectedDestination]);
+  }, [filters, selectedDeveloper, selectedDestination]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -169,10 +171,12 @@ export default function Projects() {
     Promise.all([
       fetch('/api/developers', { signal: controller.signal }).then((res) => res.json()),
       fetch('/api/destinations', { signal: controller.signal }).then((res) => res.json()),
+      fetch('/api/property-types', { signal: controller.signal }).then((res) => res.json()),
     ])
-      .then(([developersData, destinationsData]) => {
+      .then(([developersData, destinationsData, propertyTypesData]) => {
         setDevelopers(normalize<Developer>(developersData, 'developers'));
         setDestinations(normalize<Destination>(destinationsData, 'destinations'));
+        setPropertyTypes((Array.isArray(propertyTypesData) ? propertyTypesData : []).map((item: { name: string }) => item.name).filter(Boolean));
       })
       .catch((err) => {
         if (err?.name !== 'AbortError') {
@@ -188,12 +192,12 @@ export default function Projects() {
     if (filters.keyword.trim()) params.set('keyword', filters.keyword.trim());
     if (filters.developer) params.set('developer', filters.developer);
     if (filters.destination) params.set('destination', filters.destination);
+    if (filters.property_type) params.set('property_type', filters.property_type);
     if (filters.price_min) params.set('price_min', filters.price_min);
     if (filters.price_max) params.set('price_max', filters.price_max);
-    if (legacyPropertyType) params.set('property_type', legacyPropertyType);
     if (currentPage > 1) params.set('page', String(currentPage));
     setSearchParams(params, { replace: true });
-  }, [filters, legacyPropertyType, currentPage, setSearchParams]);
+  }, [filters, currentPage, setSearchParams]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -205,9 +209,9 @@ export default function Projects() {
     if (debouncedFilters.keyword.trim()) params.set('keyword', debouncedFilters.keyword.trim());
     if (debouncedFilters.developer) params.set('developer', debouncedFilters.developer);
     if (debouncedFilters.destination) params.set('destination', debouncedFilters.destination);
+    if (debouncedFilters.property_type) params.set('property_type', debouncedFilters.property_type);
     if (debouncedFilters.price_min) params.set('price_min', debouncedFilters.price_min);
     if (debouncedFilters.price_max) params.set('price_max', debouncedFilters.price_max);
-    if (legacyPropertyType) params.set('property_type', legacyPropertyType);
 
     setLoading(true);
     setError(null);
@@ -240,7 +244,7 @@ export default function Projects() {
       });
 
     return () => controller.abort();
-  }, [currentPage, debouncedFilters, legacyPropertyType]);
+  }, [currentPage, debouncedFilters]);
 
   useEffect(() => {
     setCurrentPage(Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1));
@@ -256,10 +260,10 @@ export default function Projects() {
       keyword: '',
       developer: '',
       destination: '',
+      property_type: '',
       price_min: '',
       price_max: '',
     });
-    setLegacyPropertyType('');
     setCurrentPage(1);
   };
 
@@ -321,7 +325,7 @@ export default function Projects() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-8 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-8 md:grid-cols-2 xl:grid-cols-5">
                   <div>
                     <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Developer</label>
                     <select
@@ -346,6 +350,20 @@ export default function Projects() {
                       <option value="">All destinations</option>
                       {destinations.map((destination) => (
                         <option key={destination.id} value={destination.id}>{destination.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Property Type</label>
+                    <select
+                      value={filters.property_type}
+                      onChange={(e) => updateFilters({ property_type: e.target.value })}
+                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
+                    >
+                      <option value="">All property types</option>
+                      {propertyTypes.map((propertyType) => (
+                        <option key={propertyType} value={propertyType}>{propertyType}</option>
                       ))}
                     </select>
                   </div>

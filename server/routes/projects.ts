@@ -183,8 +183,8 @@ router.get("/search", safe((req, res) => {
   const params: any[] = [];
 
   if (keyword) {
-    whereConditions.push("(p.name LIKE ? OR p.location LIKE ? OR d.name LIKE ? OR dest.name LIKE ?)");
-    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+    whereConditions.push("(p.name LIKE ? OR p.location LIKE ? OR p.type LIKE ? OR d.name LIKE ? OR dest.name LIKE ?)");
+    params.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
   }
 
   if (destination_id) {

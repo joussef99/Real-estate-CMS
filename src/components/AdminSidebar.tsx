@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Building2, MapPin, Newspaper, Briefcase, LogOut, Tag, Mail, Zap } from 'lucide-react';
+import { LayoutDashboard, Building2, MapPin, Newspaper, Briefcase, LogOut, Tag, Mail, Zap, KeyRound } from 'lucide-react';
 
 export function AdminSidebar() {
   const navigate = useNavigate();
@@ -20,6 +20,7 @@ export function AdminSidebar() {
     { name: 'Property Types', path: '/admin/property-types', icon: Tag },
     { name: 'Amenities', path: '/admin/amenities', icon: Zap },
     { name: 'Leads', path: '/admin/leads', icon: Mail },
+    { name: 'Change Password', path: '/admin/change-password', icon: KeyRound },
   ];
 
   return (
