@@ -9,7 +9,7 @@ ensureDatabaseInitialized(DB_PATH);
 
 export const db = new Database(DB_PATH);
 
-type AddColumnTarget = "developers" | "projects" | "blogs";
+type AddColumnTarget = "developers" | "projects" | "blogs" | "destinations";
 
 const slugify = (text: string) =>
   text
@@ -66,14 +66,17 @@ function runBackwardCompatibleMigrations() {
   addColumnIfMissing("blogs", "slug TEXT");
   addColumnIfMissing("blogs", "meta_title TEXT");
   addColumnIfMissing("blogs", "meta_description TEXT");
+  addColumnIfMissing("destinations", "slug TEXT");
 
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_developers_slug ON developers(slug)");
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug)");
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON blogs(slug)");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_destinations_slug ON destinations(slug)");
 
   ensureSlugValues("developers", "id", "name", "developer");
   ensureSlugValues("projects", "id", "name", "project");
   ensureSlugValues("blogs", "id", "title", "blog");
+  ensureSlugValues("destinations", "id", "name", "destination");
 }
 
 function seedData() {

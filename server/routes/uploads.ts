@@ -1,36 +1,56 @@
 import { Router } from "express";
 import { upload, uploadDeveloper, uploadDestination, uploadsDir, developerUploadsDir, destinationUploadsDir } from "../utils/uploads.ts";
+import { optimizeAndSaveImage } from "../utils/imageOptimization.ts";
+
+interface UploadedImageFile {
+  buffer: Buffer;
+  originalname: string;
+}
 
 const router = Router();
 
 // POST /api/upload (upload multiple project images)
-router.post("/", upload.array('images', 10), (req: any, res) => {
+router.post("/", upload.array('images', 10), async (req: any, res, next) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No files uploaded" });
   }
-  
-  const uploadedPaths = req.files.map(file => `/uploads/${file.filename}`);
-  res.json({ images: uploadedPaths });
+
+  try {
+    const uploadedPaths = await Promise.all(
+      req.files.map((file: UploadedImageFile) => optimizeAndSaveImage(file, uploadsDir, '/uploads')),
+    );
+    res.json({ images: uploadedPaths });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // POST /api/upload/developer-logo (upload developer logo)
-router.post("/developer-logo", uploadDeveloper.single('logo'), (req: any, res) => {
+router.post("/developer-logo", uploadDeveloper.single('logo'), async (req: any, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
-  
-  const logoPath = `/uploads/developers/${req.file.filename}`;
-  res.json({ logo: logoPath });
+
+  try {
+    const logoPath = await optimizeAndSaveImage(req.file, developerUploadsDir, '/uploads/developers');
+    res.json({ logo: logoPath });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // POST /api/upload/destination-image (upload destination image)
-router.post("/destination-image", uploadDestination.single('image'), (req: any, res) => {
+router.post("/destination-image", uploadDestination.single('image'), async (req: any, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
-  
-  const imagePath = `/uploads/destinations/${req.file.filename}`;
-  res.json({ image: imagePath });
+
+  try {
+    const imagePath = await optimizeAndSaveImage(req.file, destinationUploadsDir, '/uploads/destinations');
+    res.json({ image: imagePath });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

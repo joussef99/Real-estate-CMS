@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ProjectCard } from '../components/ProjectCard';
+import { ProjectCardSkeleton } from '../components/ui/project-card-skeleton';
 import { Project } from '../types';
-import { Search, Filter, X, ChevronDown } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const BED_OPTIONS = ['1', '2', '3', '4', '5'];
@@ -16,14 +17,25 @@ const PRICE_RANGES = [
 export default function Projects() {
   const [searchParams, setSearchParams] = useSearchParams();
   const developerFilter = searchParams.get('developer');
+  const pageParam = Number(searchParams.get('page') || '1');
   const [projects, setProjects] = useState<Project[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1));
+  const [totalPages, setTotalPages] = useState(1);
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [selectedTypes, setSelectedTypes] = useState<string[]>(searchParams.get('types')?.split(',').filter(Boolean) || []);
   const [selectedBeds, setSelectedBeds] = useState<string[]>(searchParams.get('beds')?.split(',').filter(Boolean) || []);
   const [selectedPriceRanges, setSelectedPriceRanges] = useState<string[]>(searchParams.get('prices')?.split(',').filter(Boolean) || []);
   const [selectedDestinations, setSelectedDestinations] = useState<string[]>(searchParams.get('destinations')?.split(',').filter(Boolean) || []);
   const [showFilters, setShowFilters] = useState(searchParams.toString().length > 0);
+  const hasActiveQuery = Boolean(
+    search ||
+    selectedTypes.length ||
+    selectedBeds.length ||
+    selectedPriceRanges.length ||
+    selectedDestinations.length,
+  );
 
   useEffect(() => {
     const normalize = <T,>(data: any, key?: string): T[] => {
@@ -33,17 +45,24 @@ export default function Projects() {
       return [];
     };
 
+    setLoading(true);
+    const paginationQuery = hasActiveQuery ? 'limit=1000&page=1' : `limit=12&page=${currentPage}`;
     const projectUrl = developerFilter
-      ? `/api/projects?developer_id=${encodeURIComponent(developerFilter)}`
-      : '/api/projects';
+      ? `/api/projects?developer_id=${encodeURIComponent(developerFilter)}&${paginationQuery}`
+      : `/api/projects?${paginationQuery}`;
     fetch(projectUrl)
       .then(res => res.json())
-      .then(data => setProjects(normalize<Project>(data, 'projects')));
+      .then(data => {
+        setProjects(normalize<Project>(data, 'projects'));
+        setCurrentPage(hasActiveQuery ? 1 : data?.current_page || currentPage);
+        setTotalPages(hasActiveQuery ? 1 : Math.max(data?.total_pages || 1, 1));
+      })
+      .finally(() => setLoading(false));
 
     fetch('/api/property-types')
       .then(res => res.json())
       .then(data => setPropertyTypes((Array.isArray(data) ? data : []).map(pt => pt.name)));
-  }, []);
+  }, [currentPage, developerFilter, hasActiveQuery]);
 
   // Update URL when filters change
   useEffect(() => {
@@ -54,8 +73,13 @@ export default function Projects() {
     if (selectedPriceRanges.length) params.set('prices', selectedPriceRanges.join(','));
     if (selectedDestinations.length) params.set('destinations', selectedDestinations.join(','));
     if (developerFilter) params.set('developer', developerFilter);
+    if (currentPage > 1) params.set('page', String(currentPage));
     setSearchParams(params, { replace: true });
-  }, [search, selectedTypes, selectedBeds, selectedPriceRanges, selectedDestinations, developerFilter, setSearchParams]);
+  }, [search, selectedTypes, selectedBeds, selectedPriceRanges, selectedDestinations, developerFilter, currentPage, setSearchParams]);
+
+  useEffect(() => {
+    setCurrentPage(Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1));
+  }, [pageParam]);
 
   const toggleFilter = (list: string[], setList: (val: string[]) => void, item: string) => {
     if (list.includes(item)) {
@@ -278,12 +302,12 @@ export default function Projects() {
 
         {/* Grid */}
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {filteredProjects.map(project => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
+          {loading
+            ? Array.from({ length: 6 }).map((_, index) => <ProjectCardSkeleton key={index} />)
+            : filteredProjects.map(project => <ProjectCard key={project.id} project={project} />)}
         </div>
 
-        {filteredProjects.length === 0 && (
+        {!loading && filteredProjects.length === 0 && (
           <div className="py-24 text-center">
             <p className="text-lg text-zinc-500">No projects found matching your criteria.</p>
             <button 
@@ -298,6 +322,34 @@ export default function Projects() {
             >
               Reset all search and filters
             </button>
+          </div>
+        )}
+
+        {!loading && !hasActiveQuery && totalPages > 1 && (
+          <div className="mt-12 flex flex-col items-center justify-between gap-4 rounded-2xl border border-zinc-100 bg-white px-6 py-4 shadow-sm md:flex-row">
+            <p className="text-sm text-zinc-500">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(page - 1, 1))}
+                disabled={currentPage === 1}
+                className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(page + 1, totalPages))}
+                disabled={currentPage >= totalPages}
+                className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         )}
       </div>

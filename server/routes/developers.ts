@@ -66,7 +66,21 @@ router.get("/:slug/projects", safe((req, res) => {
   }
 
   const projects = db.prepare(`
-    SELECT p.*, d.name as developer_name, dest.name as destination_name
+    SELECT
+      p.id,
+      p.name,
+      p.location,
+      p.price_range,
+      p.type,
+      p.main_image,
+      p.developer_id,
+      p.destination_id,
+      p.beds,
+      p.size,
+      p.slug,
+      d.name as developer_name,
+      dest.name as destination_name,
+      dest.slug as destination_slug
     FROM projects p
     LEFT JOIN developers d ON p.developer_id = d.id
     LEFT JOIN destinations dest ON p.destination_id = dest.id

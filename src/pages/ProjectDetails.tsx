@@ -137,7 +137,40 @@ export default function ProjectDetails() {
   const amenities = projectAmenities.map((a: any) => a.name);
   const galleryImages = getGalleryImages();
 
-  if (loading) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="pt-24 pb-24">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="aspect-video animate-pulse rounded-[2.5rem] bg-slate-200" />
+          <div className="mt-16 grid gap-12 lg:grid-cols-3">
+            <div className="space-y-6 lg:col-span-2">
+              <div className="h-12 w-3/4 animate-pulse rounded-2xl bg-slate-200" />
+              <div className="grid grid-cols-2 gap-6 rounded-3xl bg-slate-100 p-8 sm:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={index} className="h-16 animate-pulse rounded-2xl bg-white" />
+                ))}
+              </div>
+              <div className="space-y-4">
+                <div className="h-6 w-48 animate-pulse rounded-xl bg-slate-200" />
+                <div className="h-5 animate-pulse rounded bg-slate-200" />
+                <div className="h-5 animate-pulse rounded bg-slate-200" />
+                <div className="h-5 w-5/6 animate-pulse rounded bg-slate-200" />
+              </div>
+            </div>
+            <div className="rounded-3xl border border-zinc-200 bg-white p-8 shadow-xl">
+              <div className="mb-6 h-8 w-2/3 animate-pulse rounded-xl bg-slate-200" />
+              <div className="space-y-4">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div key={index} className="h-12 animate-pulse rounded-xl bg-slate-200" />
+                ))}
+                <div className="h-12 animate-pulse rounded-2xl bg-slate-900/15" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (!project) return <div className="flex h-screen items-center justify-center">Project not found</div>;
 
   return (
@@ -146,7 +179,7 @@ export default function ProjectDetails() {
       <div className="mx-auto max-w-7xl px-6">
         <div className="space-y-6">
           {/* Main Image Container */}
-          <div className="group relative aspect-[16/9] w-full overflow-hidden rounded-[2.5rem] bg-zinc-100 shadow-2xl">
+          <div className="group relative aspect-video w-full overflow-hidden rounded-[2.5rem] bg-zinc-100 shadow-2xl">
             <motion.img
               key={activeImage}
               initial={{ opacity: 0, scale: 1.05 }}
@@ -155,8 +188,10 @@ export default function ProjectDetails() {
               src={activeImage}
               alt={project.name}
               className="h-full w-full object-cover"
+              fetchPriority="high"
+              decoding="async"
               referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none" />
+            <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
 
             {/* Navigation Buttons */}
             {galleryImages.length > 1 && (
@@ -194,9 +229,9 @@ export default function ProjectDetails() {
                     key={i}
                     whileHover={{ scale: 1.02 }}
                     onClick={() => setActiveImage(img)}
-                    className={`relative aspect-[3/2] w-32 flex-shrink-0 overflow-hidden rounded-2xl border-2 transition-all duration-300 md:w-48 ${activeImage === img ? 'border-black ring-4 ring-black/5' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                    className={`relative aspect-3/2 w-32 shrink-0 overflow-hidden rounded-2xl border-2 transition-all duration-300 md:w-48 ${activeImage === img ? 'border-black ring-4 ring-black/5' : 'border-transparent opacity-60 hover:opacity-100'}`}
                   >
-                    <img src={img} alt={`Gallery ${i}`} className="h-full w-full object-cover" referrerPolicy="no-referrer" />
+                    <img src={img} alt={`Gallery ${i}`} className="h-full w-full object-cover" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                     {activeImage === img && (
                       <motion.div
                         layoutId="active-indicator"
@@ -206,8 +241,8 @@ export default function ProjectDetails() {
                 ))}
               </div>
               {/* Fade edges for carousel */}
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-gradient-to-r from-white to-transparent opacity-0 md:opacity-100" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-white to-transparent opacity-0 md:opacity-100" />
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-12 bg-linear-to-r from-white to-transparent opacity-0 md:opacity-100" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-linear-to-l from-white to-transparent opacity-0 md:opacity-100" />
             </div>
           )}
         </div>

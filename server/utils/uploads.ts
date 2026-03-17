@@ -22,44 +22,10 @@ if (!fs.existsSync(destinationUploadsDir)) {
   fs.mkdirSync(destinationUploadsDir, { recursive: true });
 }
 
-// Multer configuration for projects
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext).replace(/\s+/g, '-');
-    cb(null, `${name}-${Date.now()}${ext}`);
-  }
-});
-
-// Multer configuration for developers
-const developerStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, developerUploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext).replace(/\s+/g, '-');
-    cb(null, `${name}-${Date.now()}${ext}`);
-  }
-});
-
-// Multer configuration for destinations
-const destinationStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, destinationUploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const name = path.basename(file.originalname, ext).replace(/\s+/g, '-');
-    cb(null, `${name}-${Date.now()}${ext}`);
-  }
-});
+const memoryStorage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -68,19 +34,19 @@ const fileFilter = (req, file, cb) => {
 };
 
 export const upload = multer({
-  storage: storage,
+  storage: memoryStorage,
   fileFilter: fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 export const uploadDeveloper = multer({
-  storage: developerStorage,
+  storage: memoryStorage,
   fileFilter: fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }
 });
 
 export const uploadDestination = multer({
-  storage: destinationStorage,
+  storage: memoryStorage,
   fileFilter: fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }
 });

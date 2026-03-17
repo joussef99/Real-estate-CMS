@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS destinations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   image TEXT,
-  description TEXT
+  description TEXT,
+  slug TEXT UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS projects (
@@ -103,3 +104,4 @@ CREATE TABLE IF NOT EXISTS project_amenities (
 CREATE UNIQUE INDEX IF NOT EXISTS idx_developers_slug ON developers(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_projects_slug ON projects(slug);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_blogs_slug ON blogs(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_destinations_slug ON destinations(slug);

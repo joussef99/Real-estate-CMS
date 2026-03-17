@@ -8,6 +8,9 @@ export const ProjectCard = (props: any) => {
   
   // Get the first image from gallery, or use main_image, or fallback to placeholder
   const getCardImage = () => {
+    if (project.main_image) {
+      return project.main_image;
+    }
     if (project.images && Array.isArray(project.images) && project.images.length > 0) {
       return project.images[0];
     }
@@ -19,6 +22,7 @@ export const ProjectCard = (props: any) => {
   };
 
   const projectUrl = project.slug || project.id;
+  const destinationUrl = project.destination_slug ? `/destinations/${project.destination_slug}` : '/destinations';
 
   return (
     <motion.article
@@ -35,6 +39,9 @@ export const ProjectCard = (props: any) => {
             src={getCardImage()}
             alt={project.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
@@ -50,32 +57,45 @@ export const ProjectCard = (props: any) => {
             </div>
           </div>
         </div>
+      </Link>
 
-        <div className="space-y-5 p-6">
-          <div className="grid grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4">
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Bed className="h-4 w-4 text-slate-900" />
-              <span className="font-medium">{project.beds || 'N/A'} Beds</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-slate-600">
-              <Maximize2 className="h-4 w-4 text-slate-900" />
-              <span className="font-medium">{project.size || 'Area N/A'}</span>
-            </div>
+      <div className="space-y-5 p-6">
+        <div className="grid grid-cols-2 gap-4 rounded-2xl bg-slate-50 p-4">
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Bed className="h-4 w-4 text-slate-900" />
+            <span className="font-medium">{project.beds || 'N/A'} Beds</span>
           </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0 text-sm text-slate-500">
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 shrink-0" />
-                <span className="line-clamp-1">{project.developer_name || 'Top Developer'}</span>
-              </div>
-            </div>
-            <Button size="sm" className="min-w-34.5">
-              View Details <ArrowUpRight className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Maximize2 className="h-4 w-4 text-slate-900" />
+            <span className="font-medium">{project.size || 'Area N/A'}</span>
           </div>
         </div>
-      </Link>
+
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 text-sm text-slate-500">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 shrink-0" />
+              <span className="line-clamp-1">{project.developer_name || 'Top Developer'}</span>
+            </div>
+
+            {project.destination_name && (
+              <Link
+                to={destinationUrl}
+                className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-100"
+              >
+                <MapPin className="h-3.5 w-3.5" />
+                {project.destination_name}
+              </Link>
+            )}
+          </div>
+
+          <Button size="sm" className="min-w-34.5" asChild>
+            <Link to={`/projects/${projectUrl}`}>
+              View Details <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </div>
     </motion.article>
   );
 };

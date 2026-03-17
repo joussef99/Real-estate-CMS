@@ -1,35 +1,38 @@
+import { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Link } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
-import Home from './pages/Home';
-import Projects from './pages/Projects';
-import ProjectDetails from './pages/ProjectDetails';
-import About from './pages/About';
-import Contact from './pages/Contact';
-import Careers from './pages/Careers';
-import Blogs from './pages/Blogs';
-import BlogDetails from './pages/BlogDetails';
-import Developers from './pages/Developers';
-import DeveloperProjects from './pages/DeveloperProjects';
-import Destinations from './pages/Destinations';
-import Login from './pages/admin/Login';
-import Dashboard from './pages/admin/Dashboard';
-import ManageProjects from './pages/admin/ManageProjects';
-import ManageDevelopers from './pages/admin/ManageDevelopers';
-import ManageDestinations from './pages/admin/ManageDestinations';
-import ManageBlogs from './pages/admin/ManageBlogs';
-import ManageCareers from './pages/admin/ManageCareers';
-import AddProject from './pages/admin/AddProject';
-import AddEditDeveloper from './pages/admin/AddEditDeveloper';
-import AddEditDestination from './pages/admin/AddEditDestination';
-import AddEditBlog from './pages/admin/AddEditBlog';
-import AddEditCareer from './pages/admin/AddEditCareer';
-import AdminPropertyTypes from './pages/admin/AdminPropertyTypes';
-import AdminAmenities from './pages/admin/AdminAmenities';
-import AdminLeads from './pages/admin/AdminLeads';
-import { useEffect } from 'react';
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
+import { RouteSkeleton } from './components/ui/route-skeleton';
+
+const Home = lazy(() => import('./pages/Home'));
+const Projects = lazy(() => import('./pages/Projects'));
+const ProjectDetails = lazy(() => import('./pages/ProjectDetails'));
+const About = lazy(() => import('./pages/About'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Careers = lazy(() => import('./pages/Careers'));
+const Blogs = lazy(() => import('./pages/Blogs'));
+const BlogDetails = lazy(() => import('./pages/BlogDetails'));
+const Developers = lazy(() => import('./pages/Developers'));
+const DeveloperProjects = lazy(() => import('./pages/DeveloperProjects'));
+const Destinations = lazy(() => import('./pages/Destinations'));
+const DestinationProjects = lazy(() => import('./pages/DestinationProjects'));
+const Login = lazy(() => import('./pages/admin/Login'));
+const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
+const ManageProjects = lazy(() => import('./pages/admin/ManageProjects'));
+const ManageDevelopers = lazy(() => import('./pages/admin/ManageDevelopers'));
+const ManageDestinations = lazy(() => import('./pages/admin/ManageDestinations'));
+const ManageBlogs = lazy(() => import('./pages/admin/ManageBlogs'));
+const ManageCareers = lazy(() => import('./pages/admin/ManageCareers'));
+const AddProject = lazy(() => import('./pages/admin/AddProject'));
+const AddEditDeveloper = lazy(() => import('./pages/admin/AddEditDeveloper'));
+const AddEditDestination = lazy(() => import('./pages/admin/AddEditDestination'));
+const AddEditBlog = lazy(() => import('./pages/admin/AddEditBlog'));
+const AddEditCareer = lazy(() => import('./pages/admin/AddEditCareer'));
+const AdminPropertyTypes = lazy(() => import('./pages/admin/AdminPropertyTypes'));
+const AdminAmenities = lazy(() => import('./pages/admin/AdminAmenities'));
+const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -45,49 +48,43 @@ export default function App() {
       <ScrollToTop />
       <div className="min-h-screen bg-white font-sans text-zinc-900 antialiased">
         <ConditionalNavbar />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/projects" element={<Projects />} />
-          <Route path="/projects/:slug" element={<ProjectDetails />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/careers" element={<Careers />} />
-          <Route path="/blogs" element={<Blogs />} />
-          <Route path="/blogs/:slug" element={<BlogDetails />} />
-          <Route path="/developers" element={<Developers />} />
-          <Route path="/developers/:slug" element={<DeveloperProjects />} />
-          <Route path="/destinations" element={<Destinations />} />
-          
-          {/* Admin Routes */}
-          <Route path="/admin/login" element={<Login />} />
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/projects" element={<ManageProjects />} />
-          <Route path="/admin/projects/new" element={<AddProject />} />
-          <Route path="/admin/projects/edit/:id" element={<AddProject />} />
-          
-          <Route path="/admin/developers" element={<ManageDevelopers />} />
-          <Route path="/admin/developers/new" element={<AddEditDeveloper />} />
-          <Route path="/admin/developers/edit/:id" element={<AddEditDeveloper />} />
-          
-          <Route path="/admin/destinations" element={<ManageDestinations />} />
-          <Route path="/admin/destinations/new" element={<AddEditDestination />} />
-          <Route path="/admin/destinations/edit/:id" element={<AddEditDestination />} />
-          
-          <Route path="/admin/blogs" element={<ManageBlogs />} />
-          <Route path="/admin/blogs/new" element={<AddEditBlog />} />
-          <Route path="/admin/blogs/edit/:id" element={<AddEditBlog />} />
-          
-          <Route path="/admin/careers" element={<ManageCareers />} />
-          <Route path="/admin/careers/new" element={<AddEditCareer />} />
-          <Route path="/admin/careers/edit/:id" element={<AddEditCareer />} />
-
-          <Route path="/admin/property-types" element={<AdminPropertyTypes />} />
-          <Route path="/admin/amenities" element={<AdminAmenities />} />
-          <Route path="/admin/leads" element={<AdminLeads />} />
-          
-          {/* Fallback */}
-          <Route path="*" element={<div className="pt-32 text-center">Page Not Found</div>} />
-        </Routes>
+        <Suspense fallback={<RouteSkeleton />}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/projects/:slug" element={<ProjectDetails />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/blogs" element={<Blogs />} />
+            <Route path="/blogs/:slug" element={<BlogDetails />} />
+            <Route path="/developers" element={<Developers />} />
+            <Route path="/developers/:slug" element={<DeveloperProjects />} />
+            <Route path="/destinations" element={<Destinations />} />
+            <Route path="/destinations/:slug" element={<DestinationProjects />} />
+            <Route path="/admin/login" element={<Login />} />
+            <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/admin/projects" element={<ManageProjects />} />
+            <Route path="/admin/projects/new" element={<AddProject />} />
+            <Route path="/admin/projects/edit/:id" element={<AddProject />} />
+            <Route path="/admin/developers" element={<ManageDevelopers />} />
+            <Route path="/admin/developers/new" element={<AddEditDeveloper />} />
+            <Route path="/admin/developers/edit/:id" element={<AddEditDeveloper />} />
+            <Route path="/admin/destinations" element={<ManageDestinations />} />
+            <Route path="/admin/destinations/new" element={<AddEditDestination />} />
+            <Route path="/admin/destinations/edit/:id" element={<AddEditDestination />} />
+            <Route path="/admin/blogs" element={<ManageBlogs />} />
+            <Route path="/admin/blogs/new" element={<AddEditBlog />} />
+            <Route path="/admin/blogs/edit/:id" element={<AddEditBlog />} />
+            <Route path="/admin/careers" element={<ManageCareers />} />
+            <Route path="/admin/careers/new" element={<AddEditCareer />} />
+            <Route path="/admin/careers/edit/:id" element={<AddEditCareer />} />
+            <Route path="/admin/property-types" element={<AdminPropertyTypes />} />
+            <Route path="/admin/amenities" element={<AdminAmenities />} />
+            <Route path="/admin/leads" element={<AdminLeads />} />
+            <Route path="*" element={<div className="pt-32 text-center">Page Not Found</div>} />
+          </Routes>
+        </Suspense>
         <Footer />
       </div>
     </Router>

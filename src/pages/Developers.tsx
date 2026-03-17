@@ -62,7 +62,7 @@ export default function Developers() {
               <div className="mb-12 grid gap-12 lg:grid-cols-3">
                 <div className="lg:col-span-1">
                   <div className="mb-6 h-32 w-32 overflow-hidden rounded-2xl bg-slate-50 p-6">
-                    <img src={dev.logo} alt={dev.name} className="h-full w-full object-contain" referrerPolicy="no-referrer" />
+                    <img src={dev.logo} alt={dev.name} className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
                   </div>
                   <h2 className="mb-4 text-3xl font-semibold text-slate-950">{dev.name}</h2>
                   <p className="mb-6 leading-relaxed text-gray-500">{dev.description}</p>

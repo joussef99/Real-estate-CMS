@@ -5,6 +5,23 @@ import { generateSlug } from "../utils/slug.ts";
 
 const router = Router();
 
+const PROJECT_CARD_SELECT = `
+  p.id,
+  p.name,
+  p.location,
+  p.price_range,
+  p.type,
+  p.main_image,
+  p.developer_id,
+  p.destination_id,
+  p.beds,
+  p.size,
+  p.slug,
+  d.name as developer_name,
+  dest.name as destination_name,
+  dest.slug as destination_slug
+`;
+
 const safe = (handler: (req: Request, res: Response, next: NextFunction) => any) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -65,7 +82,7 @@ router.get("/", safe((req, res) => {
   // Get paginated projects with newest first (with optional developer filter)
   const projects = developer_id
     ? db.prepare(`
-        SELECT p.*, d.name as developer_name, dest.name as destination_name
+        SELECT ${PROJECT_CARD_SELECT}
         FROM projects p
         LEFT JOIN developers d ON p.developer_id = d.id
         LEFT JOIN destinations dest ON p.destination_id = dest.id
@@ -74,7 +91,7 @@ router.get("/", safe((req, res) => {
         LIMIT ? OFFSET ?
       `).all(developer_id, limit, offset)
     : db.prepare(`
-        SELECT p.*, d.name as developer_name, dest.name as destination_name
+        SELECT ${PROJECT_CARD_SELECT}
         FROM projects p
         LEFT JOIN developers d ON p.developer_id = d.id
         LEFT JOIN destinations dest ON p.destination_id = dest.id
@@ -169,7 +186,7 @@ router.get("/search", safe((req, res) => {
 
   // Get paginated projects with filters
   let mainQuery = `
-    SELECT DISTINCT p.*, d.name as developer_name, dest.name as destination_name 
+    SELECT DISTINCT ${PROJECT_CARD_SELECT}
     FROM projects p
     LEFT JOIN developers d ON p.developer_id = d.id
     LEFT JOIN destinations dest ON p.destination_id = dest.id
@@ -205,14 +222,16 @@ router.get("/search", safe((req, res) => {
 
 // GET featured projects
 router.get("/featured", safe((req, res) => {
+  const limit = parseInt(req.query.limit as string) || 0;
   const featuredProjects = db.prepare(`
-    SELECT p.*, d.name as developer_name, dest.name as destination_name
+    SELECT ${PROJECT_CARD_SELECT}
     FROM projects p
     LEFT JOIN developers d ON p.developer_id = d.id
     LEFT JOIN destinations dest ON p.destination_id = dest.id
     WHERE IFNULL(p.featured, p.is_featured) = 1
     ORDER BY p.id DESC
-  `).all();
+    ${limit > 0 ? 'LIMIT ?' : ''}
+  `).all(...(limit > 0 ? [limit] : []));
 
   res.json({ projects: featuredProjects });
 }));
@@ -270,7 +289,7 @@ router.get("/:identifier", safe((req, res) => {
   let project;
   if (/^\d+$/.test(identifier)) {
     project = db.prepare(`
-      SELECT p.*, d.name as developer_name, dest.name as destination_name 
+      SELECT p.*, d.name as developer_name, dest.name as destination_name, dest.slug as destination_slug 
       FROM projects p
       LEFT JOIN developers d ON p.developer_id = d.id
       LEFT JOIN destinations dest ON p.destination_id = dest.id
@@ -278,7 +297,7 @@ router.get("/:identifier", safe((req, res) => {
     `).get(parseInt(identifier));
   } else {
     project = db.prepare(`
-      SELECT p.*, d.name as developer_name, dest.name as destination_name 
+      SELECT p.*, d.name as developer_name, dest.name as destination_name, dest.slug as destination_slug 
       FROM projects p
       LEFT JOIN developers d ON p.developer_id = d.id
       LEFT JOIN destinations dest ON p.destination_id = dest.id

@@ -38,11 +38,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetch('/api/projects')
+    fetch('/api/projects?limit=6')
       .then((res) => res.json())
       .then((data) => setProjects(normalize<Project>(data, 'projects')));
 
-    fetch('/api/projects/featured')
+    fetch('/api/projects/featured?limit=6')
       .then((res) => res.json())
       .then((data) => setFeaturedProjects(normalize<Project>(data, 'projects')));
 
@@ -56,7 +56,7 @@ export default function Home() {
         setDevelopers(Array.isArray(data) ? data : data?.developers || []);
       });
 
-    fetch('/api/blogs')
+    fetch('/api/blogs?limit=3')
       .then((res) => res.json())
       .then((data) => setBlogs(normalize<Blog>(data, 'blogs')));
   }, []);
@@ -84,6 +84,8 @@ export default function Home() {
           src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2200"
           alt="Luxury property"
           className="absolute inset-0 h-full w-full object-cover"
+          fetchPriority="high"
+          decoding="async"
           referrerPolicy="no-referrer"
         />
         <div className="absolute inset-0 bg-linear-to-r from-slate-950/85 via-slate-900/60 to-slate-900/25" />
@@ -228,11 +230,14 @@ export default function Home() {
                 whileHover={{ y: -8 }}
                 className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl"
               >
-                <Link to="/destinations" className="block">
+                <Link to={dest.slug ? `/destinations/${dest.slug}` : '/destinations'} className="block">
                   <img
                     src={dest.image || `https://picsum.photos/seed/destination-${dest.id}/900/1200`}
                     alt={dest.name}
                     className="h-96 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    loading="lazy"
+                    decoding="async"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950/90 via-slate-900/25 to-transparent" />
@@ -292,6 +297,8 @@ export default function Home() {
                       src={developer.logo}
                       alt={developer.name}
                       className="max-h-11 max-w-full object-contain md:max-h-14"
+                      loading="lazy"
+                      decoding="async"
                       referrerPolicy="no-referrer"
                     />
                   </div>
@@ -339,6 +346,9 @@ export default function Home() {
                     src={blog.image}
                     alt={blog.title}
                     className="h-56 w-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     referrerPolicy="no-referrer"
                   />
                   <div className="p-6">

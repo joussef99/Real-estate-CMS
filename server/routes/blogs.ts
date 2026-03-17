@@ -34,7 +34,10 @@ const makeUniqueBlogSlug = (baseSlug: string, currentId?: number): string => {
 
 // GET all blogs
 router.get("/", safe((req, res) => {
-  const blogs = db.prepare("SELECT * FROM blogs ORDER BY created_at DESC").all();
+  const limit = parseInt(req.query.limit as string) || 0;
+  const blogs = limit > 0
+    ? db.prepare("SELECT * FROM blogs ORDER BY created_at DESC LIMIT ?").all(limit)
+    : db.prepare("SELECT * FROM blogs ORDER BY created_at DESC").all();
   res.json(blogs);
 }));
 

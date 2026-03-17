@@ -11,21 +11,23 @@ export interface Project {
   location: string;
   price_range: string;
   type: string;
-  status: string;
-  description: string;
-  main_image: string;
-  gallery: string; // JSON string
-  amenities: string; // JSON string
+  status?: string;
+  description?: string;
+  main_image?: string;
+  gallery?: string | string[];
+  amenities?: string;
   developer_id: number;
   destination_id: number;
-  is_featured: number;
+  is_featured?: number;
   beds: string;
   size: string;
+  images?: string[];
   developer_name?: string;
   slug?: string;
   meta_title?: string;
   meta_description?: string;
   destination_name?: string;
+  destination_slug?: string;
 }
 
 export interface Developer {
@@ -41,6 +43,7 @@ export interface Destination {
   name: string;
   image: string;
   description: string;
+  slug?: string;
   project_count?: number;
 }
 
