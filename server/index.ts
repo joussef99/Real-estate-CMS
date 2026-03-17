@@ -28,6 +28,7 @@ async function startServer() {
   // API routes
   app.use("/api/auth", authRoutes);
   app.use("/api/projects", projectsRoutes);
+  app.use("/api/admin/projects", projectsRoutes);
   app.use("/api/developers", developersRoutes);
   app.use("/api/destinations", destinationsRoutes);
   app.use("/api/blogs", blogsRoutes);

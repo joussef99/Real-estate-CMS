@@ -367,10 +367,90 @@ router.put("/:id", authenticate, safe((req, res) => {
   res.json({ success: true });
 }));
 
+// DUPLICATE project
+router.post("/:id/duplicate", authenticate, safe((req, res) => {
+  const sourceProjectId = parseInt(req.params.id);
+  if (Number.isNaN(sourceProjectId)) {
+    return res.status(400).json({ error: "Invalid project id" });
+  }
+
+  const sourceProject = db.prepare("SELECT * FROM projects WHERE id = ?").get(sourceProjectId) as any;
+  if (!sourceProject) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  const copiedName = `${sourceProject.name} Copy`;
+  const copiedSlug = makeUniqueSlug(generateSlug(copiedName || `project-${Date.now()}`));
+
+  const result = db.prepare(`
+    INSERT INTO projects (name, location, price_range, type, status, description, gallery, developer_id, destination_id, is_featured, featured, beds, size, main_image, slug, meta_title, meta_description)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    copiedName,
+    sourceProject.location,
+    sourceProject.price_range,
+    sourceProject.type,
+    sourceProject.status,
+    sourceProject.description,
+    sourceProject.gallery,
+    sourceProject.developer_id,
+    sourceProject.destination_id,
+    sourceProject.is_featured ? 1 : 0,
+    sourceProject.featured ? 1 : 0,
+    sourceProject.beds,
+    sourceProject.size,
+    sourceProject.main_image,
+    copiedSlug,
+    sourceProject.meta_title,
+    sourceProject.meta_description
+  );
+
+  const duplicatedProjectId = Number(result.lastInsertRowid);
+
+  const sourceAmenities = db.prepare("SELECT amenity_id FROM project_amenities WHERE project_id = ?").all(sourceProjectId) as Array<{ amenity_id: number }>;
+  if (sourceAmenities.length > 0) {
+    const insertAmenity = db.prepare("INSERT INTO project_amenities (project_id, amenity_id) VALUES (?, ?)");
+    sourceAmenities.forEach(({ amenity_id }) => {
+      insertAmenity.run(duplicatedProjectId, amenity_id);
+    });
+  }
+
+  res.json({ id: duplicatedProjectId });
+}));
+
 // DELETE project
 router.delete("/:id", authenticate, safe((req, res) => {
-  db.prepare("DELETE FROM projects WHERE id = ?").run(req.params.id);
-  res.json({ success: true });
+  const projectId = parseInt(req.params.id);
+  if (Number.isNaN(projectId)) {
+    return res.status(400).json({ error: "Invalid project id" });
+  }
+
+  try {
+    const project = db.prepare("SELECT id FROM projects WHERE id = ?").get(projectId) as { id: number } | undefined;
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+
+    const hasProjectImagesTable = !!db
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'project_images'")
+      .get();
+
+    const deleteProjectWithRelations = db.transaction((id: number) => {
+      if (hasProjectImagesTable) {
+        db.prepare("DELETE FROM project_images WHERE project_id = ?").run(id);
+      }
+
+      db.prepare("DELETE FROM project_amenities WHERE project_id = ?").run(id);
+      db.prepare("DELETE FROM leads WHERE project_id = ?").run(id);
+      db.prepare("DELETE FROM projects WHERE id = ?").run(id);
+    });
+
+    deleteProjectWithRelations(projectId);
+    res.json({ success: true, id: projectId });
+  } catch (err: any) {
+    console.error("Failed to delete project", err);
+    res.status(500).json({ error: err?.message || "Failed to delete project" });
+  }
 }));
 
 export default router;

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { LayoutDashboard, Building2, Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, Building2, Plus, Edit2, Trash2, ArrowLeft, Copy } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { Project } from '../../types';
 
@@ -38,6 +38,17 @@ export default function ManageProjects() {
       headers: { Authorization: `Bearer ${token}` }
     });
     
+    if (res.ok) {
+      fetchProjects();
+    }
+  };
+
+  const handleDuplicate = async (id: number) => {
+    const res = await fetch(`/api/admin/projects/${id}/duplicate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
     if (res.ok) {
       fetchProjects();
     }
@@ -107,6 +118,13 @@ export default function ManageProjects() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => handleDuplicate(project.id)}
+                        className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-black"
+                        title="Duplicate project"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </button>
                       <button 
                         onClick={() => navigate(`/admin/projects/edit/${project.id}`)}
                         className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-black"
