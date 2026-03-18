@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { authFetch } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { Trash2, ArrowLeft } from 'lucide-react';
@@ -8,7 +8,6 @@ export default function AdminLeads() {
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     loadLeads();
@@ -16,11 +15,7 @@ export default function AdminLeads() {
 
   const loadLeads = async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/leads`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await authFetch('/api/leads');
       if (res.ok) {
         const data = await res.json();
         setLeads(data.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()));
@@ -38,11 +33,8 @@ export default function AdminLeads() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/leads/${id}`, {
+      const res = await authFetch(`/api/leads/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       });
 
       if (res.ok) {

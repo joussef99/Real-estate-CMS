@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
@@ -16,7 +16,6 @@ export default function AddEditCareer() {
     apply_link: '',
   });
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     if (id) {
@@ -40,14 +39,12 @@ export default function AddEditCareer() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = id ? `${API_BASE}/api/careers/${id}` : `${API_BASE}/api/careers`;
     const method = id ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
+    const res = await authFetch(id ? `/api/careers/${id}` : '/api/careers', {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify(formData),
     });

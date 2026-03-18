@@ -27,6 +27,7 @@ Create a `.env` file based on `.env.example`:
 
 ```env
 PORT=5000
+DATABASE_URL=postgresql://postgres:password@host:5432/railway
 JWT_SECRET=your_random_hex_string_here
 ADMIN_INITIAL_PASSWORD=strong_password
 NODE_ENV=development
@@ -103,11 +104,12 @@ BACKEND_URL=https://your-backend.up.railway.app
 server/
 ├── src/
 │   ├── index.ts          # Main server file
-│   ├── db/               # Database configuration
+│   ├── lib/prisma.ts     # Prisma client configuration
+│   ├── services/         # Service layer (business/data logic)
 │   ├── routes/           # API route handlers
 │   ├── middleware/       # Custom middleware
 │   └── utils/            # Utility functions
+├── prisma/               # Prisma schema and migrations
 ├── uploads/              # Uploaded files storage
-├── realestate.db         # SQLite database
 └── package.json          # Dependencies
 ```

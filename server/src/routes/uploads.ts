@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { upload, uploadDeveloper, uploadDestination, uploadsDir, developerUploadsDir, destinationUploadsDir } from "../utils/uploads.ts";
 import { optimizeAndSaveImage } from "../utils/imageOptimization.ts";
-import { authenticate } from "../middleware/auth.ts";
+import { authenticate, requireAdmin } from "../middleware/auth.ts";
 import { getFullImageUrl } from "../utils/imageUrl.ts";
 
 interface UploadedImageFile {
@@ -11,8 +11,10 @@ interface UploadedImageFile {
 
 const router = Router();
 
+router.use(authenticate, requireAdmin);
+
 // POST /api/upload (upload multiple project images)
-router.post("/", authenticate, upload.array('images', 10), async (req: any, res, next) => {
+router.post("/", upload.array('images', 10), async (req: any, res, next) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ error: "No files uploaded" });
   }
@@ -36,7 +38,7 @@ router.post("/", authenticate, upload.array('images', 10), async (req: any, res,
 });
 
 // POST /api/upload/developer-logo (upload developer logo)
-router.post("/developer-logo", authenticate, uploadDeveloper.single('logo'), async (req: any, res, next) => {
+router.post("/developer-logo", uploadDeveloper.single('logo'), async (req: any, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }
@@ -55,7 +57,7 @@ router.post("/developer-logo", authenticate, uploadDeveloper.single('logo'), asy
 });
 
 // POST /api/upload/destination-image (upload destination image)
-router.post("/destination-image", authenticate, uploadDestination.single('image'), async (req: any, res, next) => {
+router.post("/destination-image", uploadDestination.single('image'), async (req: any, res, next) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
   }

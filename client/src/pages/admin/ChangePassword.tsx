@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { authFetch, getAdminToken } from '../../utils/api';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, KeyRound } from 'lucide-react';
@@ -7,7 +7,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 
 export default function ChangePassword() {
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
+  const token = getAdminToken();
   const [formData, setFormData] = useState({
     oldPassword: '',
     newPassword: '',
@@ -60,11 +60,10 @@ export default function ChangePassword() {
     setSubmitting(true);
 
     try {
-      const response = await fetch(`${API_BASE}/api/admin/change-password`, {
+      const response = await authFetch('/api/admin/change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           oldPassword,

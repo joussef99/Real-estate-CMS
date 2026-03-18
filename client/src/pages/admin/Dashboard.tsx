@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { authFetch, getAdminToken } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Building2, MapPin, Newspaper, Plus, LayoutDashboard, KeyRound } from 'lucide-react';
@@ -8,7 +8,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 export default function Dashboard() {
   const [stats, setStats] = useState<any>(null);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
+  const token = getAdminToken();
 
   useEffect(() => {
     if (!token) {
@@ -16,9 +16,7 @@ export default function Dashboard() {
       return;
     }
 
-    fetch(`${API_BASE}/api/admin/stats`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
+    authFetch('/api/admin/stats')
     .then(res => res.json())
     .then(setStats);
   }, [token, navigate]);

@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { apiFetch, setAdminToken } from '../../utils/api';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/Button';
@@ -11,14 +11,14 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`${API_BASE}/api/auth/login`, {
+    const res = await apiFetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     });
     const data = await res.json();
     if (res.ok) {
-      localStorage.setItem('admin_token', data.token);
+      setAdminToken(data.token);
       navigate('/admin/dashboard');
     } else {
       setError(data.error);

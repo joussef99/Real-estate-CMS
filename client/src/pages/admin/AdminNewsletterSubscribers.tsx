@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { authFetch, clearAdminToken, getAdminToken } from '../../utils/api';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Trash2, AlertCircle, Check } from 'lucide-react';
@@ -18,7 +18,7 @@ export default function AdminNewsletterSubscribers() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem('admin_token');
+  const token = getAdminToken();
 
   useEffect(() => {
     if (!token) {
@@ -29,12 +29,10 @@ export default function AdminNewsletterSubscribers() {
     const fetchSubscribers = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`${API_BASE}/api/newsletter`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await authFetch('/api/newsletter');
 
         if (res.status === 401) {
-          localStorage.removeItem('admin_token');
+          clearAdminToken();
           navigate('/admin/login');
           return;
         }
@@ -58,9 +56,8 @@ export default function AdminNewsletterSubscribers() {
     
     setDeletingId(id);
     try {
-      const res = await fetch(`${API_BASE}/api/newsletter/${id}`, {
+      const res = await authFetch(`/api/newsletter/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!res.ok) throw new Error('Failed to delete subscriber');

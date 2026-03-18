@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import type React from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -11,7 +11,6 @@ export default function AdminAmenities() {
   const [newAmenity, setNewAmenity] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     loadAmenities();
@@ -36,11 +35,10 @@ export default function AdminAmenities() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/amenities`, {
+      const res = await authFetch('/api/amenities', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ name: newAmenity.trim() })
       });
@@ -66,11 +64,8 @@ export default function AdminAmenities() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/amenities/${id}`, {
+      const res = await authFetch(`/api/amenities/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       });
 
       if (res.ok) {

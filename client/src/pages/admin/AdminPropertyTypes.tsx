@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import type React from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
@@ -11,7 +11,6 @@ export default function AdminPropertyTypes() {
   const [newType, setNewType] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     loadPropertyTypes();
@@ -36,11 +35,10 @@ export default function AdminPropertyTypes() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/property-types`, {
+      const res = await authFetch('/api/property-types', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({ name: newType.trim() })
       });
@@ -66,11 +64,8 @@ export default function AdminPropertyTypes() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/api/property-types/${id}`, {
+      const res = await authFetch(`/api/property-types/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
       });
 
       if (res.ok) {

@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
@@ -9,7 +9,7 @@ import { Destination } from '../../types';
 export default function ManageDestinations() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
+  const token = getAdminToken();
 
   useEffect(() => {
     if (!token) {
@@ -28,9 +28,8 @@ export default function ManageDestinations() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this destination?')) return;
     
-    const res = await fetch(`${API_BASE}/api/destinations/${id}`, {
+    const res = await authFetch(`/api/destinations/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
     });
     
     if (res.ok) {

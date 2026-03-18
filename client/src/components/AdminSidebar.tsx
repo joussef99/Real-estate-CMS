@@ -1,12 +1,13 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Building2, MapPin, Newspaper, Briefcase, LogOut, Tag, Mail, Zap, KeyRound, MessageSquare } from 'lucide-react';
+import { clearAdminToken } from '../utils/api';
 
 export function AdminSidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
+    clearAdminToken();
     navigate('/admin/login');
   };
 

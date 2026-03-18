@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
@@ -9,7 +9,7 @@ import { Blog } from '../../types';
 export default function ManageBlogs() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
+  const token = getAdminToken();
 
   useEffect(() => {
     if (!token) {
@@ -28,9 +28,8 @@ export default function ManageBlogs() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this blog post?')) return;
     
-    const res = await fetch(`${API_BASE}/api/blogs/${id}`, {
+    const res = await authFetch(`/api/blogs/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
     });
     
     if (res.ok) {

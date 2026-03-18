@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
@@ -15,7 +15,6 @@ export default function AddEditDeveloper() {
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     if (id) {
@@ -41,6 +40,9 @@ export default function AddEditDeveloper() {
     setUploadingLogo(true);
 
     try {
+      const token = getAdminToken();
+      console.log('Token:', token);
+
       const optimizedFile = await optimizeImageFile(file, {
         maxWidth: 600,
         maxHeight: 600,
@@ -51,7 +53,7 @@ export default function AddEditDeveloper() {
       const formDataUpload = new FormData();
       formDataUpload.append('logo', optimizedFile);
 
-      const res = await fetch(`${API_BASE}/api/upload/developer-logo`, {
+      const res = await authFetch('/api/upload/developer-logo', {
         method: 'POST',
         body: formDataUpload,
       });
@@ -80,11 +82,10 @@ export default function AddEditDeveloper() {
     const url = id ? `${API_BASE}/api/developers/${id}` : `${API_BASE}/api/developers`;
     const method = id ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
+    const res = await authFetch(id ? `/api/developers/${id}` : '/api/developers', {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify(formData),
     });

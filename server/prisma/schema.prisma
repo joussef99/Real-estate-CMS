@@ -1,0 +1,158 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+model User {
+    id       Int    @id @default(autoincrement())
+    username String @unique
+    password String
+    role     String @default("admin")
+
+    @@map("users")
+}
+
+model Developer {
+    id          Int       @id @default(autoincrement())
+    name        String
+    logo        String?
+    description String?
+    website     String?
+    slug        String    @unique
+    projects    Project[]
+
+    @@index([name])
+    @@map("developers")
+}
+
+model Destination {
+    id          Int       @id @default(autoincrement())
+    name        String
+    image       String?
+    description String?
+    slug        String    @unique
+    projects    Project[]
+
+    @@index([name])
+    @@map("destinations")
+}
+
+model Project {
+    id               Int     @id @default(autoincrement())
+    name             String
+    location         String?
+    price_range      String?
+    type             String?
+    status           String?
+    description      String?
+    main_image       String?
+    gallery          String?
+    amenities        String?
+    developer_id     Int?
+    destination_id   Int?
+    is_featured      Int     @default(0)
+    featured         Int     @default(0)
+    beds             String?
+    size             String?
+    slug             String  @unique
+    meta_title       String?
+    meta_description String?
+
+    developer        Developer?       @relation(fields: [developer_id], references: [id], onDelete: SetNull)
+    destination      Destination?     @relation(fields: [destination_id], references: [id], onDelete: SetNull)
+    leads            Lead[]
+    projectAmenities ProjectAmenity[]
+
+    @@index([developer_id])
+    @@index([destination_id])
+    @@index([featured])
+    @@index([is_featured])
+    @@map("projects")
+}
+
+model Blog {
+    id               Int      @id @default(autoincrement())
+    title            String
+    content          String?
+    image            String?
+    category         String?
+    author           String?
+    created_at       DateTime @default(now())
+    slug             String   @unique
+    meta_title       String?
+    meta_description String?
+
+    @@index([created_at])
+    @@index([category])
+    @@map("blogs")
+}
+
+model Career {
+    id           Int     @id @default(autoincrement())
+    title        String
+    location     String?
+    type         String?
+    description  String?
+    requirements String?
+    apply_link   String?
+
+    @@map("careers")
+}
+
+model PropertyType {
+    id         Int      @id @default(autoincrement())
+    name       String   @unique
+    created_at DateTime @default(now())
+
+    @@map("property_types")
+}
+
+model Lead {
+    id         Int      @id @default(autoincrement())
+    name       String
+    email      String
+    phone      String?
+    message    String?
+    project_id Int?
+    created_at DateTime @default(now())
+
+    project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+
+    @@index([project_id])
+    @@index([created_at])
+    @@index([email])
+    @@map("leads")
+}
+
+model Amenity {
+    id               Int              @id @default(autoincrement())
+    name             String           @unique
+    created_at       DateTime         @default(now())
+    projectAmenities ProjectAmenity[]
+
+    @@map("amenities")
+}
+
+model ProjectAmenity {
+    project_id Int
+    amenity_id Int
+
+    project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+    amenity Amenity @relation(fields: [amenity_id], references: [id], onDelete: Cascade)
+
+    @@id([project_id, amenity_id])
+    @@index([amenity_id])
+    @@map("project_amenities")
+}
+
+model NewsletterSubscriber {
+    id         Int      @id @default(autoincrement())
+    email      String   @unique
+    created_at DateTime @default(now())
+
+    @@index([created_at])
+    @@map("newsletter_subscribers")
+}

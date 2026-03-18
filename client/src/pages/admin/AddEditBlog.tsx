@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
@@ -19,7 +19,6 @@ export default function AddEditBlog() {
     meta_description: '',
   });
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
   const [slugDirty, setSlugDirty] = useState(false);
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export default function AddEditBlog() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const url = id ? `${API_BASE}/api/blogs/${id}` : `${API_BASE}/api/blogs`;
     const method = id ? 'PUT' : 'POST';
 
     const body = {
@@ -56,11 +54,10 @@ export default function AddEditBlog() {
       meta_description: formData.meta_description.trim(),
     };
 
-    const res = await fetch(url, {
+    const res = await authFetch(id ? `/api/blogs/${id}` : '/api/blogs', {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify(body),
     });

@@ -1,11 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
-import path from "path";
-import { initializeDatabase, db } from "./db/database.ts";
 import rateLimit from "express-rate-limit";
 import authRoutes from "./routes/auth.ts";
-import { authenticate } from "./middleware/auth.ts";
+import { authenticate, requireAdmin } from "./middleware/auth.ts";
 import projectsRoutes from "./routes/projects.ts";
 import developersRoutes from "./routes/developers.ts";
 import destinationsRoutes from "./routes/destinations.ts";
@@ -17,11 +15,27 @@ import leadsRoutes from "./routes/leads.ts";
 import statsRoutes from "./routes/stats.ts";
 import uploadRoutes from "./routes/uploads.ts";
 import { uploadsDir, handleMulterError } from "./utils/uploads.ts";
+import { prisma, assertDatabaseConnection } from "./lib/prisma.ts";
+import { errorHandler } from "./middleware/errorHandler.ts";
+import bcrypt from "bcryptjs";
 
 const PORT = Number(process.env.PORT || 5000);
 
 async function startServer() {
-  initializeDatabase();
+  await assertDatabaseConnection();
+
+  const adminExists = await prisma.user.findUnique({ where: { username: "admin" } });
+  if (!adminExists) {
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD || "admin123";
+    if (initialPassword === "admin123") {
+      process.stderr.write(
+        "[WARN] Default admin password 'admin123' is in use. " +
+          "Set ADMIN_INITIAL_PASSWORD env variable before first run, or change it via the admin panel.\n",
+      );
+    }
+    const hashedPassword = bcrypt.hashSync(initialPassword, 10);
+    await prisma.user.create({ data: { username: "admin", password: hashedPassword } });
+  }
 
   const app = express();
 
@@ -54,7 +68,12 @@ async function startServer() {
   app.use("/api/auth", authRoutes);
   app.use("/api/admin", authRoutes);
   app.use("/api/projects", projectsRoutes);
-  app.use("/api/admin/projects", projectsRoutes);
+  app.use("/api/admin/projects", authenticate, requireAdmin, projectsRoutes);
+  // Backward-compatible alias for clients using /properties endpoints
+  app.use("/api/properties", projectsRoutes);
+  app.use("/api/admin/properties", authenticate, requireAdmin, projectsRoutes);
+  app.use("/properties", projectsRoutes);
+  app.use("/admin/properties", projectsRoutes);
   app.use("/api/developers", developersRoutes);
   app.use("/api/destinations", destinationsRoutes);
   app.use("/api/blogs", blogsRoutes);
@@ -66,15 +85,17 @@ async function startServer() {
   app.use("/api/upload", uploadRoutes);
 
   // Newsletter subscriber endpoint
-  app.post("/api/newsletter", (req, res) => {
+  app.post("/api/newsletter", async (req, res) => {
     const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ error: "A valid email address is required." });
     }
     try {
-      db.prepare(
-        "INSERT OR IGNORE INTO newsletter_subscribers (email) VALUES (?)"
-      ).run(email);
+      await prisma.newsletterSubscriber.upsert({
+        where: { email },
+        update: {},
+        create: { email },
+      });
       res.json({ success: true, message: "You have been subscribed." });
     } catch (err: any) {
       res.status(500).json({ error: "Could not save subscription." });
@@ -82,11 +103,12 @@ async function startServer() {
   });
 
   // Get newsletter subscribers (admin only)
-  app.get("/api/newsletter", authenticate, (req, res) => {
+  app.get("/api/newsletter", authenticate, requireAdmin, async (req, res) => {
     try {
-      const subscribers = db.prepare(
-        "SELECT id, email, created_at FROM newsletter_subscribers ORDER BY created_at DESC"
-      ).all();
+      const subscribers = await prisma.newsletterSubscriber.findMany({
+        select: { id: true, email: true, created_at: true },
+        orderBy: { created_at: "desc" },
+      });
       res.json(subscribers);
     } catch (err: any) {
       res.status(500).json({ error: err?.message || "Could not fetch subscribers." });
@@ -94,9 +116,9 @@ async function startServer() {
   });
 
   // Delete newsletter subscriber (admin only)
-  app.delete("/api/newsletter/:id", authenticate, (req, res) => {
+  app.delete("/api/newsletter/:id", authenticate, requireAdmin, async (req, res) => {
     try {
-      db.prepare("DELETE FROM newsletter_subscribers WHERE id = ?").run(req.params.id);
+      await prisma.newsletterSubscriber.delete({ where: { id: Number(req.params.id) } });
       res.json({ success: true });
     } catch (err: any) {
       res.status(500).json({ error: "Could not delete subscriber." });
@@ -112,9 +134,11 @@ async function startServer() {
   app.get('/sitemap.xml', async (req, res) => {
     const hostname = `${req.protocol}://${req.get('host')}`;
 
-    const projects = db.prepare('SELECT id, slug FROM projects').all() as any[];
-    const blogs = db.prepare('SELECT id, slug FROM blogs').all() as any[];
-    const destinations = db.prepare('SELECT id, slug FROM destinations').all() as any[];
+    const [projects, blogs, destinations] = await Promise.all([
+      prisma.project.findMany({ select: { id: true, slug: true } }),
+      prisma.blog.findMany({ select: { id: true, slug: true } }),
+      prisma.destination.findMany({ select: { id: true, slug: true } }),
+    ]);
 
     const staticUrls = [
       '/',
@@ -146,12 +170,7 @@ async function startServer() {
 
   app.use(handleMulterError);
 
-  // Global JSON error handler for all backend routes
-  // Global JSON error handler for all backend routes
-  app.use((err, req, res, next) => {
-    console.error(err);
-    res.status(500).json({ error: err?.message || 'Internal Server Error' });
-  });
+  app.use(errorHandler);
 
   app.listen(PORT, "0.0.0.0", () => {
     process.stdout.write(`Server running on port ${PORT}\n`);

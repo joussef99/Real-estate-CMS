@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Building2, Plus, Edit2, Trash2, ArrowLeft, Copy } from 'lucide-react';
@@ -8,7 +8,7 @@ import { Project } from '../../types';
 export default function ManageProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
+  const token = getAdminToken();
 
   useEffect(() => {
     if (!token) {
@@ -34,9 +34,8 @@ export default function ManageProjects() {
   const handleDelete = async (id: number) => {
     if (!confirm('Are you sure you want to delete this project?')) return;
     
-    const res = await fetch(`${API_BASE}/api/projects/${id}`, {
+    const res = await authFetch(`/api/projects/${id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` }
     });
     
     if (res.ok) {
@@ -45,9 +44,8 @@ export default function ManageProjects() {
   };
 
   const handleDuplicate = async (id: number) => {
-    const res = await fetch(`${API_BASE}/api/admin/projects/${id}/duplicate`, {
+    const res = await authFetch(`/api/admin/projects/${id}/duplicate`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` }
     });
 
     if (res.ok) {

@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
@@ -34,7 +34,6 @@ export default function AddProject() {
     size: '',
   });
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     fetch(`${API_BASE}/api/developers`).then(res => res.json()).then(setDevelopers);
@@ -107,7 +106,7 @@ export default function AddProject() {
         formDataUpload.append('images', file);
       });
 
-      const res = await fetch(`${API_BASE}/api/upload`, {
+      const res = await authFetch('/api/upload', {
         method: 'POST',
         body: formDataUpload,
       });
@@ -145,11 +144,10 @@ export default function AddProject() {
 
     const normalizedSlug = formData.slug ? slugify(formData.slug) : slugify(formData.name);
 
-    const res = await fetch(url, {
+    const res = await authFetch(id ? `/api/projects/${id}` : '/api/projects', {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
         ...formData,

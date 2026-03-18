@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../../utils/api';
+﻿import { API_BASE, authFetch } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
@@ -15,7 +15,6 @@ export default function AddEditDestination() {
   });
   const [uploadingImage, setUploadingImage] = useState(false);
   const navigate = useNavigate();
-  const token = localStorage.getItem('admin_token');
 
   useEffect(() => {
     if (id) {
@@ -51,7 +50,7 @@ export default function AddEditDestination() {
       const formDataUpload = new FormData();
       formDataUpload.append('image', optimizedFile);
 
-      const res = await fetch(`${API_BASE}/api/upload/destination-image`, {
+      const res = await authFetch('/api/upload/destination-image', {
         method: 'POST',
         body: formDataUpload,
       });
@@ -80,11 +79,10 @@ export default function AddEditDestination() {
     const url = id ? `${API_BASE}/api/destinations/${id}` : `${API_BASE}/api/destinations`;
     const method = id ? 'PUT' : 'POST';
 
-    const res = await fetch(url, {
+    const res = await authFetch(id ? `/api/destinations/${id}` : '/api/destinations', {
       method,
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
       },
       body: JSON.stringify(formData),
     });
