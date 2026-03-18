@@ -1,11 +1,79 @@
+# Dependencies
 node_modules/
-build/
+package-lock.json
+yarn.lock
+
+# Build outputs
 dist/
+build/
+.next/
+out/
 coverage/
-.DS_Store
-*.log
-.env*
+
+# Environment variables (keep .env.example in git)
+.env
+.env.local
+.env*.local
 !.env.example
-uploads/
-realestate.db
+
+# Database (local development only, not committed)
 *.db
+realestate.db
+
+# Uploaded files (stored on server, not committed)
+uploads/
+server/uploads/
+client/uploads/
+
+# Temporary files
+temp_*.json
+*.tmp
+*.temp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# OS files
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Optional npm cache
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Reports (optional - comment out if you want to commit these)
+# reports/
+
+# Misc
+.cache/
+dist/
+.turbo/

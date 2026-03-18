@@ -1,8 +1,8 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { db } from "../src/db/database.ts";
-import { authenticate, getJWTSecret } from "../src/middleware/auth.ts";
+import { db } from "../db/database.ts";
+import { authenticate, getJWTSecret } from "../middleware/auth.ts";
 
 const router = Router();
 const JWT_SECRET = getJWTSecret(); // validated at startup; throws if missing
@@ -10,7 +10,9 @@ const JWT_SECRET = getJWTSecret(); // validated at startup; throws if missing
 // Login route
 router.post("/login", (req, res) => {
   const { username, password } = req.body;
-  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as { id: number; username: string; password: string } | undefined;
+  const user = db.prepare("SELECT * FROM users WHERE username = ?").get(username) as
+    | { id: number; username: string; password: string }
+    | undefined;
   if (!user || !bcrypt.compareSync(password, user.password)) {
     return res.status(401).json({ error: "Invalid credentials" });
   }
