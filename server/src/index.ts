@@ -21,6 +21,13 @@ import bcrypt from "bcryptjs";
 
 const PORT = Number(process.env.PORT || 5000);
 
+function getAllowedCorsOrigins() {
+  return (process.env.CORS_ORIGIN ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
 async function startServer() {
   await assertDatabaseConnection();
 
@@ -43,13 +50,24 @@ async function startServer() {
   app.set("trust proxy", 1);
 
   // Enable CORS for frontend origin
-  const corsOrigin = process.env.CORS_ORIGIN?.split(",").map((o) => o.trim()) || ["http://localhost:5173"];
+  const corsOrigin = getAllowedCorsOrigins();
   app.use(cors({
-    origin: corsOrigin,
+    origin(origin, callback) {
+      if (!origin || corsOrigin.length === 0 || corsOrigin.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Origin not allowed by CORS"));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }));
+
+  process.stdout.write(
+    `[CORS] Allowed origins: ${corsOrigin.length ? corsOrigin.join(", ") : "all origins (CORS_ORIGIN not set)"}\n`,
+  );
 
   app.use(express.json());
   app.use("/uploads", express.static(uploadsDir));

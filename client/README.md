@@ -32,6 +32,12 @@ Create a `.env` file based on `.env.example`:
 VITE_API_URL=http://localhost:5000
 ```
 
+For production on Hostinger, set `VITE_API_URL` to your Railway backend URL before building, for example:
+
+```env
+VITE_API_URL=https://your-backend.up.railway.app
+```
+
 ## Deployment
 
 1. Build the application:
@@ -44,6 +50,8 @@ VITE_API_URL=http://localhost:5000
    ```bash
    npx serve dist
    ```
+
+For Hostinger static hosting, upload the contents of `dist` after building with the production `VITE_API_URL`.
 
 ## API Integration
 

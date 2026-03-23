@@ -3,7 +3,7 @@
  * - Dev: set VITE_API_URL=http://localhost:5000 in client/.env (or leave empty to use Vite proxy)
  * - Prod: set VITE_API_URL=https://your-api-domain.com in your deployment environment
  */
-export const API_BASE: string = import.meta.env.VITE_API_URL ?? '';
+export const API_BASE: string = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
 
 export const ADMIN_TOKEN_KEY = 'admin_token';
 export const LEGACY_TOKEN_KEY = 'token';

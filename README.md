@@ -8,12 +8,12 @@ A full-stack real estate platform built with modern technologies to manage prope
 
 Livin is a real estate web application that allows:
 
-* 🏢 Manage developers and projects
-* 🌍 Browse destinations and properties
-* 📝 Publish blogs
-* 📥 Capture user leads
-* 🔐 Secure admin dashboard
-* 🖼️ Upload and manage images
+- 🏢 Manage developers and projects
+- 🌍 Browse destinations and properties
+- 📝 Publish blogs
+- 📥 Capture user leads
+- 🔐 Secure admin dashboard
+- 🖼️ Upload and manage images
 
 ---
 
@@ -21,16 +21,16 @@ Livin is a real estate web application that allows:
 
 **Frontend**
 
-* React (Vite)
-* TypeScript
-* Tailwind CSS
+- React (Vite)
+- TypeScript
+- Tailwind CSS
 
 **Backend**
 
-* Node.js
-* Express.js
-* Prisma ORM
-* PostgreSQL
+- Node.js
+- Express.js
+- Prisma ORM
+- PostgreSQL
 
 ---
 
@@ -72,16 +72,49 @@ PORT=5000
 npm run dev
 ```
 
-* Frontend: http://localhost:5173
-* Backend: http://localhost:5000
+- Frontend: http://localhost:5173
+- Backend: http://localhost:5000
+
+## Production Deployment
+
+### Backend on Railway
+
+```
+cd server
+npm install
+npm run build
+npm start
+```
+
+Required Railway variables:
+
+```
+DATABASE_URL=postgresql://...
+JWT_SECRET=generated-secret
+ADMIN_INITIAL_PASSWORD=strong-password
+NODE_ENV=production
+CORS_ORIGIN=https://your-hostinger-domain.com,https://www.your-hostinger-domain.com
+BACKEND_URL=https://your-backend.up.railway.app
+```
+
+### Frontend on Hostinger
+
+Build with the backend URL wired into Vite:
+
+```
+cd client
+VITE_API_URL=https://your-backend.up.railway.app npm run build
+```
+
+Upload the generated `client/dist` assets to Hostinger.
 
 ---
 
 ## 🔐 Authentication
 
-* JWT-based authentication
-* Admin-only protected routes
-* Use token in requests:
+- JWT-based authentication
+- Admin-only protected routes
+- Use token in requests:
 
 ```
 Authorization: Bearer <token>
@@ -135,17 +168,17 @@ GET /api/admin/stats
 
 ## ⚠️ Notes
 
-* Make sure PostgreSQL is running
-* Token is required for admin routes
-* Do not set Content-Type manually when uploading files
+- Make sure PostgreSQL is running
+- Token is required for admin routes
+- Do not set Content-Type manually when uploading files
 
 ---
 
 ## 🌟 Future Improvements
 
-* Cloud storage for images (Cloudinary / S3)
-* Advanced filtering & search
-* Performance optimization
+- Cloud storage for images (Cloudinary / S3)
+- Advanced filtering & search
+- Performance optimization
 
 ---
 

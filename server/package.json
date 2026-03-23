@@ -4,9 +4,11 @@
   "type": "module",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "start": "node src/index.ts",
+    "build": "prisma generate && tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
     "lint": "tsc --noEmit -p tsconfig.json",
     "clean": "del /q *.log 2>nul || true",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev",

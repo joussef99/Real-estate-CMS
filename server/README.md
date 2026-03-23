@@ -14,6 +14,9 @@ cp .env.example .env
 # Start development server (runs on http://localhost:5000)
 npm run dev
 
+# Build production server
+npm run build
+
 # Start production server
 npm start
 
@@ -32,6 +35,7 @@ JWT_SECRET=your_random_hex_string_here
 ADMIN_INITIAL_PASSWORD=strong_password
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173,http://localhost:3000
+BACKEND_URL=
 ```
 
 ### Generating JWT_SECRET
@@ -93,10 +97,11 @@ BACKEND_URL=https://your-backend.up.railway.app
 
 ## Deployment
 
-1. Set environment variables in production
-2. Run `npm start`
-3. Ensure the server is accessible from your frontend domain
-4. Configure CORS appropriately for your domain
+1. Set `DATABASE_URL`, `JWT_SECRET`, `ADMIN_INITIAL_PASSWORD`, `NODE_ENV=production`, `CORS_ORIGIN`, and `BACKEND_URL` in Railway.
+2. Run `npm run build` during the Railway build step.
+3. Run `npm start` as the Railway start command.
+4. Run `npm run prisma:migrate` after deploy to apply schema changes.
+5. Ensure `CORS_ORIGIN` contains every Hostinger frontend origin that should access the API.
 
 ## Project Structure
 
