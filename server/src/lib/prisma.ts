@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { validateEnv } from "./env-validation.ts";
 
-if (!process.env.DATABASE_URL) {
-  process.stderr.write("[ERROR] DATABASE_URL is not set. Configure it in server/.env or your deployment environment.\n");
-}
+// Validate environment at module load time
+const env = validateEnv();
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
@@ -47,10 +47,10 @@ export function logDatabaseConnection(context: string) {
 }
 
 function createPrismaClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+  const adapter = new PrismaPg({ connectionString: env.databaseUrl });
   return new PrismaClient({
     adapter,
-    log: process.env.NODE_ENV === "development" ? ["query", "warn", "error"] : ["warn", "error"],
+    log: env.nodeEnv === "development" ? ["query", "warn", "error"] : ["warn", "error"],
   });
 }
 
@@ -61,7 +61,7 @@ if (process.env.NODE_ENV !== "production") {
 }
 
 export async function assertDatabaseConnection() {
-  if (!process.env.DATABASE_URL) {
+  if (!env.databaseUrl) {
     throw new Error("DATABASE_URL is not configured");
   }
   logDatabaseConnection("server-startup");

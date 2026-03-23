@@ -17,9 +17,12 @@ import uploadRoutes from "./routes/uploads.ts";
 import { uploadsDir, handleMulterError } from "./utils/uploads.ts";
 import { prisma, assertDatabaseConnection } from "./lib/prisma.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
+import { validateEnv } from "./lib/env-validation.ts";
 import bcrypt from "bcryptjs";
 
-const PORT = Number(process.env.PORT || 5000);
+// Validate environment variables early before any other code runs
+const env = validateEnv();
+const PORT = env.port;
 
 function getAllowedCorsOrigins() {
   return (process.env.CORS_ORIGIN ?? "")
@@ -147,7 +150,10 @@ async function startServer() {
   app.use("/api/*", (req, res) => {
     res.status(404).json({ error: "API route not found" });
   });
-
+  // Health check endpoint (useful for Railway)
+  app.get("/health", (req, res) => {
+    res.json({ status: "ok", environment: env.nodeEnv, timestamp: new Date().toISOString() });
+  });
   // SEO endpoints
   app.get('/sitemap.xml', async (req, res) => {
     const hostname = `${req.protocol}://${req.get('host')}`;
@@ -191,8 +197,14 @@ async function startServer() {
   app.use(errorHandler);
 
   app.listen(PORT, "0.0.0.0", () => {
-    process.stdout.write(`Server running on port ${PORT}\n`);
+    process.stdout.write(`[OK] Server running on port ${PORT}\n`);
+    process.stdout.write(`[OK] Database: Prisma client initialized\n`);
+    process.stdout.write(`[OK] Admin user: Ready\n`);
   });
 }
 
-startServer();
+startServer().catch((err) => {
+  process.stderr.write(`[FATAL] Server startup failed: ${err.message}\n`);
+  process.stderr.write(`Stack: ${err.stack}\n`);
+  process.exit(1);
+});
