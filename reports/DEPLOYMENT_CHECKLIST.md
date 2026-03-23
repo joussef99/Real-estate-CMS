@@ -7,10 +7,12 @@ Before deploying, **read [ENV_VALIDATION_GUIDE.md](ENV_VALIDATION_GUIDE.md)** fo
 The backend validates all required environment variables at startup and exits with clear instructions if anything is missing.
 
 ### Required Variables
+
 - `DATABASE_URL` - PostgreSQL connection string
 - `JWT_SECRET` - 256-bit hex string (minimum 32 characters)
 
 ### Optional Variables
+
 - `PORT` - RAM port (Railway sets this automatically)
 - `NODE_ENV` - Set to `production`
 - `ADMIN_INITIAL_PASSWORD` - Initial admin user password
@@ -51,6 +53,7 @@ The backend validates all required environment variables at startup and exits wi
 ## Frontend (Hostinger)
 
 1. Build client with production API URL:
+
    ```bash
    cd client
    VITE_API_URL=https://your-backend.up.railway.app npm run build

@@ -65,27 +65,32 @@ Enhanced the backend environment configuration system with comprehensive validat
 ## Key Features
 
 ### ✅ Early Validation
+
 - All required variables checked before server starts
 - Fails fast with clear instructions if anything is missing
 - No silent failures in production
 
 ### ✅ Clear Error Messages
+
 - Specific error for each missing variable
 - Helpful hints (e.g., how to generate JWT_SECRET)
 - Different messages for development vs production
 
 ### ✅ Masked Secrets
+
 - Logs show only first and last 4 characters of secrets
 - Startup output example: `JWT_SECRET: 42d5...d26`
 - Prevents accidental exposure in logs/screenshots
 
 ### ✅ Typed Configuration
+
 - `ValidatedEnv` interface exported for type safety
 - All config values have the correct types
 - Automatic parsing of PORT (string → number)
 - CORS parsing and validation
 
 ### ✅ Production-Ready
+
 - NODE_ENV-aware error handling
 - Railway health check endpoint
 - Structured logging with tags [STARTUP], [OK], [FATAL]
@@ -93,24 +98,25 @@ Enhanced the backend environment configuration system with comprehensive validat
 
 ## Required Variables
 
-| Variable | Minimum Length | Railway Source |
-|----------|---|---|
-| `DATABASE_URL` | any valid URL | PostgreSQL plugin |
-| `JWT_SECRET` | 32 characters | Generate manually |
+| Variable       | Minimum Length | Railway Source    |
+| -------------- | -------------- | ----------------- |
+| `DATABASE_URL` | any valid URL  | PostgreSQL plugin |
+| `JWT_SECRET`   | 32 characters  | Generate manually |
 
 ## Optional Variables with Defaults
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | 5000 | HTTP port (Railway overrides) |
-| `NODE_ENV` | development | Logging level |
-| `CORS_ORIGIN` | localhost:5173, localhost:3000 | Allowed frontend origins |
-| `ADMIN_INITIAL_PASSWORD` | admin123 | Initial admin user password |
-| `BACKEND_URL` | (unset) | Image URL generation |
+| Variable                 | Default                        | Purpose                       |
+| ------------------------ | ------------------------------ | ----------------------------- |
+| `PORT`                   | 5000                           | HTTP port (Railway overrides) |
+| `NODE_ENV`               | development                    | Logging level                 |
+| `CORS_ORIGIN`            | localhost:5173, localhost:3000 | Allowed frontend origins      |
+| `ADMIN_INITIAL_PASSWORD` | admin123                       | Initial admin user password   |
+| `BACKEND_URL`            | (unset)                        | Image URL generation          |
 
 ## Validation Behavior
 
 ### At Startup
+
 ```
 [STARTUP] Environment configuration validated:
   NODE_ENV: production
@@ -122,6 +128,7 @@ Enhanced the backend environment configuration system with comprehensive validat
 ```
 
 ### On Error
+
 ```
 [FATAL] Missing or invalid required environment variables in Railway:
 
@@ -144,6 +151,7 @@ To fix this:
 ✅ Dist files generated correctly
 
 ### Build Output
+
 - Server: `server/dist/index.js` (8.4 KB)
 - Lib: `server/dist/lib/env-validation.js`, `server/dist/lib/prisma.js`, etc.
 - Middleware: `server/dist/middleware/auth.js`
@@ -168,6 +176,7 @@ To fix this:
 ## Hostinger Integration
 
 No changes needed on the frontend. Continue with:
+
 1. Build: `VITE_API_URL=https://your-backend.up.railway.app npm run build`
 2. Upload `client/dist/` contents
 3. Configure SPA fallback
@@ -182,6 +191,7 @@ curl https://your-backend.up.railway.app/health
 ```
 
 Response:
+
 ```json
 {
   "status": "ok",
@@ -195,6 +205,7 @@ Use for Railway health checks, monitoring services, and load balancers.
 ## Error Handling Examples
 
 ### Missing DATABASE_URL
+
 ```
 [FATAL] Missing or invalid required environment variables in Railway:
   - DATABASE_URL: Missing (required in production)
@@ -208,6 +219,7 @@ To fix this:
 ```
 
 ### JWT_SECRET Too Short
+
 ```
 [FATAL] Missing or invalid required environment variables in Railway:
   - JWT_SECRET: Too short (16 chars, minimum 32 required)
@@ -215,6 +227,7 @@ To fix this:
 ```
 
 ### CORS Origin Blocked
+
 ```
 Browser: Access to XMLHttpRequest has been blocked by CORS policy
 
@@ -255,17 +268,17 @@ npm run dev
 
 ## Files Summary
 
-| File | Purpose | Status |
-|------|---------|--------|
-| `server/src/lib/env-validation.ts` | Core validation logic | ✅ NEW |
-| `server/src/index.ts` | Server initialization | ✅ UPDATED |
-| `server/src/middleware/auth.ts` | Auth middleware | ✅ UPDATED |
-| `server/src/lib/prisma.ts` | Database client | ✅ UPDATED |
-| `server/.env.example` | Config template | ✅ UPDATED |
-| `server/tsconfig.build.json` | Build config | ✅ EXISTING |
-| `server/package.json` | Build/start scripts | ✅ EXISTING |
-| `reports/ENV_VALIDATION_GUIDE.md` | User guide | ✅ NEW |
-| `reports/DEPLOYMENT_CHECKLIST.md` | Deploy guide | ✅ UPDATED |
+| File                               | Purpose               | Status      |
+| ---------------------------------- | --------------------- | ----------- |
+| `server/src/lib/env-validation.ts` | Core validation logic | ✅ NEW      |
+| `server/src/index.ts`              | Server initialization | ✅ UPDATED  |
+| `server/src/middleware/auth.ts`    | Auth middleware       | ✅ UPDATED  |
+| `server/src/lib/prisma.ts`         | Database client       | ✅ UPDATED  |
+| `server/.env.example`              | Config template       | ✅ UPDATED  |
+| `server/tsconfig.build.json`       | Build config          | ✅ EXISTING |
+| `server/package.json`              | Build/start scripts   | ✅ EXISTING |
+| `reports/ENV_VALIDATION_GUIDE.md`  | User guide            | ✅ NEW      |
+| `reports/DEPLOYMENT_CHECKLIST.md`  | Deploy guide          | ✅ UPDATED  |
 
 ## Next Steps
 
@@ -282,6 +295,7 @@ npm run dev
 ## Support & Troubleshooting
 
 See **[ENV_VALIDATION_GUIDE.md](ENV_VALIDATION_GUIDE.md)** for:
+
 - Complete variable reference
 - Error messages and solutions
 - Railway deployment examples
