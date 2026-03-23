@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion, useScroll, useSpring } from 'framer-motion';
-import { ArrowLeft, ArrowUpRight, Calendar, Copy, Facebook, Linkedin, Twitter, User } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Calendar, Copy, Facebook, Instagram, Linkedin, Twitter, User } from 'lucide-react';
 import { Blog } from '../types';
 import { Button } from '../components/Button';
 import { GlassPanel } from '../components/ui/glass-panel';
@@ -116,14 +116,14 @@ export default function BlogDetails() {
       .filter(Boolean);
   }, [blog]);
 
-  const shareTo = (platform: 'twitter' | 'linkedin' | 'facebook') => {
+  const shareTo = (platform: 'linkedin' | 'facebook' | 'instagram') => {
     const url = encodeURIComponent(window.location.href);
     const text = encodeURIComponent(blog?.title || '');
 
     const links = {
-      twitter: `https://twitter.com/intent/tweet?url=${url}&text=${text}`,
-      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${url}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${url}`,
+      instagram: `https://www.instagram.com/livin.investments?url=${url}`,
+      linkedin: `https://www.linkedin.com/company/livin-ofo?url=${url}`,
+      facebook: `https://www.facebook.com/share/1cQKZQ4fYw?url=${url}`,
     };
 
     window.open(links[platform], '_blank', 'noopener,noreferrer');
@@ -240,11 +240,11 @@ export default function BlogDetails() {
             <div className="sticky top-28 space-y-3">
               <button
                 type="button"
-                onClick={() => shareTo('twitter')}
+                onClick={() => shareTo('instagram')}
                 className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition-all hover:scale-105 hover:text-slate-950"
-                aria-label="Share on X"
+                aria-label="Share on Instagram"
               >
-                <Twitter className="h-4 w-4" />
+                <Instagram className="h-4 w-4" />
               </button>
               <button
                 type="button"

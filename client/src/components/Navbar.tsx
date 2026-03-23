@@ -37,7 +37,7 @@ export const Navbar = () => {
         <Link to="/" className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
           <span className="inline-flex h-9 w-25 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg">
             {/* <Building2 className="h-10 w-auto" /> */}
-            <img src="../../uploads/livin-copy.png" alt="LIVIN Logo" className="h-15 w-auto" />
+            <img src="../../../public/livin-copy.png" alt="LIVIN Logo" className="h-15 w-auto" />
           </span>
         </Link>
 

@@ -6,22 +6,22 @@ import { SectionHeading } from '../components/ui/section-heading';
 
 const founders = [
   {
-    name: 'Nour Hassan',
+    name: 'Mohamed Sobhy',
     role: 'Chief Executive Officer',
-    bio: 'Nour leads strategy and partnerships with a clear focus on long-term value and world-class client experience.',
-    image: 'https://ui-avatars.com/api/?name=Nour+Hassan&background=1e293b&color=ffffff&size=400&bold=true',
+    bio: 'Mohamed leads strategy and partnerships with a clear focus on long-term value and world-class client experience.',
+    image: 'https://ui-avatars.com/api/?name=Mohamed+Sobhy&background=1e293b&color=ffffff&size=400&bold=true',
   },
   {
-    name: 'Karim Adel',
+    name: 'Khaled Rezk',
     role: 'Co-Founder & Investment Director',
-    bio: 'Karim shapes our investment lens, selecting high-growth opportunities across Egypt\'s most desirable locations.',
-    image: 'https://ui-avatars.com/api/?name=Karim+Adel&background=0f172a&color=ffffff&size=400&bold=true',
+    bio: 'Khaled shapes our investment lens, selecting high-growth opportunities across Egypt\'s most desirable locations.',
+    image: 'https://ui-avatars.com/api/?name=Khaled+Rezk&background=0f172a&color=ffffff&size=400&bold=true',
   },
   {
-    name: 'Maya Fares',
+    name: 'Mohmoud Zidan',
     role: 'Co-Founder & Design Director',
-    bio: 'Maya brings a modern design perspective to every touchpoint, ensuring elegant and intuitive experiences.',
-    image: 'https://ui-avatars.com/api/?name=Maya+Fares&background=334155&color=ffffff&size=400&bold=true',
+    bio: 'Mohmoud brings a modern design perspective to every touchpoint, ensuring elegant and intuitive experiences.',
+    image: 'https://ui-avatars.com/api/?name=Mohmoud+Zidan&background=334155&color=ffffff&size=400&bold=true',
   },
 ];
 

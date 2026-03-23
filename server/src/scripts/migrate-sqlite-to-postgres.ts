@@ -8,9 +8,10 @@
  * Set DRY_RUN=true to preview data without writing to PostgreSQL.
  */
 
+import "dotenv/config";
 import Database from "better-sqlite3";
 import path from "path";
-import { prisma } from "../lib/prisma.ts";
+import { logDatabaseConnection, prisma } from "../lib/prisma.ts";
 
 const SQLITE_PATH = process.env.SQLITE_PATH
   ? path.resolve(process.env.SQLITE_PATH)
@@ -56,6 +57,8 @@ async function main() {
   log(`  Mode   : ${DRY_RUN ? "DRY RUN (no writes)" : "LIVE"}`);
   log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`);
 
+  logDatabaseConnection("sqlite-to-postgres-migration");
+
   const db = new Database(SQLITE_PATH, { readonly: true });
 
   // ── Read all tables ───────────────────────────────────────────────────────
@@ -91,11 +94,14 @@ async function main() {
     return;
   }
 
-  // ── Write to PostgreSQL inside a transaction ──────────────────────────────
+  // ── Write to PostgreSQL with idempotent upserts ──────────────────────────
   log(`\n⏳ Writing to PostgreSQL…\n`);
 
-  await prisma.$transaction(
-    async (tx) => {
+  const tx = prisma;
+  const developerIdMap = new Map<number, number>();
+  const destinationIdMap = new Map<number, number>();
+  const projectIdMap = new Map<number, number>();
+  const amenityIdMap = new Map<number, number>();
 
       // 1. Users
       if (users.length) {
@@ -105,7 +111,6 @@ async function main() {
             where: { username: u.username },
             update: {},
             create: {
-              id:       u.id,
               username: u.username,
               password: u.password,
               role:     u.role ?? "admin",
@@ -120,23 +125,37 @@ async function main() {
       if (developers.length) {
         let count = 0;
         for (const d of developers as any[]) {
-          await tx.developer.upsert({
-            where: { slug: d.slug },
-            update: {
-              name:        d.name,
-              logo:        d.logo        ?? null,
-              description: d.description ?? null,
-              website:     d.website     ?? null,
-            },
-            create: {
-              id:          d.id,
-              name:        d.name,
-              logo:        d.logo        ?? null,
-              description: d.description ?? null,
-              website:     d.website     ?? null,
-              slug:        d.slug,
+          const existing = await tx.developer.findFirst({
+            where: {
+              OR: [{ id: d.id }, { slug: d.slug }],
             },
           });
+
+          if (existing) {
+            await tx.developer.update({
+              where: { id: existing.id },
+              data: {
+                name:        d.name,
+                logo:        d.logo        ?? null,
+                description: d.description ?? null,
+                website:     d.website     ?? null,
+                slug:        d.slug,
+              },
+            });
+            developerIdMap.set(d.id, existing.id);
+          } else {
+            const created = await tx.developer.create({
+              data: {
+                id:          d.id,
+                name:        d.name,
+                logo:        d.logo        ?? null,
+                description: d.description ?? null,
+                website:     d.website     ?? null,
+                slug:        d.slug,
+              },
+            });
+            developerIdMap.set(d.id, created.id);
+          }
           count++;
         }
         log(`   ✔ developers         : ${count} upserted`);
@@ -146,21 +165,35 @@ async function main() {
       if (destinations.length) {
         let count = 0;
         for (const d of destinations as any[]) {
-          await tx.destination.upsert({
-            where: { slug: d.slug },
-            update: {
-              name:        d.name,
-              image:       d.image       ?? null,
-              description: d.description ?? null,
-            },
-            create: {
-              id:          d.id,
-              name:        d.name,
-              image:       d.image       ?? null,
-              description: d.description ?? null,
-              slug:        d.slug,
+          const existing = await tx.destination.findFirst({
+            where: {
+              OR: [{ id: d.id }, { slug: d.slug }],
             },
           });
+
+          if (existing) {
+            await tx.destination.update({
+              where: { id: existing.id },
+              data: {
+                name:        d.name,
+                image:       d.image       ?? null,
+                description: d.description ?? null,
+                slug:        d.slug,
+              },
+            });
+            destinationIdMap.set(d.id, existing.id);
+          } else {
+            const created = await tx.destination.create({
+              data: {
+                id:          d.id,
+                name:        d.name,
+                image:       d.image       ?? null,
+                description: d.description ?? null,
+                slug:        d.slug,
+              },
+            });
+            destinationIdMap.set(d.id, created.id);
+          }
           count++;
         }
         log(`   ✔ destinations       : ${count} upserted`);
@@ -170,49 +203,66 @@ async function main() {
       if (projects.length) {
         let count = 0;
         for (const p of projects as any[]) {
-          await tx.project.upsert({
-            where: { slug: p.slug },
-            update: {
-              name:             p.name,
-              location:         p.location         ?? null,
-              price_range:      p.price_range       ?? null,
-              type:             p.type              ?? null,
-              status:           p.status            ?? null,
-              description:      p.description       ?? null,
-              main_image:       p.main_image        ?? null,
-              gallery:          p.gallery           ?? null,
-              amenities:        p.amenities         ?? null,
-              developer_id:     p.developer_id      ?? null,
-              destination_id:   p.destination_id    ?? null,
-              is_featured:      p.is_featured       ?? 0,
-              featured:         p.featured          ?? 0,
-              beds:             p.beds              ?? null,
-              size:             p.size              ?? null,
-              meta_title:       p.meta_title        ?? null,
-              meta_description: p.meta_description  ?? null,
-            },
-            create: {
-              id:               p.id,
-              name:             p.name,
-              location:         p.location         ?? null,
-              price_range:      p.price_range       ?? null,
-              type:             p.type              ?? null,
-              status:           p.status            ?? null,
-              description:      p.description       ?? null,
-              main_image:       p.main_image        ?? null,
-              gallery:          p.gallery           ?? null,
-              amenities:        p.amenities         ?? null,
-              developer_id:     p.developer_id      ?? null,
-              destination_id:   p.destination_id    ?? null,
-              is_featured:      p.is_featured       ?? 0,
-              featured:         p.featured          ?? 0,
-              beds:             p.beds              ?? null,
-              size:             p.size              ?? null,
-              slug:             p.slug,
-              meta_title:       p.meta_title        ?? null,
-              meta_description: p.meta_description  ?? null,
+          const mappedDeveloperId = p.developer_id ? (developerIdMap.get(p.developer_id) ?? p.developer_id) : null;
+          const mappedDestinationId = p.destination_id ? (destinationIdMap.get(p.destination_id) ?? p.destination_id) : null;
+
+          const existing = await tx.project.findFirst({
+            where: {
+              OR: [{ id: p.id }, { slug: p.slug }],
             },
           });
+
+          if (existing) {
+            await tx.project.update({
+              where: { id: existing.id },
+              data: {
+                name:             p.name,
+                location:         p.location         ?? null,
+                price_range:      p.price_range       ?? null,
+                type:             p.type              ?? null,
+                status:           p.status            ?? null,
+                description:      p.description       ?? null,
+                main_image:       p.main_image        ?? null,
+                gallery:          p.gallery           ?? null,
+                amenities:        p.amenities         ?? null,
+                developer_id:     mappedDeveloperId,
+                destination_id:   mappedDestinationId,
+                is_featured:      p.is_featured       ?? 0,
+                featured:         p.featured          ?? 0,
+                beds:             p.beds              ?? null,
+                size:             p.size              ?? null,
+                slug:             p.slug,
+                meta_title:       p.meta_title        ?? null,
+                meta_description: p.meta_description  ?? null,
+              },
+            });
+            projectIdMap.set(p.id, existing.id);
+          } else {
+            const created = await tx.project.create({
+              data: {
+                id:               p.id,
+                name:             p.name,
+                location:         p.location         ?? null,
+                price_range:      p.price_range       ?? null,
+                type:             p.type              ?? null,
+                status:           p.status            ?? null,
+                description:      p.description       ?? null,
+                main_image:       p.main_image        ?? null,
+                gallery:          p.gallery           ?? null,
+                amenities:        p.amenities         ?? null,
+                developer_id:     mappedDeveloperId,
+                destination_id:   mappedDestinationId,
+                is_featured:      p.is_featured       ?? 0,
+                featured:         p.featured          ?? 0,
+                beds:             p.beds              ?? null,
+                size:             p.size              ?? null,
+                slug:             p.slug,
+                meta_title:       p.meta_title        ?? null,
+                meta_description: p.meta_description  ?? null,
+              },
+            });
+            projectIdMap.set(p.id, created.id);
+          }
           count++;
         }
         log(`   ✔ projects           : ${count} upserted`);
@@ -222,31 +272,43 @@ async function main() {
       if (blogs.length) {
         let count = 0;
         for (const b of blogs as any[]) {
-          await tx.blog.upsert({
-            where: { slug: b.slug },
-            update: {
-              title:            b.title,
-              content:          b.content          ?? null,
-              image:            b.image            ?? null,
-              category:         b.category         ?? null,
-              author:           b.author           ?? null,
-              created_at:       toDate(b.created_at) ?? new Date(),
-              meta_title:       b.meta_title        ?? null,
-              meta_description: b.meta_description  ?? null,
-            },
-            create: {
-              id:               b.id,
-              title:            b.title,
-              content:          b.content          ?? null,
-              image:            b.image            ?? null,
-              category:         b.category         ?? null,
-              author:           b.author           ?? null,
-              created_at:       toDate(b.created_at) ?? new Date(),
-              slug:             b.slug,
-              meta_title:       b.meta_title        ?? null,
-              meta_description: b.meta_description  ?? null,
+          const existing = await tx.blog.findFirst({
+            where: {
+              OR: [{ id: b.id }, { slug: b.slug }],
             },
           });
+
+          if (existing) {
+            await tx.blog.update({
+              where: { id: existing.id },
+              data: {
+                title:            b.title,
+                content:          b.content          ?? null,
+                image:            b.image            ?? null,
+                category:         b.category         ?? null,
+                author:           b.author           ?? null,
+                created_at:       toDate(b.created_at) ?? new Date(),
+                slug:             b.slug,
+                meta_title:       b.meta_title        ?? null,
+                meta_description: b.meta_description  ?? null,
+              },
+            });
+          } else {
+            await tx.blog.create({
+              data: {
+                id:               b.id,
+                title:            b.title,
+                content:          b.content          ?? null,
+                image:            b.image            ?? null,
+                category:         b.category         ?? null,
+                author:           b.author           ?? null,
+                created_at:       toDate(b.created_at) ?? new Date(),
+                slug:             b.slug,
+                meta_title:       b.meta_title        ?? null,
+                meta_description: b.meta_description  ?? null,
+              },
+            });
+          }
           count++;
         }
         log(`   ✔ blogs              : ${count} upserted`);
@@ -279,15 +341,27 @@ async function main() {
       if (propertyTypes.length) {
         let count = 0;
         for (const pt of propertyTypes as any[]) {
-          await tx.propertyType.upsert({
-            where: { name: pt.name },
-            update: {},
-            create: {
-              id:         pt.id,
-              name:       pt.name,
-              created_at: toDate(pt.created_at) ?? new Date(),
+          const existing = await tx.propertyType.findFirst({
+            where: {
+              OR: [{ id: pt.id }, { name: pt.name }],
             },
           });
+
+          if (existing) {
+            await tx.propertyType.update({
+              where: { id: existing.id },
+              data: {
+                name: pt.name,
+              },
+            });
+          } else {
+            await tx.propertyType.create({
+              data: {
+                name:       pt.name,
+                created_at: toDate(pt.created_at) ?? new Date(),
+              },
+            });
+          }
           count++;
         }
         log(`   ✔ property_types     : ${count} upserted`);
@@ -297,15 +371,29 @@ async function main() {
       if (amenities.length) {
         let count = 0;
         for (const a of amenities as any[]) {
-          await tx.amenity.upsert({
-            where: { name: a.name },
-            update: {},
-            create: {
-              id:         a.id,
-              name:       a.name,
-              created_at: toDate(a.created_at) ?? new Date(),
+          const existing = await tx.amenity.findFirst({
+            where: {
+              OR: [{ id: a.id }, { name: a.name }],
             },
           });
+
+          if (existing) {
+            await tx.amenity.update({
+              where: { id: existing.id },
+              data: {
+                name: a.name,
+              },
+            });
+            amenityIdMap.set(a.id, existing.id);
+          } else {
+            const created = await tx.amenity.create({
+              data: {
+                name:       a.name,
+                created_at: toDate(a.created_at) ?? new Date(),
+              },
+            });
+            amenityIdMap.set(a.id, created.id);
+          }
           count++;
         }
         log(`   ✔ amenities          : ${count} upserted`);
@@ -315,24 +403,27 @@ async function main() {
       if (projectAmenities.length) {
         let count = 0;
         for (const pa of projectAmenities as any[]) {
+          const mappedProjectId = projectIdMap.get(pa.project_id) ?? pa.project_id;
+          const mappedAmenityId = amenityIdMap.get(pa.amenity_id) ?? pa.amenity_id;
+
           // Only insert if both referenced records exist
           const [proj, amenity] = await Promise.all([
-            tx.project.findUnique({ where: { id: pa.project_id } }),
-            tx.amenity.findUnique({ where: { id: pa.amenity_id } }),
+            tx.project.findUnique({ where: { id: mappedProjectId } }),
+            tx.amenity.findUnique({ where: { id: mappedAmenityId } }),
           ]);
           if (!proj || !amenity) continue;
 
           await tx.projectAmenity.upsert({
             where: {
               project_id_amenity_id: {
-                project_id: pa.project_id,
-                amenity_id: pa.amenity_id,
+                project_id: mappedProjectId,
+                amenity_id: mappedAmenityId,
               },
             },
             update: {},
             create: {
-              project_id: pa.project_id,
-              amenity_id: pa.amenity_id,
+              project_id: mappedProjectId,
+              amenity_id: mappedAmenityId,
             },
           });
           count++;
@@ -371,7 +462,6 @@ async function main() {
             where: { email: n.email },
             update: {},
             create: {
-              id:         n.id,
               email:      n.email,
               created_at: toDate(n.created_at) ?? new Date(),
             },
@@ -380,9 +470,6 @@ async function main() {
         }
         log(`   ✔ newsletter_subs    : ${count} upserted`);
       }
-    },
-    { timeout: 60000 }
-  );
 
   // Sync PostgreSQL sequences so future inserts don't collide with migrated IDs
   log(`\n⏳ Syncing auto-increment sequences…`);

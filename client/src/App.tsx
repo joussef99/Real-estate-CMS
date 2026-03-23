@@ -171,13 +171,13 @@ function Footer() {
               A premium real estate platform connecting modern investors with extraordinary properties and trusted developers.
             </p>
             <div className="mt-6 flex gap-3">
-              <a href="https://www.instagram.com/livin.investments" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Instagram">
+              <a href="https://www.instagram.com/livin.investments" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
                 <Instagram className="h-4 w-4" />
               </a>
-              <a href="https://www.linkedin.com/company/livin-ofo" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="LinkedIn">
+              <a href="https://www.linkedin.com/company/livin-ofo" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="LinkedIn" target="_blank" rel="noopener noreferrer">
                 <Linkedin className="h-4 w-4" />
               </a>
-              <a href="https://www.facebook.com/share/1cQKZQ4fYw/" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Facebook">
+              <a href="https://www.facebook.com/share/1cQKZQ4fYw/" className="rounded-xl border border-white/20 bg-white/10 p-2.5 transition-all hover:bg-white/20" aria-label="Facebook" target="_blank" rel="noopener noreferrer">
                 <Facebook className="h-4 w-4" />
               </a>
             </div>
