@@ -17,6 +17,7 @@ export interface ValidatedEnv {
  * Required variables that must be set.
  */
 const REQUIRED_VARS = ["DATABASE_URL", "JWT_SECRET"] as const;
+const REQUIRED_UPLOAD_VARS = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"] as const;
 
 /**
  * Variables with defaults and descriptions.
@@ -58,6 +59,18 @@ const VAR_DESCRIPTIONS: Record<string, { default?: string; description: string; 
       "Optional absolute backend URL for generating image URLs across domains. Example: https://api.yourdomain.com or https://backend.up.railway.app",
     required: false,
   },
+  CLOUDINARY_CLOUD_NAME: {
+    description: "Cloudinary cloud name for image uploads. Example: demo-cloud",
+    required: true,
+  },
+  CLOUDINARY_API_KEY: {
+    description: "Cloudinary API key for authenticated uploads",
+    required: true,
+  },
+  CLOUDINARY_API_SECRET: {
+    description: "Cloudinary API secret for authenticated uploads",
+    required: true,
+  },
 };
 
 /**
@@ -83,6 +96,19 @@ export function validateEnv(): ValidatedEnv {
     } else if (varName === "JWT_SECRET" && value.length < 32) {
       errors.push(
         `  - JWT_SECRET: Too short (${value.length} chars, minimum 32 required). Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
+      );
+    }
+  }
+
+  for (const varName of REQUIRED_UPLOAD_VARS) {
+    const value = process.env[varName];
+    if (!value || (typeof value === "string" && value.trim() === "")) {
+      const desc = VAR_DESCRIPTIONS[varName];
+      const hint = desc
+        ? `\n   ${desc.description}`
+        : "";
+      errors.push(
+        `  - ${varName}: Missing (required for Cloudinary image uploads)${hint}`
       );
     }
   }
@@ -117,6 +143,9 @@ export function validateEnv(): ValidatedEnv {
       `  PORT: ${port}\n` +
       `  DATABASE: ${maskConnectionString(process.env.DATABASE_URL!)}\n` +
       `  JWT_SECRET: ${maskSecret(process.env.JWT_SECRET!)}\n` +
+      `  CLOUDINARY_CLOUD_NAME: ${process.env.CLOUDINARY_CLOUD_NAME || "(not set)"}\n` +
+      `  CLOUDINARY_API_KEY: ${maskSecret(process.env.CLOUDINARY_API_KEY || "")}\n` +
+      `  CLOUDINARY_API_SECRET: ${maskSecret(process.env.CLOUDINARY_API_SECRET || "")}\n` +
       `  CORS_ORIGIN: ${corsOrigin.length > 0 ? corsOrigin.join(", ") : "(default development origins)"}\n` +
       `  BACKEND_URL: ${process.env.BACKEND_URL || "(not set, will use request headers)"}\n\n`
   );

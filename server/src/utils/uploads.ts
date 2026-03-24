@@ -1,26 +1,13 @@
 import multer from "multer";
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.join(__dirname, "..", "..");
 
-// Ensure uploads directory exists
+// Legacy uploads directory path for backward-compatible static serving.
 export const uploadsDir = path.join(rootDir, 'uploads');
-export const developerUploadsDir = path.join(uploadsDir, 'developers');
-export const destinationUploadsDir = path.join(uploadsDir, 'destinations');
-
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-if (!fs.existsSync(developerUploadsDir)) {
-  fs.mkdirSync(developerUploadsDir, { recursive: true });
-}
-if (!fs.existsSync(destinationUploadsDir)) {
-  fs.mkdirSync(destinationUploadsDir, { recursive: true });
-}
 
 const memoryStorage = multer.memoryStorage();
 

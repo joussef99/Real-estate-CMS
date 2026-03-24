@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { upload, uploadDeveloper, uploadDestination, uploadsDir, developerUploadsDir, destinationUploadsDir } from "../utils/uploads.ts";
-import { optimizeAndSaveImage } from "../utils/imageOptimization.ts";
+import { upload, uploadDeveloper, uploadDestination } from "../utils/uploads.ts";
+import { optimizeImageBuffer } from "../utils/imageOptimization.ts";
+import { uploadImageBufferToCloudinary } from "../utils/cloudinaryUpload.ts";
 import { authenticate, requireAdmin } from "../middleware/auth.ts";
-import { getFullImageUrl } from "../utils/imageUrl.ts";
 
 interface UploadedImageFile {
   buffer: Buffer;
@@ -20,18 +20,25 @@ router.post("/", upload.array('images', 10), async (req: any, res, next) => {
   }
 
   try {
-    const uploadedPaths = await Promise.all(
-      req.files.map((file: UploadedImageFile) =>
-        optimizeAndSaveImage(file, uploadsDir, '/uploads', {
+    const uploadedUrls = await Promise.all(
+      req.files.map(async (file: UploadedImageFile) => {
+        const optimized = await optimizeImageBuffer(file, {
           maxWidth: 1200,
           maxHeight: 1200,
           quality: 70,
-        }),
-      ),
+        });
+
+        const uploaded = await uploadImageBufferToCloudinary(optimized.buffer, {
+          folder: "livin/projects",
+          public_id: `${optimized.safeName}-${Date.now()}`,
+          resource_type: "image",
+          overwrite: false,
+        });
+
+        return uploaded.secure_url;
+      }),
     );
-    // Convert relative paths to full URLs
-    const fullUrls = uploadedPaths.map(path => getFullImageUrl(req, path));
-    res.json({ images: fullUrls });
+    res.json({ images: uploadedUrls });
   } catch (error) {
     next(error);
   }
@@ -44,13 +51,20 @@ router.post("/developer-logo", uploadDeveloper.single('logo'), async (req: any, 
   }
 
   try {
-    const logoPath = await optimizeAndSaveImage(req.file, developerUploadsDir, '/uploads/developers', {
+    const optimized = await optimizeImageBuffer(req.file, {
       maxWidth: 600,
       maxHeight: 600,
       quality: 70,
     });
-    const fullUrl = getFullImageUrl(req, logoPath);
-    res.json({ logo: fullUrl });
+
+    const uploaded = await uploadImageBufferToCloudinary(optimized.buffer, {
+      folder: "livin/developers",
+      public_id: `${optimized.safeName}-${Date.now()}`,
+      resource_type: "image",
+      overwrite: false,
+    });
+
+    res.json({ logo: uploaded.secure_url });
   } catch (error) {
     next(error);
   }
@@ -63,13 +77,20 @@ router.post("/destination-image", uploadDestination.single('image'), async (req:
   }
 
   try {
-    const imagePath = await optimizeAndSaveImage(req.file, destinationUploadsDir, '/uploads/destinations', {
+    const optimized = await optimizeImageBuffer(req.file, {
       maxWidth: 1200,
       maxHeight: 1200,
       quality: 70,
     });
-    const fullUrl = getFullImageUrl(req, imagePath);
-    res.json({ image: fullUrl });
+
+    const uploaded = await uploadImageBufferToCloudinary(optimized.buffer, {
+      folder: "livin/destinations",
+      public_id: `${optimized.safeName}-${Date.now()}`,
+      resource_type: "image",
+      overwrite: false,
+    });
+
+    res.json({ image: uploaded.secure_url });
   } catch (error) {
     next(error);
   }

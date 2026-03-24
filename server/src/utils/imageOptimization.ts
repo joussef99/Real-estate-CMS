@@ -1,5 +1,3 @@
-import fs from 'fs';
-import path from 'path';
 import sharp from 'sharp';
 
 interface UploadedImageFile {
@@ -21,25 +19,22 @@ const sanitizeFileName = (name: string) =>
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-export async function optimizeAndSaveImage(
+export async function optimizeImageBuffer(
   file: UploadedImageFile,
-  targetDir: string,
-  publicBasePath: string,
   options: OptimizeImageOptions,
 ) {
-  fs.mkdirSync(targetDir, { recursive: true });
-
+  // Keep deterministic naming support for Cloudinary public IDs.
   const safeName = sanitizeFileName(file.originalname) || 'image';
-  const fileName = `${safeName}-${Date.now()}.webp`;
-  const outputPath = path.join(targetDir, fileName);
-
   const { maxWidth, maxHeight, quality = 70 } = options;
 
-  await sharp(file.buffer)
+  const buffer = await sharp(file.buffer)
     .rotate()
     .resize({ width: maxWidth, height: maxHeight, fit: 'inside', withoutEnlargement: true })
     .webp({ quality, effort: 4 })
-    .toFile(outputPath);
+    .toBuffer();
 
-  return `${publicBasePath}/${fileName}`;
+  return {
+    buffer,
+    safeName,
+  };
 }

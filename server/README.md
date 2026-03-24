@@ -36,6 +36,9 @@ ADMIN_INITIAL_PASSWORD=strong_password
 NODE_ENV=development
 CORS_ORIGIN=http://localhost:5173,http://localhost:3000
 BACKEND_URL=
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 ### Generating JWT_SECRET
@@ -46,12 +49,21 @@ Run this command in Node.js to generate a secure random secret:
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-### Image Serving & BACKEND_URL
+### Image Uploads (Cloudinary)
 
-The server automatically serves uploaded images from the `/uploads` endpoint:
+The server uploads images directly to Cloudinary and stores only full CDN URLs in PostgreSQL:
 
-- Images are optimized to `.webp` format
-- Paths: `/uploads/`, `/uploads/developers/`, `/uploads/destinations/`
+- Images are optimized to `.webp` format before upload
+- Uploaded folders: `livin/projects`, `livin/developers`, `livin/destinations`
+- Upload endpoints keep the same API response shape (`images`, `logo`, `image`)
+
+The frontend should use returned URLs directly:
+
+```tsx
+<img src={project.main_image} alt={project.name} />
+```
+
+Legacy local `/uploads/...` paths are still supported for older records via URL transformation.
 
 **For production (frontend and backend on different domains):**
 
@@ -61,7 +73,7 @@ Set the `BACKEND_URL` environment variable to generate absolute image URLs:
 # Production (e.g., Railway deployment)
 BACKEND_URL=https://your-backend.up.railway.app
 
-# The API will return images as:
+# The API can still return older local records as:
 # {
 #   "image": "https://your-backend.up.railway.app/uploads/developers/logo-12345.webp"
 # }
@@ -97,7 +109,7 @@ BACKEND_URL=https://your-backend.up.railway.app
 
 ## Deployment
 
-1. Set `DATABASE_URL`, `JWT_SECRET`, `ADMIN_INITIAL_PASSWORD`, `NODE_ENV=production`, `CORS_ORIGIN`, and `BACKEND_URL` in Railway.
+1. Set `DATABASE_URL`, `JWT_SECRET`, `ADMIN_INITIAL_PASSWORD`, `NODE_ENV=production`, `CORS_ORIGIN`, `BACKEND_URL`, `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` in Railway.
 2. Run `npm run build` during the Railway build step.
 3. Run `npm start` as the Railway start command.
 4. Run `npm run prisma:migrate` after deploy to apply schema changes.
@@ -115,6 +127,6 @@ server/
 │   ├── middleware/       # Custom middleware
 │   └── utils/            # Utility functions
 ├── prisma/               # Prisma schema and migrations
-├── uploads/              # Uploaded files storage
+├── src/config/cloudinary.ts # Cloudinary SDK configuration
 └── package.json          # Dependencies
 ```
