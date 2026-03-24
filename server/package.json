@@ -16,7 +16,9 @@
     "db:create-admin": "tsx src/scripts/create-admin.ts",
     "db:test": "tsx src/scripts/test-db.ts",
     "db:import:postgres": "tsx src/scripts/import-postgres.ts",
-    "db:migrate:sqlite": "tsx src/scripts/migrate-sqlite-to-postgres.ts"
+    "db:migrate:sqlite": "tsx src/scripts/migrate-sqlite-to-postgres.ts",
+    "db:audit:legacy-images": "tsx src/scripts/audit-legacy-image-paths.ts",
+    "db:nullify:legacy-images": "tsx src/scripts/audit-legacy-image-paths.ts --apply-nullify"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",

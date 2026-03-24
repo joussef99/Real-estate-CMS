@@ -81,6 +81,7 @@ const VAR_DESCRIPTIONS: Record<string, { default?: string; description: string; 
 export function validateEnv(): ValidatedEnv {
   const errors: string[] = [];
   const isProduction = process.env.NODE_ENV === "production";
+  const isServerRuntime = process.argv.some((arg) => /(?:^|[\\/])(src|dist)[\\/]index\.(ts|js)$/.test(arg));
 
   // Check required variables
   for (const varName of REQUIRED_VARS) {
@@ -100,16 +101,18 @@ export function validateEnv(): ValidatedEnv {
     }
   }
 
-  for (const varName of REQUIRED_UPLOAD_VARS) {
-    const value = process.env[varName];
-    if (!value || (typeof value === "string" && value.trim() === "")) {
-      const desc = VAR_DESCRIPTIONS[varName];
-      const hint = desc
-        ? `\n   ${desc.description}`
-        : "";
-      errors.push(
-        `  - ${varName}: Missing (required for Cloudinary image uploads)${hint}`
-      );
+  if (isServerRuntime) {
+    for (const varName of REQUIRED_UPLOAD_VARS) {
+      const value = process.env[varName];
+      if (!value || (typeof value === "string" && value.trim() === "")) {
+        const desc = VAR_DESCRIPTIONS[varName];
+        const hint = desc
+          ? `\n   ${desc.description}`
+          : "";
+        errors.push(
+          `  - ${varName}: Missing (required for Cloudinary image uploads)${hint}`
+        );
+      }
     }
   }
 
@@ -143,9 +146,9 @@ export function validateEnv(): ValidatedEnv {
       `  PORT: ${port}\n` +
       `  DATABASE: ${maskConnectionString(process.env.DATABASE_URL!)}\n` +
       `  JWT_SECRET: ${maskSecret(process.env.JWT_SECRET!)}\n` +
-      `  CLOUDINARY_CLOUD_NAME: ${process.env.CLOUDINARY_CLOUD_NAME || "(not set)"}\n` +
-      `  CLOUDINARY_API_KEY: ${maskSecret(process.env.CLOUDINARY_API_KEY || "")}\n` +
-      `  CLOUDINARY_API_SECRET: ${maskSecret(process.env.CLOUDINARY_API_SECRET || "")}\n` +
+      `  CLOUDINARY_CLOUD_NAME: ${process.env.CLOUDINARY_CLOUD_NAME || "(not set)"}${isServerRuntime ? "" : " (optional for scripts)"}\n` +
+      `  CLOUDINARY_API_KEY: ${maskSecret(process.env.CLOUDINARY_API_KEY || "")}${isServerRuntime ? "" : " (optional for scripts)"}\n` +
+      `  CLOUDINARY_API_SECRET: ${maskSecret(process.env.CLOUDINARY_API_SECRET || "")}${isServerRuntime ? "" : " (optional for scripts)"}\n` +
       `  CORS_ORIGIN: ${corsOrigin.length > 0 ? corsOrigin.join(", ") : "(default development origins)"}\n` +
       `  BACKEND_URL: ${process.env.BACKEND_URL || "(not set, will use request headers)"}\n\n`
   );

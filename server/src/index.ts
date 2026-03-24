@@ -14,7 +14,7 @@ import amenitiesRoutes from "./routes/amenities.ts";
 import leadsRoutes from "./routes/leads.ts";
 import statsRoutes from "./routes/stats.ts";
 import uploadRoutes from "./routes/uploads.ts";
-import { uploadsDir, handleMulterError } from "./utils/uploads.ts";
+import { handleMulterError } from "./utils/uploads.ts";
 import { prisma, assertDatabaseConnection } from "./lib/prisma.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
 import { validateEnv } from "./lib/env-validation.ts";
@@ -73,7 +73,6 @@ async function startServer() {
   );
 
   app.use(express.json());
-  app.use("/uploads", express.static(uploadsDir));
 
   // Rate limiting — login endpoint
   const loginLimiter = rateLimit({
