@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Building2, Bed, Maximize2, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from './Button';
+import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export const ProjectCard = (props: any) => {
   const { project } = props;
@@ -9,16 +10,16 @@ export const ProjectCard = (props: any) => {
   // Get the first image from gallery, or use main_image, or fallback to placeholder
   const getCardImage = () => {
     if (project.main_image) {
-      return project.main_image;
+      return resolveImageUrl(project.main_image);
     }
     if (project.images && Array.isArray(project.images) && project.images.length > 0) {
-      return project.images[0];
+      return resolveImageUrl(project.images[0]);
     }
     if (project.gallery) {
       const galleryArray = typeof project.gallery === 'string' ? JSON.parse(project.gallery) : project.gallery;
-      if (galleryArray.length > 0) return galleryArray[0];
+      if (galleryArray.length > 0) return resolveImageUrl(galleryArray[0]);
     }
-    return project.main_image || 'https://picsum.photos/seed/realestate/800/600';
+    return resolveImageUrl(project.main_image) || FALLBACK_IMAGE_URL;
   };
 
   const projectUrl = project.slug || project.id;
@@ -36,13 +37,14 @@ export const ProjectCard = (props: any) => {
       <Link to={`/projects/${projectUrl}`} className="block">
         <div className="relative aspect-16/11 overflow-hidden">
           <img
-            src={getCardImage()}
+            src={cloudinaryOptimizedUrl(getCardImage(), { width: 900, height: 620 }) || FALLBACK_IMAGE_URL}
             alt={project.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             decoding="async"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             referrerPolicy="no-referrer"
+            onError={withFallbackImage}
           />
           <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
           <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">

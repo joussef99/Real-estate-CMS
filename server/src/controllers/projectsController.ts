@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls, transformGalleryToFullUrls } from "../utils/imageUrl.ts";
 import { makeUniqueProjectSlug, normalizePropertyPayload } from "../services/propertiesService.ts";
+import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
 
 const toPositiveInteger = (value: unknown) => {
   const parsed = parseInt(String(value ?? ""), 10);
@@ -63,7 +64,9 @@ const mapProjectCard = (project: any) => ({
   location: project.location,
   price_range: project.price_range,
   type: project.type,
-  main_image: project.main_image,
+  main_image: project.main_image || project.main_image_meta?.url || null,
+  main_image_meta: project.main_image_meta,
+  gallery_meta: project.gallery_meta,
   developer_id: project.developer_id,
   destination_id: project.destination_id,
   beds: project.beds,
@@ -82,8 +85,10 @@ const mapProjectDetail = (project: any) => ({
   type: project.type,
   status: project.status,
   description: project.description,
-  main_image: project.main_image,
+  main_image: project.main_image || project.main_image_meta?.url || null,
+  main_image_meta: project.main_image_meta,
   gallery: project.gallery,
+  gallery_meta: project.gallery_meta,
   amenities: project.amenities,
   developer_id: project.developer_id,
   destination_id: project.destination_id,
@@ -315,19 +320,15 @@ export async function getProjectGallery(req: Request, res: Response) {
     return res.status(404).json({ error: "Project not found" });
   }
 
-  let gallery = [] as string[];
-  try {
-    const rawGallery = project.gallery;
-    if (rawGallery) {
-      gallery = typeof rawGallery === "string" ? JSON.parse(rawGallery) : rawGallery;
-    }
-  } catch {
-    gallery = [];
-  }
+  const mainImage = transformImagesToFullUrls(
+    req,
+    { image: project.main_image, image_meta: project.main_image_meta },
+    ["image"],
+  ).image;
+  const galleryImages = transformGalleryToFullUrls(req, project.gallery, project.gallery_meta);
+  const images = Array.from(new Set([mainImage, ...galleryImages].filter((img): img is string => typeof img === "string" && Boolean(img))));
 
-  const images = [project.main_image, ...(Array.isArray(gallery) ? gallery : [])].filter((img: any) => img);
-  const fullImageUrls = images.map((img) => transformImagesToFullUrls(req, { img }, ["img"]).img);
-  return res.json(fullImageUrls);
+  return res.json(images);
 }
 
 export async function getProjectByIdentifier(req: Request, res: Response) {
@@ -358,9 +359,7 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
   const mapped = mapProjectDetail(project);
   const withFullImage = transformImagesToFullUrls(req, mapped, ["main_image"]);
 
-  if (withFullImage.gallery) {
-    withFullImage.gallery = transformGalleryToFullUrls(req, withFullImage.gallery);
-  }
+  withFullImage.gallery = transformGalleryToFullUrls(req, withFullImage.gallery, withFullImage.gallery_meta);
 
   return res.json(withFullImage);
 }
@@ -381,6 +380,8 @@ export async function createProject(req: Request, res: Response) {
     status,
     description,
     gallery,
+    gallery_meta,
+    main_image_meta,
     amenities,
     developer_id,
     destination_id,
@@ -404,6 +405,8 @@ export async function createProject(req: Request, res: Response) {
     status,
     description,
     gallery,
+    gallery_meta,
+    main_image_meta,
     amenities,
     developer_id,
     destination_id,
@@ -426,6 +429,7 @@ export async function createProject(req: Request, res: Response) {
       status: normalized.status,
       description: normalized.description,
       gallery: normalized.gallery,
+      gallery_meta: normalized.gallery_meta,
       developer_id: normalized.developer_id,
       destination_id: normalized.destination_id,
       is_featured: normalized.is_featured,
@@ -433,6 +437,7 @@ export async function createProject(req: Request, res: Response) {
       beds: normalized.beds,
       size: normalized.size,
       main_image: normalized.main_image,
+      main_image_meta: normalized.main_image_meta,
       slug: finalSlug,
       meta_title: normalized.meta_title,
       meta_description: normalized.meta_description,
@@ -468,6 +473,8 @@ export async function updateProject(req: Request, res: Response) {
     status,
     description,
     gallery,
+    gallery_meta,
+    main_image_meta,
     amenities,
     developer_id,
     destination_id,
@@ -492,6 +499,8 @@ export async function updateProject(req: Request, res: Response) {
       status,
       description,
       gallery,
+      gallery_meta,
+      main_image_meta,
       amenities,
       developer_id,
       destination_id,
@@ -507,6 +516,24 @@ export async function updateProject(req: Request, res: Response) {
   );
 
   const finalSlug = await makeUniqueSlug(generateSlug(normalized.slugCandidate), projectId);
+  const existingProject = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { main_image: true, main_image_meta: true, gallery: true, gallery_meta: true },
+  });
+
+  const previousPublicIds = getPublicIdsFromMediaCollection([
+    existingProject?.main_image_meta,
+    existingProject?.main_image,
+    existingProject?.gallery_meta,
+    existingProject?.gallery,
+  ]);
+  const nextPublicIds = getPublicIdsFromMediaCollection([
+    normalized.main_image_meta,
+    normalized.main_image,
+    normalized.gallery_meta,
+    normalized.gallery,
+  ]);
+  const publicIdsToDelete = previousPublicIds.filter((publicId) => !nextPublicIds.includes(publicId));
 
   await prisma.$transaction(async (tx) => {
     await tx.project.update({
@@ -519,6 +546,7 @@ export async function updateProject(req: Request, res: Response) {
         status: normalized.status,
         description: normalized.description,
         gallery: normalized.gallery,
+        gallery_meta: normalized.gallery_meta,
         developer_id: normalized.developer_id,
         destination_id: normalized.destination_id,
         is_featured: normalized.is_featured,
@@ -526,6 +554,7 @@ export async function updateProject(req: Request, res: Response) {
         beds: normalized.beds,
         size: normalized.size,
         main_image: normalized.main_image,
+        main_image_meta: normalized.main_image_meta,
         slug: finalSlug,
         meta_title: normalized.meta_title,
         meta_description: normalized.meta_description,
@@ -544,6 +573,8 @@ export async function updateProject(req: Request, res: Response) {
       });
     }
   });
+
+  await deleteImages(publicIdsToDelete);
 
   return res.json({ success: true });
 }
@@ -608,16 +639,28 @@ export async function deleteProject(req: Request, res: Response) {
     return res.status(400).json({ error: "Invalid project id" });
   }
 
-  const project = await prisma.project.findUnique({ where: { id: projectId }, select: { id: true } });
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { id: true, main_image: true, main_image_meta: true, gallery: true, gallery_meta: true },
+  });
   if (!project) {
     return res.status(404).json({ error: "Project not found" });
   }
+
+  const publicIds = getPublicIdsFromMediaCollection([
+    project.main_image_meta,
+    project.main_image,
+    project.gallery_meta,
+    project.gallery,
+  ]);
 
   await prisma.$transaction(async (tx) => {
     await tx.projectAmenity.deleteMany({ where: { project_id: projectId } });
     await tx.lead.deleteMany({ where: { project_id: projectId } });
     await tx.project.delete({ where: { id: projectId } });
   });
+
+  await deleteImages(publicIds);
 
   return res.json({ success: true, id: projectId });
 }

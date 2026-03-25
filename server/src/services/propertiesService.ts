@@ -9,6 +9,8 @@ export type PropertyPayload = {
   status?: string | null;
   description?: string | null;
   gallery?: string[];
+  gallery_meta?: any[];
+  main_image_meta?: any;
   amenities?: number[];
   developer_id?: number | null;
   destination_id?: number | null;
@@ -41,6 +43,7 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
     : (payload.is_featured ? 1 : 0);
 
   const gallery = Array.isArray(payload.gallery) ? payload.gallery : [];
+  const galleryMeta = Array.isArray(payload.gallery_meta) ? payload.gallery_meta : [];
   const name = payload.name;
   const location = payload.location ?? null;
   const type = payload.type ?? null;
@@ -61,6 +64,7 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
     status: payload.status ?? null,
     description: payload.description ?? null,
     gallery: JSON.stringify(gallery),
+    gallery_meta: galleryMeta,
     developer_id: payload.developer_id ? Number(payload.developer_id) : null,
     destination_id: payload.destination_id ? Number(payload.destination_id) : null,
     is_featured: payload.is_featured ? 1 : 0,
@@ -68,6 +72,7 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
     beds: payload.beds ?? null,
     size: payload.size ?? null,
     main_image: gallery.length > 0 ? gallery[0] : null,
+    main_image_meta: payload.main_image_meta || galleryMeta[0] || null,
     meta_title,
     meta_description,
     slugCandidate,

@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { Destination, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { DestinationSkeleton } from '../components/ui/destination-skeleton';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function Destinations() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
@@ -23,12 +24,15 @@ export default function Destinations() {
     };
 
     setLoading(true);
-    fetch(`${API_BASE}/api/destinations?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
-      .then(res => res.json())
+    apiJson<any>(`/api/destinations?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
       .then(data => {
         setDestinations(normalize<Destination>(data, 'destinations'));
         setCurrentPage(data?.current_page || 1);
         setTotalPages(Math.max(data?.total_pages || 1, 1));
+      })
+      .catch(() => {
+        setDestinations([]);
+        setTotalPages(1);
       })
       .finally(() => setLoading(false));
   }, [currentPage]);
@@ -59,7 +63,7 @@ export default function Destinations() {
                 <div className="mb-12 grid gap-12 lg:grid-cols-3">
                   <div className="relative lg:col-span-1">
                     <div className="relative h-full min-h-80 overflow-hidden lg:min-h-135">
-                      <img src={dest.image} alt={dest.name} className="h-full w-full object-cover" loading="lazy" decoding="async" sizes="(max-width: 1024px) 100vw, 33vw" referrerPolicy="no-referrer" />
+                      <img src={resolveImageUrl(dest.image) || FALLBACK_IMAGE_URL} alt={dest.name} className="h-full w-full object-cover" loading="lazy" decoding="async" sizes="(max-width: 1024px) 100vw, 33vw" referrerPolicy="no-referrer" onError={withFallbackImage} />
                       <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
                       <div className="absolute bottom-6 left-6 rounded-2xl border border-white/30 bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-xl">
                         {dest.project_count || 0} active projects

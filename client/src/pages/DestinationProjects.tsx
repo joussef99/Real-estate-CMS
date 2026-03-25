@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { Destination, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { ProjectCardSkeleton } from '../components/ui/project-card-skeleton';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function DestinationProjects() {
   const { slug } = useParams<{ slug: string }>();
@@ -23,31 +24,16 @@ export default function DestinationProjects() {
     setNotFound(false);
     setError(null);
 
-    fetch(`${API_BASE}/api/destinations/${encodeURIComponent(slug)}/projects`)
-      .then(async (res) => {
-        const contentType = res.headers.get('content-type') || '';
-
-        if (res.status === 404) {
-          setNotFound(true);
-          return { destination: null, projects: [] as Project[] };
-        }
-
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
-        }
-
-        if (!contentType.includes('application/json')) {
-          const preview = (await res.text()).slice(0, 120);
-          throw new Error(`Expected JSON but received: ${preview}`);
-        }
-
-        return res.json();
-      })
+    apiJson<any>(`/api/destinations/${encodeURIComponent(slug)}/projects`)
       .then((data) => {
         setDestination(data?.destination || null);
         setProjects(Array.isArray(data?.projects) ? data.projects : []);
       })
       .catch((err) => {
+        if (String(err?.message || '').toLowerCase().includes('not found')) {
+          setNotFound(true);
+          return;
+        }
         setError(err?.message || 'Failed to load projects');
       })
       .finally(() => setLoading(false));
@@ -128,12 +114,13 @@ export default function DestinationProjects() {
           <div className="grid gap-8 md:grid-cols-2">
             <div className="relative min-h-72">
               <img
-                src={destination.image || `https://picsum.photos/seed/destination-${destination.id}/1200/900`}
+                src={resolveImageUrl(destination.image) || `https://picsum.photos/seed/destination-${destination.id}/1200/900`}
                 alt={destination.name}
                 className="h-full w-full object-cover"
                 fetchPriority="high"
                 decoding="async"
                 referrerPolicy="no-referrer"
+                onError={withFallbackImage}
               />
               <div className="absolute inset-0 bg-linear-to-t from-slate-950/80 via-slate-900/20 to-transparent" />
               <div className="absolute bottom-6 left-6 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur-xl">

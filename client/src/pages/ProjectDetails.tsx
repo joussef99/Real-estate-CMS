@@ -1,10 +1,11 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson, apiFetch, parseJsonResponse } from '../utils/api';
 import React ,{ useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Project } from '../types';
 import { MapPin, Building2, CheckCircle2, Phone, Mail, ChevronLeft, ChevronRight, Bed, Maximize2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { motion } from 'motion/react';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function ProjectDetails() {
   const { slug } = useParams();
@@ -17,18 +18,18 @@ export default function ProjectDetails() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/projects/${slug}`)
-      .then(res => res.json())
+    apiJson<any>(`/api/projects/${slug}`)
       .then(data => {
         setProject(data);
-        setActiveImage(data.main_image);
+        setActiveImage(resolveImageUrl(data.main_image) || FALLBACK_IMAGE_URL);
         setLoading(false);
-      });
+      })
+      .catch(() => setLoading(false));
     
     // Fetch project amenities
-    fetch(`${API_BASE}/api/projects/${slug}/amenities`)
-      .then(res => res.json())
-      .then(data => setProjectAmenities(data || []));
+    apiJson<any[]>(`/api/projects/${slug}/amenities`)
+      .then(data => setProjectAmenities(Array.isArray(data) ? data : []))
+      .catch(() => setProjectAmenities([]));
   }, [slug]);
 
   useEffect(() => {
@@ -62,7 +63,20 @@ export default function ProjectDetails() {
     setMeta('meta[name="description"]', 'content', project.meta_description || project.description || '');
     setMeta('meta[property="og:title"]', 'content', project.meta_title || project.name);
     setMeta('meta[property="og:description"]', 'content', project.meta_description || project.description || '');
-    setMeta('meta[property="og:image"]', 'content', project.main_image || project.gallery?.[0] || '');
+    const gallerySource = typeof project.gallery === 'string'
+      ? (() => {
+          try {
+            const parsed = JSON.parse(project.gallery);
+            return Array.isArray(parsed) ? parsed[0] : null;
+          } catch {
+            return null;
+          }
+        })()
+      : Array.isArray(project.gallery)
+        ? project.gallery[0]
+        : null;
+
+    setMeta('meta[property="og:image"]', 'content', resolveImageUrl(project.main_image) || resolveImageUrl(gallerySource) || '');
 
     let canonicalLink = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
     if (!canonicalLink) {
@@ -87,7 +101,7 @@ export default function ProjectDetails() {
     setSubmitting(true);
     
     try {
-      const res = await fetch(`${API_BASE}/api/leads`, {
+      const res = await apiFetch(`/api/leads`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -99,11 +113,10 @@ export default function ProjectDetails() {
         })
       });
       
-      if (res.ok) {
-        setSubmitted(true);
-        setFormData({ name: '', email: '', phone: '', message: '' });
-        setTimeout(() => setSubmitted(false), 4000);
-      }
+      await parseJsonResponse(res);
+      setSubmitted(true);
+      setFormData({ name: '', email: '', phone: '', message: '' });
+      setTimeout(() => setSubmitted(false), 4000);
     } catch (err) {
       alert('Error sending enquiry');
     } finally {
@@ -118,16 +131,17 @@ export default function ProjectDetails() {
     
     // Add main image first
     if (project.main_image) {
-      images.push(project.main_image);
+      const mainImage = resolveImageUrl(project.main_image);
+      if (mainImage) images.push(mainImage);
     }
     
     // Add gallery images
     if (project.images && Array.isArray(project.images)) {
-      images.push(...project.images);
+      images.push(...project.images.map((image) => resolveImageUrl(image)).filter(Boolean) as string[]);
     } else if (project.gallery) {
       const gallery = typeof project.gallery === 'string' ? JSON.parse(project.gallery) : project.gallery;
       if (Array.isArray(gallery)) {
-        images.push(...gallery);
+        images.push(...gallery.map((image) => resolveImageUrl(image)).filter(Boolean) as string[]);
       }
     }
     
@@ -191,7 +205,8 @@ export default function ProjectDetails() {
               className="h-full w-full object-cover"
               fetchPriority="high"
               decoding="async"
-              referrerPolicy="no-referrer" />
+              referrerPolicy="no-referrer"
+              onError={withFallbackImage} />
             <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-black/20 to-transparent" />
 
             {/* Navigation Buttons */}
@@ -232,7 +247,7 @@ export default function ProjectDetails() {
                     onClick={() => setActiveImage(img)}
                     className={`relative aspect-3/2 w-32 shrink-0 overflow-hidden rounded-2xl border-2 transition-all duration-300 md:w-48 ${activeImage === img ? 'border-black ring-4 ring-black/5' : 'border-transparent opacity-60 hover:opacity-100'}`}
                   >
-                    <img src={img} alt={`Gallery ${i}`} className="h-full w-full object-cover" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                    <img src={img || FALLBACK_IMAGE_URL} alt={`Gallery ${i}`} className="h-full w-full object-cover" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={withFallbackImage} />
                     {activeImage === img && (
                       <motion.div
                         layoutId="active-indicator"

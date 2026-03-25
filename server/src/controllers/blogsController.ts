@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls } from "../utils/imageUrl.ts";
+import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
 
 const makeUniqueBlogSlug = async (baseSlug: string, currentId?: number): Promise<string> => {
   let slug = baseSlug;
@@ -22,10 +23,12 @@ export async function getBlogs(req: Request, res: Response) {
 
   if (limit <= 0 && !req.query.page) {
     const blogs = await prisma.blog.findMany({
-      select: { id: true, title: true, image: true, category: true, author: true, created_at: true, slug: true },
+      select: { id: true, title: true, image: true, image_meta: true, category: true, author: true, created_at: true, slug: true },
       orderBy: { created_at: "desc" },
     });
-    const transformedBlogs = (blogs as any[]).map((b) => transformImagesToFullUrls(req, b, ["image"]));
+    const transformedBlogs = (blogs as any[])
+      .map((b) => ({ ...b, image: b.image || b.image_meta?.url || null }))
+      .map((b) => transformImagesToFullUrls(req, b, ["image"]));
     return res.json(transformedBlogs);
   }
 
@@ -34,12 +37,14 @@ export async function getBlogs(req: Request, res: Response) {
   const offset = (Math.max(page, 1) - 1) * Math.max(limit, 1);
 
   const blogs = await prisma.blog.findMany({
-    select: { id: true, title: true, image: true, category: true, author: true, created_at: true, slug: true },
+    select: { id: true, title: true, image: true, image_meta: true, category: true, author: true, created_at: true, slug: true },
     orderBy: { created_at: "desc" },
     ...(limit > 0 ? { take: limit, skip: offset } : {}),
   });
 
-  const transformedBlogs = (blogs as any[]).map((b) => transformImagesToFullUrls(req, b, ["image"]));
+  const transformedBlogs = (blogs as any[])
+    .map((b) => ({ ...b, image: b.image || b.image_meta?.url || null }))
+    .map((b) => transformImagesToFullUrls(req, b, ["image"]));
 
   return res.json({
     blogs: transformedBlogs,
@@ -68,12 +73,12 @@ export async function getBlogByIdentifier(req: Request, res: Response) {
 
   if (!blog) return res.status(404).json({ error: "Not found" });
 
-  const blogWithImages = transformImagesToFullUrls(req, blog as any, ["image"]);
+  const blogWithImages = transformImagesToFullUrls(req, { ...(blog as any), image: (blog as any).image || (blog as any).image_meta?.url || null }, ["image"]);
   return res.json(blogWithImages);
 }
 
 export async function createBlog(req: Request, res: Response) {
-  const { title, content, image, category, author, slug, meta_title, meta_description } = req.body;
+  const { title, content, image, image_meta, category, author, slug, meta_title, meta_description } = req.body;
 
   const baseSlugCandidate = (slug && slug.trim()) || title;
   const baseSlug = generateSlug(baseSlugCandidate || `blog-${Date.now()}`);
@@ -86,6 +91,7 @@ export async function createBlog(req: Request, res: Response) {
       title,
       content,
       image,
+      image_meta: image_meta || null,
       category,
       author,
       slug: finalSlug,
@@ -97,8 +103,9 @@ export async function createBlog(req: Request, res: Response) {
 }
 
 export async function updateBlog(req: Request, res: Response) {
-  const { title, content, image, category, author, slug, meta_title, meta_description } = req.body;
+  const { title, content, image, image_meta, category, author, slug, meta_title, meta_description } = req.body;
   const blogId = parseInt(req.params.id, 10);
+  const existing = await prisma.blog.findUnique({ where: { id: blogId }, select: { image_meta: true } });
 
   const baseSlugCandidate = (slug && slug.trim()) || title;
   const baseSlug = generateSlug(baseSlugCandidate || `blog-${Date.now()}`);
@@ -106,12 +113,19 @@ export async function updateBlog(req: Request, res: Response) {
   const finalMetaTitle = meta_title || title;
   const finalMetaDescription = meta_description || (content ? content.substring(0, 160) : `Read about ${title.toLowerCase()}.`);
 
+  const previousPublicId = getPublicIdFromMedia(existing?.image_meta);
+  const nextPublicId = getPublicIdFromMedia(image_meta || image);
+  if (previousPublicId && previousPublicId !== nextPublicId) {
+    await deleteImages([previousPublicId]);
+  }
+
   await prisma.blog.update({
     where: { id: blogId },
     data: {
       title,
       content,
       image,
+      image_meta: image_meta || null,
       category,
       author,
       slug: finalSlug,
@@ -123,6 +137,12 @@ export async function updateBlog(req: Request, res: Response) {
 }
 
 export async function deleteBlog(req: Request, res: Response) {
-  await prisma.blog.delete({ where: { id: Number(req.params.id) } });
+  const id = Number(req.params.id);
+  const existing = await prisma.blog.findUnique({ where: { id }, select: { image: true, image_meta: true } });
+  const publicIds = getPublicIdsFromMediaCollection([existing?.image_meta, existing?.image]);
+
+  await prisma.blog.delete({ where: { id } });
+  await deleteImages(publicIds);
+
   return res.json({ success: true });
 }

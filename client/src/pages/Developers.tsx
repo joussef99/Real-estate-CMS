@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Developer, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function Developers() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
@@ -20,12 +21,15 @@ export default function Developers() {
       return [];
     };
 
-    fetch(`${API_BASE}/api/developers?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
-      .then(res => res.json())
+    apiJson<any>(`/api/developers?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
       .then(data => {
         setDevelopers(normalize<Developer>(data, 'developers'));
         setCurrentPage(data?.current_page || 1);
         setTotalPages(Math.max(data?.total_pages || 1, 1));
+      })
+      .catch(() => {
+        setDevelopers([]);
+        setTotalPages(1);
       });
   }, [currentPage]);
 
@@ -50,7 +54,7 @@ export default function Developers() {
                 className="min-w-60 cursor-pointer rounded-2xl border border-slate-100 bg-white p-5 shadow-lg transition-all duration-300 hover:border-slate-300 hover:shadow-2xl"
               >
                 <div className="mb-4 flex h-20 items-center justify-center rounded-xl bg-slate-50">
-                  <img src={dev.logo} alt={dev.name} className="max-h-14 object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                  <img src={resolveImageUrl(dev.logo) || FALLBACK_IMAGE_URL} alt={dev.name} className="max-h-14 object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={withFallbackImage} />
                 </div>
                 <h3 className="line-clamp-1 text-lg font-semibold text-slate-900">{dev.name}</h3>
               </motion.article>
@@ -64,7 +68,7 @@ export default function Developers() {
               <div className="mb-12 grid gap-12 lg:grid-cols-3">
                 <div className="lg:col-span-1">
                   <div className="mb-6 h-32 w-32 overflow-hidden rounded-2xl bg-slate-50 p-6">
-                    <img src={dev.logo} alt={dev.name} className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" />
+                    <img src={resolveImageUrl(dev.logo) || FALLBACK_IMAGE_URL} alt={dev.name} className="h-full w-full object-contain" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={withFallbackImage} />
                   </div>
                   <h2 className="mb-4 text-3xl font-semibold text-slate-950">{dev.name}</h2>
                   <p className="mb-6 leading-relaxed text-gray-500">{dev.description}</p>

@@ -1,11 +1,15 @@
-﻿import { API_BASE, authFetch } from '../../utils/api';
+﻿import { API_BASE, authFetch, authUploadJson } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, X, Upload } from 'lucide-react';
+import { NoticeToast } from '../../components/ui/notice-toast';
+import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { slugify } from '../../utils/slugify';
 import { optimizeImageFiles } from '../../utils/imageUpload';
+import { MediaAsset } from '../../types';
+import { useTemporaryMediaManager } from '../../hooks/useTemporaryMediaManager';
 
 export default function AddProject() {
   const { id } = useParams();
@@ -15,7 +19,10 @@ export default function AddProject() {
   const [amenitiesList, setAmenitiesList] = useState<any[]>([]);
   const [selectedAmenities, setSelectedAmenities] = useState<number[]>([]);
   const [gallery, setGallery] = useState<string[]>([]);
+  const [galleryMeta, setGalleryMeta] = useState<MediaAsset[]>([]);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [slugDirty, setSlugDirty] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -34,6 +41,8 @@ export default function AddProject() {
     size: '',
   });
   const navigate = useNavigate();
+  const { notice, showNotice } = useCleanupNotice();
+  const { cleanupTemporaryUpload, isTemporaryUpload, markSaved, trackTemporaryUpload } = useTemporaryMediaManager();
 
   useEffect(() => {
     fetch(`${API_BASE}/api/developers`).then(res => res.json()).then(setDevelopers);
@@ -69,6 +78,9 @@ export default function AddProject() {
           if (data.gallery) {
             setGallery(typeof data.gallery === 'string' ? JSON.parse(data.gallery) : data.gallery);
           }
+          if (Array.isArray(data.gallery_meta)) {
+            setGalleryMeta(data.gallery_meta);
+          }
         });
       
       // Fetch project amenities
@@ -92,6 +104,8 @@ export default function AddProject() {
     }
 
     setUploadingImages(true);
+    setUploadProgress(0);
+    setUploadMessage(null);
 
     try {
       const optimizedFiles = await optimizeImageFiles(files, {
@@ -106,29 +120,34 @@ export default function AddProject() {
         formDataUpload.append('images', file);
       });
 
-      const res = await authFetch('/api/upload', {
-        method: 'POST',
-        body: formDataUpload,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setGallery([...gallery, ...data.images]);
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Upload failed');
-      }
+      const data = await authUploadJson<any>('/api/upload', formDataUpload, setUploadProgress);
+      const newImages = Array.isArray(data?.images) ? data.images : [];
+      const newAssets = Array.isArray(data?.assets) ? data.assets : [];
+      newAssets.forEach((asset: MediaAsset) => trackTemporaryUpload(asset.public_id));
+      setGallery([...gallery, ...newImages]);
+      setGalleryMeta([...galleryMeta, ...newAssets]);
+      setUploadMessage(`${newImages.length} image${newImages.length === 1 ? '' : 's'} uploaded successfully.`);
     } catch (err) {
-      alert('Upload error: ' + (err as Error).message);
+      setUploadMessage((err as Error).message || 'Upload failed.');
     } finally {
       setUploadingImages(false);
+      setUploadProgress(0);
       // Reset file input
       e.target.value = '';
     }
   };
 
-  const removeImage = (index: number) => {
+  const removeImage = async (index: number) => {
+    const asset = galleryMeta[index];
+    if (asset?.public_id && isTemporaryUpload(asset.public_id)) {
+      const cleaned = await cleanupTemporaryUpload(asset.public_id);
+      if (cleaned) {
+        showNotice('Unsaved image removed');
+      }
+    }
+
     setGallery(gallery.filter((_, i) => i !== index));
+    setGalleryMeta(galleryMeta.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -156,16 +175,20 @@ export default function AddProject() {
         meta_description: formData.meta_description,
         images: gallery,
         gallery,
+        gallery_meta: galleryMeta,
+        main_image_meta: galleryMeta[0] || null,
         amenities: selectedAmenities
       }),
     });
     if (res.ok) {
+      markSaved();
       navigate('/admin/projects');
     }
   };
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <NoticeToast message={notice} />
       <AdminSidebar />
       <main className="flex-1 p-10">
         <div className="mx-auto max-w-3xl">
@@ -367,8 +390,17 @@ export default function AddProject() {
                       {uploadingImages ? 'Uploading...' : 'Click to upload images or drag and drop'}
                     </p>
                     <p className="text-xs text-zinc-500">Auto-compressed to WebP, max 1600px, up to 5MB source</p>
+                    <p className="mt-2 text-xs text-zinc-500">Images upload instantly. Unsaved ones are removed automatically.</p>
                   </label>
                 </div>
+
+                {uploadingImages && (
+                  <div className="mb-4 overflow-hidden rounded-full bg-zinc-200">
+                    <div className="h-2 bg-black transition-all" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                )}
+
+                {uploadMessage && <p className="mb-3 text-xs text-zinc-600">{uploadMessage}</p>}
 
                 {gallery.length > 0 && (
                   <div className="space-y-3">

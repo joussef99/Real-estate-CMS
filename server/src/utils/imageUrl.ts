@@ -1,5 +1,17 @@
 import { Request } from 'express';
 
+function isAbsoluteHttpUrl(value: unknown): value is string {
+  return typeof value === 'string' && /^https?:\/\//i.test(value);
+}
+
+function getMetaUrl(meta: unknown): string | null {
+  if (meta && typeof meta === 'object' && isAbsoluteHttpUrl((meta as { url?: unknown }).url)) {
+    return (meta as { url: string }).url;
+  }
+
+  return null;
+}
+
 /**
  * Get the backend base URL from the request object
  * Respects trust proxy setup for production (Railway)
@@ -37,12 +49,20 @@ export function transformImagesToFullUrls<T extends Record<string, any>>(
   const result = { ...obj };
 
   imageFields.forEach(field => {
-    if (result[field] && typeof result[field] === 'string') {
+    const metaField = `${String(field)}_meta`;
+    const fallbackUrl = getMetaUrl((result as Record<string, unknown>)[metaField]);
+
+    if (typeof result[field] === 'string') {
       const imagePath = result[field] as string;
-      if (!/^https?:\/\//i.test(imagePath)) {
-        // Legacy relative paths are no longer served; force frontend fallback behavior.
-        result[field] = null as any;
+      if (!isAbsoluteHttpUrl(imagePath)) {
+        // Legacy relative paths are no longer served; prefer Cloudinary metadata if present.
+        result[field] = fallbackUrl as any;
       }
+      return;
+    }
+
+    if (!result[field] && fallbackUrl) {
+      result[field] = fallbackUrl as any;
     }
   });
 
@@ -52,8 +72,8 @@ export function transformImagesToFullUrls<T extends Record<string, any>>(
 /**
  * Transform gallery arrays to full URLs
  */
-export function transformGalleryToFullUrls(req: Request, gallery: string | any[] | null | undefined): any[] {
-  if (!gallery) return [];
+export function transformGalleryToFullUrls(req: Request, gallery: string | any[] | null | undefined, galleryMeta?: unknown): any[] {
+  if (!gallery && !Array.isArray(galleryMeta)) return [];
   let galleryArray: any[] = [];
 
   if (typeof gallery === 'string') {
@@ -66,5 +86,12 @@ export function transformGalleryToFullUrls(req: Request, gallery: string | any[]
     galleryArray = gallery;
   }
 
-  return galleryArray.filter((item) => typeof item === 'string' && /^https?:\/\//i.test(item));
+  const directUrls = galleryArray.filter((item) => isAbsoluteHttpUrl(item));
+  const metadataUrls = Array.isArray(galleryMeta)
+    ? galleryMeta
+        .map((item) => getMetaUrl(item))
+        .filter((item): item is string => Boolean(item))
+    : [];
+
+  return Array.from(new Set([...directUrls, ...metadataUrls]));
 }

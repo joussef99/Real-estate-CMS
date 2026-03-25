@@ -1,15 +1,19 @@
-﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
+﻿import { authFetch, getAdminToken, apiJson } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { NoticeToast } from '../../components/ui/notice-toast';
+import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { Destination } from '../../types';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../../utils/image';
 
 export default function ManageDestinations() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const navigate = useNavigate();
   const token = getAdminToken();
+  const { notice } = useCleanupNotice();
 
   useEffect(() => {
     if (!token) {
@@ -20,9 +24,12 @@ export default function ManageDestinations() {
   }, [token, navigate]);
 
   const fetchDestinations = () => {
-    fetch(`${API_BASE}/api/destinations`)
-      .then(res => res.json())
-      .then(setDestinations);
+    apiJson<any>(`/api/destinations`)
+      .then((data) => {
+        const list = Array.isArray(data) ? data : Array.isArray(data?.destinations) ? data.destinations : [];
+        setDestinations(list);
+      })
+      .catch(() => setDestinations([]));
   };
 
   const handleDelete = async (id: number) => {
@@ -39,6 +46,7 @@ export default function ManageDestinations() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <NoticeToast message={notice} />
       <AdminSidebar />
 
       <main className="flex-1 p-10">
@@ -69,7 +77,7 @@ export default function ManageDestinations() {
                 <tr key={dest.id} className="hover:bg-zinc-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img src={dest.image} alt="" className="mr-3 h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
+                      <img src={resolveImageUrl(dest.image) || FALLBACK_IMAGE_URL} alt="" className="mr-3 h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" onError={withFallbackImage} />
                       <span className="font-medium">{dest.name}</span>
                     </div>
                   </td>

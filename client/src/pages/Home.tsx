@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -11,6 +11,7 @@ import { ProjectCard } from '../components/ProjectCard';
 import { GlassPanel } from '../components/ui/glass-panel';
 import { SectionHeading } from '../components/ui/section-heading';
 import { Blog, Destination, Developer, Project } from '../types';
+import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
 
@@ -39,30 +40,29 @@ export default function Home() {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/projects?limit=6`)
-      .then((res) => res.json())
-      .then((data) => setProjects(normalize<Project>(data, 'projects')));
+    apiJson<any>(`/api/projects?limit=6`)
+      .then((data) => setProjects(normalize<Project>(data, 'projects')))
+      .catch(() => setProjects([]));
 
-    fetch(`${API_BASE}/api/projects/featured?limit=6`)
-      .then((res) => res.json())
-      .then((data) => setFeaturedProjects(normalize<Project>(data, 'projects')));
+    apiJson<any>(`/api/projects/featured?limit=6`)
+      .then((data) => setFeaturedProjects(normalize<Project>(data, 'projects')))
+      .catch(() => setFeaturedProjects([]));
 
-    fetch(`${API_BASE}/api/destinations?limit=6&page=1`)
-      .then((res) => res.json())
-      .then((data) => setDestinations(normalize<Destination>(data, 'destinations')));
+    apiJson<any>(`/api/destinations?limit=6&page=1`)
+      .then((data) => setDestinations(normalize<Destination>(data, 'destinations')))
+      .catch(() => setDestinations([]));
 
-    fetch(`${API_BASE}/api/developers?limit=10&page=1`)
-      .then((res) => res.json())
+    apiJson<any>(`/api/developers?limit=10&page=1`)
       .then((data) => {
         setDevelopers(Array.isArray(data) ? data : data?.developers || []);
-      });
+      })
+      .catch(() => setDevelopers([]));
 
-    fetch(`${API_BASE}/api/blogs?limit=3`)
-      .then((res) => res.json())
-      .then((data) => setBlogs(normalize<Blog>(data, 'blogs')));
+    apiJson<any>(`/api/blogs?limit=3`)
+      .then((data) => setBlogs(normalize<Blog>(data, 'blogs')))
+      .catch(() => setBlogs([]));
 
-    fetch(`${API_BASE}/api/property-types`)
-      .then((res) => res.json())
+    apiJson<{ name: string }[]>(`/api/property-types`)
       .then((data: { name: string }[]) =>
         setPropertyTypes(Array.isArray(data) ? data.map((pt) => pt.name) : [])
       )
@@ -240,13 +240,14 @@ export default function Home() {
               >
                 <Link to={dest.slug ? `/destinations/${dest.slug}` : '/destinations'} className="block">
                   <img
-                    src={dest.image || `https://picsum.photos/seed/destination-${dest.id}/900/1200`}
+                    src={cloudinaryOptimizedUrl(resolveImageUrl(dest.image), { width: 900, height: 1200 }) || `https://picsum.photos/seed/destination-${dest.id}/900/1200`}
                     alt={dest.name}
                     className="h-96 w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     referrerPolicy="no-referrer"
+                    onError={withFallbackImage}
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950/90 via-slate-900/25 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
@@ -302,12 +303,13 @@ export default function Home() {
                 >
                   <div className="mb-4 flex h-16 items-center justify-center rounded-xl bg-slate-50 md:h-20">
                     <img
-                      src={developer.logo}
+                      src={cloudinaryOptimizedUrl(resolveImageUrl(developer.logo), { width: 320, height: 180, crop: 'fit' }) || FALLBACK_IMAGE_URL}
                       alt={developer.name}
                       className="max-h-11 max-w-full object-contain md:max-h-14"
                       loading="lazy"
                       decoding="async"
                       referrerPolicy="no-referrer"
+                      onError={withFallbackImage}
                     />
                   </div>
                   <h3 className="line-clamp-1 text-center text-sm font-semibold text-slate-900 md:text-base">{developer.name}</h3>
@@ -351,13 +353,14 @@ export default function Home() {
               >
                 <Link to={`/blogs/${blog.slug || blog.id}`} className="block">
                   <img
-                    src={blog.image}
+                    src={cloudinaryOptimizedUrl(resolveImageUrl(blog.image), { width: 900, height: 560 }) || FALLBACK_IMAGE_URL}
                     alt={blog.title}
                     className="h-56 w-full object-cover"
                     loading="lazy"
                     decoding="async"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     referrerPolicy="no-referrer"
+                    onError={withFallbackImage}
                   />
                   <div className="p-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-white/70">{blog.category}</p>

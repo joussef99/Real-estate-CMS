@@ -1,14 +1,18 @@
-﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
+﻿import { authFetch, getAdminToken, apiJson } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { LayoutDashboard, Building2, Plus, Edit2, Trash2, ArrowLeft, Copy } from 'lucide-react';
 import { Button } from '../../components/Button';
+import { NoticeToast } from '../../components/ui/notice-toast';
+import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { Project } from '../../types';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../../utils/image';
 
 export default function ManageProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const navigate = useNavigate();
   const token = getAdminToken();
+  const { notice } = useCleanupNotice();
 
   useEffect(() => {
     if (!token) {
@@ -19,8 +23,7 @@ export default function ManageProjects() {
   }, [token, navigate]);
 
   const fetchProjects = () => {
-    fetch(`${API_BASE}/api/projects`)
-      .then(res => res.json())
+    apiJson<any>(`/api/projects`)
       .then(data => {
         const projectList = Array.isArray(data)
           ? data
@@ -28,7 +31,8 @@ export default function ManageProjects() {
             ? data.projects
             : [];
         setProjects(projectList);
-      });
+      })
+      .catch(() => setProjects([]));
   };
 
   const handleDelete = async (id: number) => {
@@ -55,6 +59,7 @@ export default function ManageProjects() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <NoticeToast message={notice} />
       {/* Sidebar - Same as Dashboard */}
       <aside className="w-64 border-r bg-white p-6">
         <h2 className="mb-10 text-xl font-bold tracking-tighter">LUXE ADMIN</h2>
@@ -102,7 +107,7 @@ export default function ManageProjects() {
                 <tr key={project.id} className="hover:bg-zinc-50">
                   <td className="px-6 py-4">
                     <div className="flex items-center">
-                      <img src={project.main_image} alt="" className="mr-3 h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" />
+                      <img src={resolveImageUrl(project.main_image) || FALLBACK_IMAGE_URL} alt="" className="mr-3 h-10 w-10 rounded-lg object-cover" loading="lazy" decoding="async" onError={withFallbackImage} />
                       <span className="font-medium">{project.name}</span>
                     </div>
                   </td>

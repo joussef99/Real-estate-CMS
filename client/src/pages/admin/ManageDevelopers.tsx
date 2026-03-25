@@ -1,15 +1,19 @@
-﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
+﻿import { authFetch, getAdminToken, apiJson } from '../../utils/api';
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Plus, Edit2, Trash2, ArrowLeft } from 'lucide-react';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { NoticeToast } from '../../components/ui/notice-toast';
+import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { Developer } from '../../types';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../../utils/image';
 
 export default function ManageDevelopers() {
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const navigate = useNavigate();
   const token = getAdminToken();
+  const { notice } = useCleanupNotice();
 
   useEffect(() => {
     if (!token) {
@@ -20,9 +24,12 @@ export default function ManageDevelopers() {
   }, [token, navigate]);
 
   const fetchDevelopers = () => {
-    fetch(`${API_BASE}/api/developers`)
-      .then(res => res.json())
-      .then(setDevelopers);
+    apiJson<any>(`/api/developers`)
+      .then((data) => {
+        const list = Array.isArray(data) ? data : Array.isArray(data?.developers) ? data.developers : [];
+        setDevelopers(list);
+      })
+      .catch(() => setDevelopers([]));
   };
 
   const handleDelete = async (id: number) => {
@@ -39,6 +46,7 @@ export default function ManageDevelopers() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <NoticeToast message={notice} />
       <AdminSidebar />
 
       <main className="flex-1 p-10">
@@ -70,7 +78,7 @@ export default function ManageDevelopers() {
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div className="mr-3 h-10 w-10 rounded-lg bg-zinc-100 p-1">
-                        <img src={dev.logo} alt="" className="h-full w-full object-contain" loading="lazy" decoding="async" />
+                        <img src={resolveImageUrl(dev.logo) || FALLBACK_IMAGE_URL} alt="" className="h-full w-full object-contain" loading="lazy" decoding="async" onError={withFallbackImage} />
                       </div>
                       <span className="font-medium">{dev.name}</span>
                     </div>

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls } from "../utils/imageUrl.ts";
+import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
 
 const makeUniqueSlug = async (baseName: string, currentId?: number): Promise<string> => {
   let slug = generateSlug(baseName) || `destination-${Date.now()}`;
@@ -31,7 +32,8 @@ export async function getDestinations(req: Request, res: Response) {
     const mapped = destinations.map((d) => ({
       id: d.id,
       name: d.name,
-      image: d.image,
+      image: d.image || (d as any).image_meta?.url || null,
+      image_meta: (d as any).image_meta ?? null,
       description: d.description,
       slug: d.slug,
       project_count: d._count.projects,
@@ -52,7 +54,8 @@ export async function getDestinations(req: Request, res: Response) {
   const mappedDestinations = destinations.map((d) => ({
     id: d.id,
     name: d.name,
-    image: d.image,
+    image: d.image || (d as any).image_meta?.url || null,
+    image_meta: (d as any).image_meta ?? null,
     description: d.description,
     slug: d.slug,
     project_count: d._count.projects,
@@ -106,7 +109,7 @@ export async function getDestinations(req: Request, res: Response) {
 export async function getDestinationProjects(req: Request, res: Response) {
   const destination = await prisma.destination.findUnique({
     where: { slug: req.params.slug },
-    select: { id: true, name: true, slug: true, image: true, description: true },
+    select: { id: true, name: true, slug: true, image: true, image_meta: true, description: true },
   });
   if (!destination) {
     return res.status(404).json({ error: "Destination not found" });
@@ -138,31 +141,45 @@ export async function getDestinationProjects(req: Request, res: Response) {
     destination_slug: p.destination?.slug,
   }));
 
-  const destWithImages = transformImagesToFullUrls(req, destination, ["image"]);
+  const destWithImages = transformImagesToFullUrls(req, { ...destination, image: destination.image || (destination as any).image_meta?.url || null }, ["image"]);
   const projectsWithImages = mappedProjects.map((p) => transformImagesToFullUrls(req, p, ["main_image"]));
 
   return res.json({ destination: destWithImages, projects: projectsWithImages });
 }
 
 export async function createDestination(req: Request, res: Response) {
-  const { name, image, description } = req.body;
+  const { name, image, image_meta, description } = req.body;
   const slug = await makeUniqueSlug(name);
-  const created = await prisma.destination.create({ data: { name, image, description, slug } });
+  const created = await prisma.destination.create({ data: { name, image, image_meta: image_meta || null, description, slug } });
   return res.json({ id: created.id, slug });
 }
 
 export async function updateDestination(req: Request, res: Response) {
-  const { name, image, description } = req.body;
+  const { name, image, image_meta, description } = req.body;
   const id = parseInt(req.params.id, 10);
+  const existing = await prisma.destination.findUnique({ where: { id }, select: { image_meta: true } });
   const slug = await makeUniqueSlug(name, id);
+
+  const previousPublicId = getPublicIdFromMedia(existing?.image_meta);
+  const nextPublicId = getPublicIdFromMedia(image_meta || image);
+  if (previousPublicId && previousPublicId !== nextPublicId) {
+    await deleteImages([previousPublicId]);
+  }
+
   await prisma.destination.update({
     where: { id },
-    data: { name, image, description, slug },
+    data: { name, image, image_meta: image_meta || null, description, slug },
   });
   return res.json({ success: true, slug });
 }
 
 export async function deleteDestination(req: Request, res: Response) {
-  await prisma.destination.delete({ where: { id: Number(req.params.id) } });
+  const id = Number(req.params.id);
+  const existing = await prisma.destination.findUnique({ where: { id }, select: { image: true, image_meta: true } });
+  const publicIds = getPublicIdsFromMediaCollection([existing?.image_meta, existing?.image]);
+
+  await prisma.destination.delete({ where: { id } });
+  await deleteImages(publicIds);
+
   return res.json({ success: true });
 }

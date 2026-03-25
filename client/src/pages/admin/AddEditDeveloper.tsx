@@ -1,20 +1,29 @@
-﻿import { API_BASE, authFetch, getAdminToken } from '../../utils/api';
+﻿import { API_BASE, authFetch, authUploadJson } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, Upload, X } from 'lucide-react';
+import { NoticeToast } from '../../components/ui/notice-toast';
+import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { optimizeImageFile } from '../../utils/imageUpload';
+import { MediaAsset } from '../../types';
+import { useTemporaryMediaManager } from '../../hooks/useTemporaryMediaManager';
 
 export default function AddEditDeveloper() {
   const { id } = useParams();
   const [formData, setFormData] = useState({
     name: '',
     logo: '',
+    logo_meta: null as MediaAsset | null,
     description: '',
   });
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { notice, showNotice } = useCleanupNotice();
+  const { cleanupTemporaryUpload, isTemporaryUpload, markSaved, trackTemporaryUpload } = useTemporaryMediaManager();
 
   useEffect(() => {
     if (id) {
@@ -26,6 +35,7 @@ export default function AddEditDeveloper() {
             setFormData({
               name: dev.name,
               logo: dev.logo,
+              logo_meta: dev.logo_meta || null,
               description: dev.description,
             });
           }
@@ -38,11 +48,10 @@ export default function AddEditDeveloper() {
     if (!file) return;
 
     setUploadingLogo(true);
+    setUploadProgress(0);
+    setUploadMessage(null);
 
     try {
-      const token = getAdminToken();
-      console.log('Token:', token);
-
       const optimizedFile = await optimizeImageFile(file, {
         maxWidth: 600,
         maxHeight: 600,
@@ -53,28 +62,36 @@ export default function AddEditDeveloper() {
       const formDataUpload = new FormData();
       formDataUpload.append('logo', optimizedFile);
 
-      const res = await authFetch('/api/upload/developer-logo', {
-        method: 'POST',
-        body: formDataUpload,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setFormData({ ...formData, logo: data.logo });
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Upload failed');
+      if (isTemporaryUpload(formData.logo_meta?.public_id)) {
+        const cleaned = await cleanupTemporaryUpload(formData.logo_meta?.public_id);
+        if (cleaned) {
+          showNotice('Previous image removed');
+        }
       }
+
+      const data = await authUploadJson<any>('/api/upload/developer-logo', formDataUpload, setUploadProgress);
+      trackTemporaryUpload(data.asset?.public_id);
+      setFormData({ ...formData, logo: data.logo, logo_meta: data.asset || null });
+      setUploadMessage('Logo uploaded successfully.');
     } catch (err) {
-      alert('Upload error: ' + (err as Error).message);
+      setUploadMessage((err as Error).message || 'Upload failed.');
     } finally {
       setUploadingLogo(false);
+      setUploadProgress(0);
       e.target.value = '';
     }
   };
 
-  const removeLogo = () => {
-    setFormData({ ...formData, logo: '' });
+  const removeLogo = async () => {
+    if (isTemporaryUpload(formData.logo_meta?.public_id)) {
+      const cleaned = await cleanupTemporaryUpload(formData.logo_meta?.public_id);
+      if (cleaned) {
+        showNotice('Unsaved image removed');
+      }
+    }
+
+    setFormData({ ...formData, logo: '', logo_meta: null });
+    setUploadMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -90,12 +107,14 @@ export default function AddEditDeveloper() {
       body: JSON.stringify(formData),
     });
     if (res.ok) {
+      markSaved();
       navigate('/admin/developers');
     }
   };
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <NoticeToast message={notice} />
       <AdminSidebar />
       <main className="flex-1 p-10">
         <div className="mx-auto max-w-3xl">
@@ -137,11 +156,24 @@ export default function AddEditDeveloper() {
                       {uploadingLogo ? 'Uploading...' : 'Click to upload logo or drag and drop'}
                     </p>
                     <p className="text-xs text-zinc-500">Auto-converted to WebP, max 800px, up to 5MB source</p>
+                    <p className="mt-2 text-xs text-zinc-500">Images upload instantly. Unsaved ones are removed automatically.</p>
                   </label>
                 </div>
 
+                {uploadingLogo && (
+                  <div className="mb-4 overflow-hidden rounded-full bg-zinc-200">
+                    <div className="h-2 bg-black transition-all" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                )}
+
                 {formData.logo && (
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-zinc-500">Current logo preview</p>
+                      <label htmlFor="logo-upload" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
+                        Replace Image
+                      </label>
+                    </div>
                     <div className="relative w-32 overflow-hidden rounded-lg bg-zinc-100">
                       <img
                         src={formData.logo}
@@ -156,8 +188,11 @@ export default function AddEditDeveloper() {
                         <X className="h-6 w-6 text-white" />
                       </button>
                     </div>
+                    {uploadMessage && <p className="text-xs text-zinc-600">{uploadMessage}</p>}
                   </div>
                 )}
+
+                {!formData.logo && uploadMessage && <p className="text-xs text-zinc-600">{uploadMessage}</p>}
               </div>
 
               <div>

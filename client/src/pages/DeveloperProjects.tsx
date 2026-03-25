@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -7,6 +7,7 @@ import { Project, Developer } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { ProjectCardSkeleton } from '../components/ui/project-card-skeleton';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function DeveloperProjects() {
   const { slug } = useParams<{ slug: string }>();
@@ -22,26 +23,7 @@ export default function DeveloperProjects() {
     setNotFound(false);
     setError(null);
 
-    fetch(`${API_BASE}/api/developers/${encodeURIComponent(slug)}/projects`)
-      .then(async res => {
-        const contentType = res.headers.get('content-type') || '';
-
-        if (res.status === 404) {
-          setNotFound(true);
-          return [] as Project[];
-        }
-
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
-        }
-
-        if (!contentType.includes('application/json')) {
-          const preview = (await res.text()).slice(0, 120);
-          throw new Error(`Expected JSON but received: ${preview}`);
-        }
-
-        return res.json();
-      })
+    apiJson<any>(`/api/developers/${encodeURIComponent(slug)}/projects`)
       .then(data => {
         const projectsData = Array.isArray(data)
           ? data
@@ -63,6 +45,10 @@ export default function DeveloperProjects() {
         }
       })
       .catch(err => {
+        if (String(err?.message || '').toLowerCase().includes('not found')) {
+          setNotFound(true);
+          return;
+        }
         setError(err?.message || 'Failed to load projects');
       })
       .finally(() => setLoading(false));
@@ -146,12 +132,13 @@ export default function DeveloperProjects() {
             <div className="flex h-36 w-36 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-slate-50 p-6 shadow-inner">
               {developer.logo ? (
                 <img
-                  src={developer.logo}
+                  src={resolveImageUrl(developer.logo) || FALLBACK_IMAGE_URL}
                   alt={developer.name}
                   className="h-full w-full object-contain"
                   loading="lazy"
                   decoding="async"
                   referrerPolicy="no-referrer"
+                  onError={withFallbackImage}
                 />
               ) : (
                 <span className="text-4xl font-bold text-slate-300">

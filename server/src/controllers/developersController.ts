@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls } from "../utils/imageUrl.ts";
+import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
 
 const makeUniqueSlug = async (baseName: string, currentId?: number): Promise<string> => {
   let slug = generateSlug(baseName) || `developer-${Date.now()}`;
@@ -25,10 +26,12 @@ export async function getDevelopers(req: Request, res: Response) {
 
   if (limit <= 0 && !req.query.page && !includeProjectPreviews) {
     const developers = await prisma.developer.findMany({
-      select: { id: true, name: true, logo: true, description: true, slug: true },
+      select: { id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
       orderBy: { id: "desc" },
     });
-    const transformedDevelopers = (developers as any[]).map((d) => transformImagesToFullUrls(req, d, ["logo"]));
+    const transformedDevelopers = (developers as any[])
+      .map((d) => ({ ...d, logo: d.logo || d.logo_meta?.url || null }))
+      .map((d) => transformImagesToFullUrls(req, d, ["logo"]));
     return res.json(transformedDevelopers);
   }
 
@@ -37,14 +40,14 @@ export async function getDevelopers(req: Request, res: Response) {
   const offset = (Math.max(page, 1) - 1) * Math.max(limit, 1);
 
   const developers = await prisma.developer.findMany({
-    select: { id: true, name: true, logo: true, description: true, slug: true },
+    select: { id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
     orderBy: { id: "desc" },
     ...(limit > 0 ? { take: limit, skip: offset } : {}),
   });
 
   const enrichedDevelopers = includeProjectPreviews
     ? await Promise.all(developers.map(async (developer) => {
-        const devWithImages = transformImagesToFullUrls(req, developer, ["logo"]);
+        const devWithImages = transformImagesToFullUrls(req, { ...developer, logo: developer.logo || (developer as any).logo_meta?.url || null }, ["logo"]);
         const previewProjects = await prisma.project.findMany({
           where: { developer_id: developer.id },
           include: {
@@ -77,7 +80,9 @@ export async function getDevelopers(req: Request, res: Response) {
           preview_projects: mappedProjects.map((p) => transformImagesToFullUrls(req, p, ["main_image"])),
         };
       }))
-    : developers.map((d) => transformImagesToFullUrls(req, d, ["logo"]));
+    : developers
+      .map((d) => ({ ...d, logo: d.logo || (d as any).logo_meta?.url || null }))
+      .map((d) => transformImagesToFullUrls(req, d, ["logo"]));
 
   return res.json({
     developers: enrichedDevelopers,
@@ -89,27 +94,41 @@ export async function getDevelopers(req: Request, res: Response) {
 }
 
 export async function createDeveloper(req: Request, res: Response) {
-  const { name, logo, description } = req.body;
+  const { name, logo, logo_meta, description } = req.body;
   const slug = await makeUniqueSlug(name);
   const created = await prisma.developer.create({
-    data: { name, logo, description, slug },
+    data: { name, logo, logo_meta: logo_meta || null, description, slug },
   });
   return res.json({ id: created.id, slug });
 }
 
 export async function updateDeveloper(req: Request, res: Response) {
-  const { name, logo, description } = req.body;
+  const { name, logo, logo_meta, description } = req.body;
   const id = parseInt(req.params.id, 10);
+  const existing = await prisma.developer.findUnique({ where: { id }, select: { logo_meta: true } });
   const slug = await makeUniqueSlug(name, id);
+
+  const previousPublicId = getPublicIdFromMedia(existing?.logo_meta);
+  const nextPublicId = getPublicIdFromMedia(logo_meta || logo);
+  if (previousPublicId && previousPublicId !== nextPublicId) {
+    await deleteImages([previousPublicId]);
+  }
+
   await prisma.developer.update({
     where: { id },
-    data: { name, logo, description, slug },
+    data: { name, logo, logo_meta: logo_meta || null, description, slug },
   });
   return res.json({ success: true, slug });
 }
 
 export async function deleteDeveloper(req: Request, res: Response) {
-  await prisma.developer.delete({ where: { id: Number(req.params.id) } });
+  const id = Number(req.params.id);
+  const existing = await prisma.developer.findUnique({ where: { id }, select: { logo: true, logo_meta: true } });
+  const publicIds = getPublicIdsFromMediaCollection([existing?.logo_meta, existing?.logo]);
+
+  await prisma.developer.delete({ where: { id } });
+  await deleteImages(publicIds);
+
   return res.json({ success: true });
 }
 

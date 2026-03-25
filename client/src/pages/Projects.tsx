@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProjectCard } from '../components/ProjectCard';
@@ -170,9 +170,9 @@ export default function Projects() {
     const controller = new AbortController();
 
     Promise.all([
-      fetch(`${API_BASE}/api/developers`, { signal: controller.signal }).then((res) => res.json()),
-      fetch(`${API_BASE}/api/destinations`, { signal: controller.signal }).then((res) => res.json()),
-      fetch(`${API_BASE}/api/property-types`, { signal: controller.signal }).then((res) => res.json()),
+      apiJson<any>(`/api/developers`, { signal: controller.signal }),
+      apiJson<any>(`/api/destinations`, { signal: controller.signal }),
+      apiJson<any>(`/api/property-types`, { signal: controller.signal }),
     ])
       .then(([developersData, destinationsData, propertyTypesData]) => {
         setDevelopers(normalize<Developer>(developersData, 'developers'));
@@ -217,14 +217,7 @@ export default function Projects() {
     setLoading(true);
     setError(null);
 
-    fetch(`${API_BASE}/api/projects/search?${params.toString()}`, { signal: controller.signal })
-      .then((res) => {
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
-        }
-
-        return res.json();
-      })
+    apiJson<any>(`/api/projects/search?${params.toString()}`, { signal: controller.signal })
       .then((data) => {
         setProjects(normalize<Project>(data, 'projects'));
         setCurrentPage(data?.current_page || 1);

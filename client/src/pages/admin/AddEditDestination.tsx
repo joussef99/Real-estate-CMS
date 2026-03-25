@@ -1,20 +1,29 @@
-﻿import { API_BASE, authFetch } from '../../utils/api';
+﻿import { API_BASE, authFetch, authUploadJson } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ArrowLeft, Upload, X } from 'lucide-react';
+import { NoticeToast } from '../../components/ui/notice-toast';
+import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { optimizeImageFile } from '../../utils/imageUpload';
+import { MediaAsset } from '../../types';
+import { useTemporaryMediaManager } from '../../hooks/useTemporaryMediaManager';
 
 export default function AddEditDestination() {
   const { id } = useParams();
   const [formData, setFormData] = useState({
     name: '',
     image: '',
+    image_meta: null as MediaAsset | null,
     description: '',
   });
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { notice, showNotice } = useCleanupNotice();
+  const { cleanupTemporaryUpload, isTemporaryUpload, markSaved, trackTemporaryUpload } = useTemporaryMediaManager();
 
   useEffect(() => {
     if (id) {
@@ -26,6 +35,7 @@ export default function AddEditDestination() {
             setFormData({
               name: dest.name,
               image: dest.image,
+              image_meta: dest.image_meta || null,
               description: dest.description,
             });
           }
@@ -38,6 +48,8 @@ export default function AddEditDestination() {
     if (!file) return;
 
     setUploadingImage(true);
+    setUploadProgress(0);
+    setUploadMessage(null);
 
     try {
       const optimizedFile = await optimizeImageFile(file, {
@@ -50,28 +62,36 @@ export default function AddEditDestination() {
       const formDataUpload = new FormData();
       formDataUpload.append('image', optimizedFile);
 
-      const res = await authFetch('/api/upload/destination-image', {
-        method: 'POST',
-        body: formDataUpload,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setFormData({ ...formData, image: data.image });
-      } else {
-        const error = await res.json();
-        alert(error.error || 'Upload failed');
+      if (isTemporaryUpload(formData.image_meta?.public_id)) {
+        const cleaned = await cleanupTemporaryUpload(formData.image_meta?.public_id);
+        if (cleaned) {
+          showNotice('Previous image removed');
+        }
       }
+
+      const data = await authUploadJson<any>('/api/upload/destination-image', formDataUpload, setUploadProgress);
+      trackTemporaryUpload(data.asset?.public_id);
+      setFormData({ ...formData, image: data.image, image_meta: data.asset || null });
+      setUploadMessage('Image uploaded successfully.');
     } catch (err) {
-      alert('Upload error: ' + (err as Error).message);
+      setUploadMessage((err as Error).message || 'Upload failed.');
     } finally {
       setUploadingImage(false);
+      setUploadProgress(0);
       e.target.value = '';
     }
   };
 
-  const removeImage = () => {
-    setFormData({ ...formData, image: '' });
+  const removeImage = async () => {
+    if (isTemporaryUpload(formData.image_meta?.public_id)) {
+      const cleaned = await cleanupTemporaryUpload(formData.image_meta?.public_id);
+      if (cleaned) {
+        showNotice('Unsaved image removed');
+      }
+    }
+
+    setFormData({ ...formData, image: '', image_meta: null });
+    setUploadMessage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,12 +107,14 @@ export default function AddEditDestination() {
       body: JSON.stringify(formData),
     });
     if (res.ok) {
+      markSaved();
       navigate('/admin/destinations');
     }
   };
 
   return (
     <div className="flex min-h-screen bg-zinc-50">
+      <NoticeToast message={notice} />
       <AdminSidebar />
       <main className="flex-1 p-10">
         <div className="mx-auto max-w-3xl">
@@ -134,11 +156,24 @@ export default function AddEditDestination() {
                       {uploadingImage ? 'Uploading...' : 'Click to upload image or drag and drop'}
                     </p>
                     <p className="text-xs text-zinc-500">Auto-compressed to WebP, max 1600px, up to 5MB source</p>
+                    <p className="mt-2 text-xs text-zinc-500">Images upload instantly. Unsaved ones are removed automatically.</p>
                   </label>
                 </div>
 
+                {uploadingImage && (
+                  <div className="mb-4 overflow-hidden rounded-full bg-zinc-200">
+                    <div className="h-2 bg-black transition-all" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                )}
+
                 {formData.image && (
                   <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-zinc-500">Current destination image</p>
+                      <label htmlFor="image-upload" className="cursor-pointer rounded-lg border border-zinc-200 px-3 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-50">
+                        Replace Image
+                      </label>
+                    </div>
                     <div className="relative h-40 w-full overflow-hidden rounded-lg bg-zinc-100">
                       <img
                         src={formData.image}
@@ -153,8 +188,11 @@ export default function AddEditDestination() {
                         <X className="h-6 w-6 text-white" />
                       </button>
                     </div>
+                    {uploadMessage && <p className="text-xs text-zinc-600">{uploadMessage}</p>}
                   </div>
                 )}
+
+                {!formData.image && uploadMessage && <p className="text-xs text-zinc-600">{uploadMessage}</p>}
               </div>
 
               <div>

@@ -14,6 +14,7 @@ import amenitiesRoutes from "./routes/amenities.ts";
 import leadsRoutes from "./routes/leads.ts";
 import statsRoutes from "./routes/stats.ts";
 import uploadRoutes from "./routes/uploads.ts";
+import mediaRoutes from "./routes/media.ts";
 import { handleMulterError } from "./utils/uploads.ts";
 import { prisma, assertDatabaseConnection } from "./lib/prisma.ts";
 import { errorHandler } from "./middleware/errorHandler.ts";
@@ -103,6 +104,8 @@ async function startServer() {
   app.use("/api/leads", leadsRoutes);
   app.use("/api/admin/stats", statsRoutes);
   app.use("/api/upload", uploadRoutes);
+  app.use("/api/media", mediaRoutes);
+  app.use("/media", mediaRoutes);
 
   // Newsletter subscriber endpoint
   app.post("/api/newsletter", async (req, res) => {

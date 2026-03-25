@@ -1,4 +1,4 @@
-﻿import { API_BASE } from '../utils/api';
+﻿import { apiJson } from '../utils/api';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -6,6 +6,7 @@ import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Blog } from '../types';
 import { SectionHeading } from '../components/ui/section-heading';
 import { BlogCardSkeleton } from '../components/ui/blog-card-skeleton';
+import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function Blogs() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
@@ -22,12 +23,15 @@ export default function Blogs() {
     };
 
     setLoading(true);
-    fetch(`${API_BASE}/api/blogs?limit=9&page=${currentPage}`)
-      .then(res => res.json())
+    apiJson<any>(`/api/blogs?limit=9&page=${currentPage}`)
       .then(data => {
         setBlogs(normalize<Blog>(data, 'blogs'));
         setCurrentPage(data?.current_page || 1);
         setTotalPages(Math.max(data?.total_pages || 1, 1));
+      })
+      .catch(() => {
+        setBlogs([]);
+        setTotalPages(1);
       })
       .finally(() => setLoading(false));
   }, [currentPage]);
@@ -57,13 +61,14 @@ export default function Blogs() {
               <Link to={`/blogs/${blog.slug || blog.id}`}>
                 <div className="aspect-16/10 overflow-hidden">
                   <img
-                    src={blog.image}
+                    src={resolveImageUrl(blog.image) || FALLBACK_IMAGE_URL}
                     alt={blog.title}
                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                     decoding="async"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     referrerPolicy="no-referrer"
+                    onError={withFallbackImage}
                   />
                 </div>
                 <div className="p-8">
