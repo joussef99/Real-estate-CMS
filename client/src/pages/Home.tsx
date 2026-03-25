@@ -1,19 +1,88 @@
-﻿import { apiJson } from '../utils/api';
-import { useEffect, useMemo, useState } from 'react';
+import { apiJson } from '../utils/api';
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ArrowRight, Building2, MapPin, Search } from 'lucide-react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay } from 'swiper/modules';
-import 'swiper/css';
+import { motion, useInView } from 'framer-motion';
+import { ArrowRight, Building2, MapPin, Search, Tag } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ProjectCard } from '../components/ProjectCard';
-import { GlassPanel } from '../components/ui/glass-panel';
 import { SectionHeading } from '../components/ui/section-heading';
 import { Blog, Destination, Developer, Project } from '../types';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
+
+const HERO_STATS = [
+  { value: 500, suffix: '+', label: 'Premium Properties' },
+  { value: 50,  suffix: '+', label: 'Trusted Developers' },
+  { value: 12,  suffix: '+', label: 'Prime Destinations' },
+  { value: 98,  suffix: '%', label: 'Client Satisfaction' },
+];
+
+const HEADLINE_WORDS: { word: string; highlight: boolean }[] = [
+  { word: 'Own',         highlight: false },
+  { word: 'a',           highlight: false },
+  { word: 'Signature',   highlight: true  },
+  { word: 'Address',     highlight: true  },
+  { word: 'in',          highlight: false },
+  { word: "Egypt's",     highlight: false },
+  { word: 'Most',        highlight: false },
+  { word: 'Prestigious', highlight: false },
+  { word: 'Communities', highlight: false },
+];
+
+const EASE_OUT = [0.16, 1, 0.3, 1] as const;
+
+const brandBlueStyle: CSSProperties = {
+  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%)',
+  WebkitBackgroundClip: 'text',
+  WebkitTextFillColor: 'transparent',
+  backgroundClip: 'text',
+};
+
+const wordContainerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.55 } },
+};
+
+const wordVariants = {
+  hidden:  { opacity: 0, y: 32, filter: 'blur(6px)'  },
+  visible: { opacity: 1, y: 0,  filter: 'blur(0px)', transition: { duration: 0.55, ease: EASE_OUT } },
+};
+
+function StatItem({ value, suffix, label, delay }: { value: number; suffix: string; label: string; delay: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+    const duration = 2400;
+    let start: number | null = null;
+    const step = (ts: number) => {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      setCount(Math.floor((1 - Math.pow(1 - progress, 3)) * value));
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    const id = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(id);
+  }, [isInView, value]);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay, ease: EASE_OUT }}
+      className="flex flex-col items-center gap-1.5"
+    >
+      <span className="text-3xl font-bold tracking-tight text-white md:text-4xl">
+        {count}<span style={brandBlueStyle}>{suffix}</span>
+      </span>
+      <span className="text-[10px] uppercase tracking-[0.25em] text-white/45">{label}</span>
+    </motion.div>
+  );
+}
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -70,11 +139,9 @@ export default function Home() {
   }, []);
 
   const latestProjects = useMemo(() => projects.slice(0, 3), [projects]);
-  const developersForSlider = useMemo(() => {
+  const developersForMarquee = useMemo(() => {
     if (!developers.length) return [] as Developer[];
-    const minimumSlides = 10;
-    const repeatCount = Math.ceil(minimumSlides / developers.length);
-    return Array.from({ length: repeatCount }, () => developers).flat();
+    return [...developers, ...developers];
   }, [developers]);
 
   const handleSearch = () => {
@@ -87,93 +154,184 @@ export default function Home() {
 
   return (
     <div className="min-h-screen overflow-x-hidden">
-      <section className="relative flex min-h-screen items-center overflow-hidden px-6 pb-20 pt-36">
-        <img
-          src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2200"
-          alt="Luxury property"
-          className="absolute inset-0 h-full w-full object-cover"
-          fetchPriority="high"
-          decoding="async"
-          referrerPolicy="no-referrer"
-        />
-        <div className="absolute inset-0 bg-linear-to-r from-slate-950/85 via-slate-900/60 to-slate-900/25" />
 
-        <div className="relative mx-auto w-full max-w-7xl">
+      {/* ══════════════════════ CINEMATIC HERO ══════════════════════ */}
+      <section className="relative flex min-h-screen items-center overflow-hidden pb-24 pt-36">
+
+        {/* Background — slow cinematic zoom-out */}
+        <motion.div
+          className="absolute inset-0 z-0"
+          initial={{ scale: 1.12 }}
+          animate={{ scale: 1.0 }}
+          transition={{ duration: 20, ease: 'linear' }}
+        >
+          <img
+            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2200"
+            alt="Luxury property"
+            className="h-full w-full object-cover"
+            fetchPriority="high"
+            decoding="async"
+            referrerPolicy="no-referrer"
+          />
+        </motion.div>
+
+        {/* Layered gradient overlays for depth */}
+        <div className="absolute inset-0 z-1 bg-linear-to-r from-slate-950/92 via-slate-900/68 to-slate-900/25" />
+        <div className="absolute inset-0 z-1 bg-linear-to-t from-slate-950/80 via-transparent to-slate-950/20" />
+        {/* Bottom dissolve into next section */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-2 h-52 bg-linear-to-t from-slate-950 to-transparent" />
+
+        {/* Hero content */}
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-6">
+
+          {/* ① Animated brand accent line */}
           <motion.div
-            initial={{ opacity: 0, y: 24 }}
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: 1, opacity: 1 }}
+            transition={{ duration: 1.5, delay: 0.15, ease: EASE_OUT }}
+            className="mb-8 h-[1.5px] w-16 origin-left"
+            style={{ background: 'linear-gradient(90deg, #0f172a, #1e293b 60%, transparent)' }}
+          />
+
+          {/* ② Eyebrow label */}
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="max-w-4xl"
+            transition={{ duration: 0.45, delay: 0.3 }}
+            className="mb-7 text-[11px] uppercase tracking-[0.38em] text-slate-300/80"
           >
-            <p className="mb-6 text-xs uppercase tracking-[0.28em] text-white/75">Curated Luxury Residences</p>
-            <h1 className="text-5xl font-bold leading-tight text-white md:text-6xl lg:text-7xl">
-              Own a Signature Address in Egypt's Most Prestigious Communities
-            </h1>
-            <p className="mt-6 max-w-2xl text-lg text-slate-200">
-              Discover handpicked properties from trusted developers, prime destinations, and refined living standards.
-            </p>
-          </motion.div>
+            Curated Luxury Residences — Egypt
+          </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
+          {/* ③ Word-by-word headline */}
+          <motion.h1
+            variants={wordContainerVariants}
+            initial="hidden"
+            animate="visible"
+            className="max-w-5xl text-5xl font-bold leading-[1.07] tracking-tight text-white md:text-6xl lg:text-7xl"
+          >
+            {HEADLINE_WORDS.map((item, i) => (
+              <motion.span
+                key={i}
+                variants={wordVariants}
+                className="mr-[0.22em] inline-block last:mr-0"
+                style={item.highlight ? brandBlueStyle : undefined}
+              >
+                {item.word}
+              </motion.span>
+            ))}
+          </motion.h1>
+
+          {/* ④ Description */}
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
+            transition={{ duration: 0.55, delay: 1.3, ease: EASE_OUT }}
+            className="mt-7 max-w-xl text-lg leading-relaxed text-slate-300/80"
+          >
+            Discover handpicked properties from trusted developers, prime destinations,
+            and refined living standards.
+          </motion.p>
+
+          {/* ⑤ Stats — authority proof with count-up */}
+          <div className="mt-10 grid grid-cols-2 gap-6 border-t border-white/10 pt-8 sm:grid-cols-4">
+            {HERO_STATS.map((s, i) => (
+              <StatItem
+                key={s.label}
+                value={s.value}
+                suffix={s.suffix}
+                label={s.label}
+                delay={1.55 + i * 0.1}
+              />
+            ))}
+          </div>
+
+          {/* ⑥ Floating premium search panel */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 1.88, ease: EASE_OUT }}
             className="mt-10"
           >
-            <GlassPanel className="p-4 md:p-5">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <label className="rounded-2xl bg-white/30 p-3 backdrop-blur-xl">
-                  <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/80">Location</span>
+            <div className="overflow-hidden rounded-2xl border border-white/15 bg-white/7 p-1.5 shadow-[0_8px_64px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
+              <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 lg:grid-cols-4">
+
+                {/* Location */}
+                <label className="flex cursor-text flex-col rounded-xl bg-white/8 px-4 py-3.5 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:bg-white/13 focus-within:bg-white/15 focus-within:ring-slate-700/60">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <MapPin className="h-3 w-3 shrink-0 text-slate-300" />
+                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/50">
+                      Location
+                    </span>
+                  </div>
                   <input
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     placeholder="New Cairo, North Coast..."
-                    className="w-full bg-transparent text-sm text-white placeholder:text-white/65 focus:outline-none"
+                    className="bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </label>
 
-                <label className="rounded-2xl bg-white/30 p-3 backdrop-blur-xl">
-                  <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/80">Property Type</span>
+                {/* Property Type */}
+                <label className="flex cursor-pointer flex-col rounded-xl bg-white/8 px-4 py-3.5 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:bg-white/13 focus-within:bg-white/15 focus-within:ring-slate-700/60">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <Building2 className="h-3 w-3 shrink-0 text-slate-300" />
+                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/50">
+                      Property Type
+                    </span>
+                  </div>
                   <select
                     value={propertyType}
                     onChange={(e) => setPropertyType(e.target.value)}
-                    className="w-full bg-transparent text-sm text-white focus:outline-none"
+                    className="cursor-pointer appearance-none bg-transparent text-sm text-white focus:outline-none"
                   >
-                    <option value="" className="text-slate-900">Any Type</option>
+                    <option value="" className="bg-slate-900 text-white">Any Type</option>
                     {propertyTypes.map((type) => (
-                      <option key={type} value={type} className="text-slate-900">
-                        {type}
-                      </option>
+                      <option key={type} value={type} className="bg-slate-900 text-white">{type}</option>
                     ))}
                   </select>
                 </label>
 
-                <label className="rounded-2xl bg-white/30 p-3 backdrop-blur-xl">
-                  <span className="mb-2 block text-xs uppercase tracking-[0.2em] text-white/80">Price Range</span>
+                {/* Price Range */}
+                <label className="flex cursor-pointer flex-col rounded-xl bg-white/8 px-4 py-3.5 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:bg-white/13 focus-within:bg-white/15 focus-within:ring-slate-700/60">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <Tag className="h-3 w-3 shrink-0 text-slate-300" />
+                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/50">
+                      Price Range
+                    </span>
+                  </div>
                   <select
                     value={priceRange}
                     onChange={(e) => setPriceRange(e.target.value)}
-                    className="w-full bg-transparent text-sm text-white focus:outline-none"
+                    className="cursor-pointer appearance-none bg-transparent text-sm text-white focus:outline-none"
                   >
-                    <option value="" className="text-slate-900">Any Budget</option>
+                    <option value="" className="bg-slate-900 text-white">Any Budget</option>
                     {PRICE_RANGES.map((range) => (
-                      <option key={range} value={range} className="text-slate-900">
-                        {range}
-                      </option>
+                      <option key={range} value={range} className="bg-slate-900 text-white">{range}</option>
                     ))}
                   </select>
                 </label>
 
-                <Button className="h-full min-h-14 text-base" onClick={handleSearch}>
-                  <Search className="h-4 w-4" /> Explore
-                </Button>
+                {/* Search CTA */}
+                <motion.button
+                  whileHover={{ scale: 1.02, boxShadow: '0 0 32px rgba(30,41,59,0.40)' }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleSearch}
+                  className="flex min-h-15.5 items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white transition-all duration-300 hover:bg-slate-800"
+                >
+                  <Search className="h-4 w-4" />
+                  Explore Properties
+                </motion.button>
+
               </div>
-            </GlassPanel>
+            </div>
           </motion.div>
+
         </div>
       </section>
 
+      {/* ══════════════════════ FEATURED COLLECTION ══════════════════════ */}
       <section className="bg-slate-950 px-6 py-24 text-white">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
@@ -195,6 +353,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════════════ LATEST PROJECTS ══════════════════════ */}
       <section className="px-6 py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
@@ -218,6 +377,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════════════ TOP DESTINATIONS ══════════════════════ */}
       <section className="bg-slate-50 px-6 py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
@@ -266,6 +426,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════════════ TRUSTED DEVELOPERS ══════════════════════ */}
       <section className="px-6 py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
@@ -274,49 +435,82 @@ export default function Home() {
             description="Browse the developers shaping premium real estate experiences."
           />
 
-          <Swiper
-            modules={[Autoplay]}
-            spaceBetween={30}
-            speed={850}
-            loop
-            grabCursor
-            autoplay={{
-              delay: 2000,
-              disableOnInteraction: false,
-            }}
-            breakpoints={{
-              640: { slidesPerView: 2 },
-              768: { slidesPerView: 3 },
-              1024: { slidesPerView: 5 },
-            }}
-            className="pb-2"
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="group/marquee relative"
           >
-            {developersForSlider.map((developer, index) => (
-              <SwiperSlide key={`${developer.id}-${index}`} className="h-auto">
-                <motion.div
-                  initial={{ opacity: 0, y: 16 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.35, delay: index * 0.04 }}
-                  whileHover={{ y: -6, scale: 1.03 }}
-                  className="h-full rounded-2xl border border-slate-100 bg-white p-4 shadow-lg transition-all duration-300 hover:shadow-2xl md:p-5"
-                >
-                  <div className="mb-4 flex h-16 items-center justify-center rounded-xl bg-slate-50 md:h-20">
-                    <img
-                      src={cloudinaryOptimizedUrl(resolveImageUrl(developer.logo), { width: 320, height: 180, crop: 'fit' }) || FALLBACK_IMAGE_URL}
-                      alt={developer.name}
-                      className="max-h-11 max-w-full object-contain md:max-h-14"
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      onError={withFallbackImage}
-                    />
-                  </div>
-                  <h3 className="line-clamp-1 text-center text-sm font-semibold text-slate-900 md:text-base">{developer.name}</h3>
-                </motion.div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+            <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-20 bg-linear-to-r from-white via-white/85 to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-20 bg-linear-to-l from-white via-white/85 to-transparent" />
+
+            <div className="overflow-hidden">
+              <div className="marquee-track flex w-max items-center gap-8 py-2 sm:gap-10 lg:gap-14">
+                {developersForMarquee.map((developer, index) => {
+                  const developerUrl = developer.slug ? `/developers/${developer.slug}` : `/developers/${developer.id}`;
+                  return (
+                    <Link
+                      key={`${developer.id}-${index}`}
+                      to={developerUrl}
+                      className="logo-link relative inline-flex h-20 w-40 items-center justify-center overflow-hidden rounded-xl opacity-100 transition-all duration-300 hover:scale-[1.03] sm:h-22 sm:w-44 lg:h-24 lg:w-48"
+                      aria-label={`View ${developer.name}`}
+                    >
+                      <span className="logo-sheen pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-white/85 to-transparent opacity-0 transition-opacity duration-300" />
+                      <img
+                        src={cloudinaryOptimizedUrl(resolveImageUrl(developer.logo), { width: 320, height: 180, crop: 'fit' }) || FALLBACK_IMAGE_URL}
+                        alt={developer.name}
+                        className="max-h-12 max-w-full object-contain transition-all duration-300 sm:max-h-14 lg:max-h-16"
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        onError={withFallbackImage}
+                      />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <style>{`
+              .marquee-track {
+                animation: developer-marquee 42s linear infinite;
+                will-change: transform;
+                transform: translate3d(0, 0, 0);
+              }
+
+              .group\/marquee:hover .marquee-track {
+                animation-play-state: paused;
+              }
+
+              .logo-link:hover {
+                box-shadow: 0 0 18px rgba(30, 58, 138, 0.18);
+              }
+
+              .logo-link:hover .logo-sheen {
+                opacity: 1;
+                animation: logo-sheen-sweep 1.35s linear 1;
+              }
+
+              @keyframes logo-sheen-sweep {
+                from {
+                  transform: translate3d(0, 0, 0);
+                }
+                to {
+                  transform: translate3d(300%, 0, 0);
+                }
+              }
+
+              @keyframes developer-marquee {
+                from {
+                  transform: translate3d(0, 0, 0);
+                }
+                to {
+                  transform: translate3d(-50%, 0, 0);
+                }
+              }
+            `}</style>
+          </motion.div>
 
           <div className="mt-10">
             <Button asChild>
@@ -328,6 +522,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════════════ MARKET INTELLIGENCE ══════════════════════ */}
       <section className="bg-slate-950 px-6 py-24 text-white">
         <div className="mx-auto max-w-7xl">
           <SectionHeading

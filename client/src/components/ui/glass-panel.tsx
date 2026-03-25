@@ -10,7 +10,7 @@ export function GlassPanel({ className, children }: GlassPanelProps) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-white/30 bg-white/20 backdrop-blur-xl shadow-lg transition-all duration-300',
+        'rounded-2xl border border-slate-300/35 bg-slate-900/12 backdrop-blur-xl shadow-lg transition-all duration-300',
         className
       )}
     >

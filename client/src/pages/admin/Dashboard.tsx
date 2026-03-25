@@ -24,10 +24,10 @@ export default function Dashboard() {
   if (!stats) return <div className="p-10">Loading...</div>;
 
   const statCards = [
-    { name: 'Total Projects', value: stats.projects, icon: Building2, color: 'bg-blue-500' },
-    { name: 'Developers', value: stats.developers, icon: LayoutDashboard, color: 'bg-purple-500' },
-    { name: 'Destinations', value: stats.destinations, icon: MapPin, color: 'bg-emerald-500' },
-    { name: 'Blog Posts', value: stats.blogs, icon: Newspaper, color: 'bg-orange-500' },
+    { name: 'Total Projects', value: stats.projects, icon: Building2, color: 'bg-slate-900' },
+    { name: 'Developers', value: stats.developers, icon: LayoutDashboard, color: 'bg-slate-800' },
+    { name: 'Destinations', value: stats.destinations, icon: MapPin, color: 'bg-blue-900' },
+    { name: 'Blog Posts', value: stats.blogs, icon: Newspaper, color: 'bg-blue-800' },
   ];
 
   return (
