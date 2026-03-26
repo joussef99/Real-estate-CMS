@@ -29,6 +29,7 @@ export default function AddProject() {
     slug: '',
     location: '',
     price_range: '',
+    downPayment: '',
     type: '',
     status: 'Off-Plan',
     description: '',
@@ -64,6 +65,7 @@ export default function AddProject() {
             slug: data.slug || '',
             location: data.location,
             price_range: data.price_range,
+            downPayment: data.downPayment != null ? String(data.downPayment) : '',
             type: data.type,
             status: data.status,
             description: data.description,
@@ -152,6 +154,11 @@ export default function AddProject() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (formData.downPayment && Number(formData.downPayment) < 0) {
+      alert('Down Payment cannot be negative.');
+      return;
+    }
     
     if (gallery.length === 0) {
       alert('Please upload at least 1 image to the project gallery.');
@@ -162,6 +169,10 @@ export default function AddProject() {
     const method = id ? 'PUT' : 'POST';
 
     const normalizedSlug = formData.slug ? slugify(formData.slug) : slugify(formData.name);
+    const legacyDownPayment = (formData as typeof formData & { down_payment?: string }).down_payment;
+    const effectiveDownPayment = formData.downPayment !== ''
+      ? formData.downPayment
+      : (legacyDownPayment ?? '');
 
     const res = await authFetch(id ? `/api/projects/${id}` : '/api/projects', {
       method,
@@ -170,6 +181,7 @@ export default function AddProject() {
       },
       body: JSON.stringify({
         ...formData,
+        downPayment: effectiveDownPayment === '' ? null : Number(effectiveDownPayment),
         slug: normalizedSlug,
         meta_title: formData.meta_title,
         meta_description: formData.meta_description,
@@ -177,7 +189,8 @@ export default function AddProject() {
         gallery,
         gallery_meta: galleryMeta,
         main_image_meta: galleryMeta[0] || null,
-        amenities: selectedAmenities
+        amenities: selectedAmenities,
+        down_payment: undefined,
       }),
     });
     if (res.ok) {
@@ -252,6 +265,21 @@ export default function AddProject() {
                     onChange={e => setFormData(prev => ({ ...prev, price_range: e.target.value }))}
                     placeholder="e.g. $1.2M - $5M"
                     required
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Down Payment</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.downPayment}
+                    onChange={e => setFormData(prev => ({ ...prev, downPayment: e.target.value }))}
+                    placeholder="e.g. 500000 EGP"
                   />
                 </div>
               </div>
@@ -359,7 +387,7 @@ export default function AddProject() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-zinc-700">Description</label>
+                <label className="mb-4 block text-sm font-medium text-zinc-700">Description</label>
                 <textarea
                   rows={5}
                   className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"

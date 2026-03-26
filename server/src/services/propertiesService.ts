@@ -5,6 +5,7 @@ export type PropertyPayload = {
   name: string;
   location?: string | null;
   price_range?: string | null;
+  downPayment?: number | string | null;
   type?: string | null;
   status?: string | null;
   description?: string | null;
@@ -55,11 +56,18 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
       : `Discover ${name}, a premium ${String(type || "property").toLowerCase()} property in ${String(location || "a prime location")}.`);
 
   const slugCandidate = (payload.slug && payload.slug.trim()) || payload.name || (currentId ? `project-${currentId}` : `project-${Date.now()}`);
+  const downPaymentValue = payload.downPayment;
+  const downPayment = downPaymentValue === undefined || downPaymentValue === null || downPaymentValue === ""
+    ? null
+    : Number.isFinite(Number(downPaymentValue))
+      ? Math.max(0, Math.round(Number(downPaymentValue)))
+      : null;
 
   return {
     name,
     location,
     price_range: payload.price_range ?? null,
+    downPayment,
     type,
     status: payload.status ?? null,
     description: payload.description ?? null,

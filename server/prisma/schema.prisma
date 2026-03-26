@@ -47,6 +47,7 @@ model Project {
     name             String
     location         String?
     price_range      String?
+    downPayment      Int?    @map("down_payment")
     type             String?
     status           String?
     description      String?

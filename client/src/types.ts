@@ -10,6 +10,7 @@ export interface Project {
   name: string;
   location: string;
   price_range: string;
+  downPayment?: number | string | null;
   type: string;
   status?: string;
   description?: string;

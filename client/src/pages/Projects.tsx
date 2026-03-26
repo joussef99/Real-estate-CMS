@@ -17,6 +17,8 @@ interface ProjectFilters {
   property_type: string;
   price_min: string;
   price_max: string;
+  minDownPayment: string;
+  maxDownPayment: string;
 }
 
 const LEGACY_PRICE_RANGES: Record<string, { price_min: string; price_max: string }> = {
@@ -42,6 +44,8 @@ const getInitialFilters = (searchParams: URLSearchParams): ProjectFilters => {
     property_type: searchParams.get('property_type') || searchParams.get('types')?.split(',').map((value) => value.trim()).find(Boolean) || '',
     price_min: searchParams.get('price_min') || legacyPriceRange.price_min,
     price_max: searchParams.get('price_max') || legacyPriceRange.price_max,
+    minDownPayment: searchParams.get('minDownPayment') || '',
+    maxDownPayment: searchParams.get('maxDownPayment') || '',
   };
 };
 
@@ -66,7 +70,9 @@ export default function Projects() {
     debouncedFilters.destination ||
     debouncedFilters.property_type ||
     debouncedFilters.price_min ||
-    debouncedFilters.price_max,
+    debouncedFilters.price_max ||
+    debouncedFilters.minDownPayment ||
+    debouncedFilters.maxDownPayment,
   );
 
   const activeFiltersCount = [
@@ -76,6 +82,8 @@ export default function Projects() {
     filters.property_type,
     filters.price_min,
     filters.price_max,
+    filters.minDownPayment,
+    filters.maxDownPayment,
   ].filter(Boolean).length;
 
   const selectedDeveloper = developers.find((developer) => String(developer.id) === filters.developer);
@@ -155,6 +163,28 @@ export default function Projects() {
       });
     }
 
+    if (filters.minDownPayment) {
+      chips.push({
+        key: 'minDownPayment',
+        label: `DP Min: ${Number(filters.minDownPayment).toLocaleString()}`,
+        clear: () => {
+          setFilters((current) => ({ ...current, minDownPayment: '' }));
+          setCurrentPage(1);
+        },
+      });
+    }
+
+    if (filters.maxDownPayment) {
+      chips.push({
+        key: 'maxDownPayment',
+        label: `DP Max: ${Number(filters.maxDownPayment).toLocaleString()}`,
+        clear: () => {
+          setFilters((current) => ({ ...current, maxDownPayment: '' }));
+          setCurrentPage(1);
+        },
+      });
+    }
+
     return chips;
   }, [filters, selectedDeveloper, selectedDestination]);
 
@@ -196,6 +226,8 @@ export default function Projects() {
     if (filters.property_type) params.set('property_type', filters.property_type);
     if (filters.price_min) params.set('price_min', filters.price_min);
     if (filters.price_max) params.set('price_max', filters.price_max);
+    if (filters.minDownPayment) params.set('minDownPayment', filters.minDownPayment);
+    if (filters.maxDownPayment) params.set('maxDownPayment', filters.maxDownPayment);
     if (currentPage > 1) params.set('page', String(currentPage));
     setSearchParams(params, { replace: true });
   }, [filters, currentPage, setSearchParams]);
@@ -213,6 +245,8 @@ export default function Projects() {
     if (debouncedFilters.property_type) params.set('property_type', debouncedFilters.property_type);
     if (debouncedFilters.price_min) params.set('price_min', debouncedFilters.price_min);
     if (debouncedFilters.price_max) params.set('price_max', debouncedFilters.price_max);
+    if (debouncedFilters.minDownPayment) params.set('minDownPayment', debouncedFilters.minDownPayment);
+    if (debouncedFilters.maxDownPayment) params.set('maxDownPayment', debouncedFilters.maxDownPayment);
 
     setLoading(true);
     setError(null);
@@ -257,6 +291,8 @@ export default function Projects() {
       property_type: '',
       price_min: '',
       price_max: '',
+      minDownPayment: '',
+      maxDownPayment: '',
     });
     setCurrentPage(1);
   };
@@ -319,7 +355,7 @@ export default function Projects() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-8 md:grid-cols-2 xl:grid-cols-5">
+                <div className="grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-8 md:grid-cols-2 xl:grid-cols-7">
                   <div>
                     <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Developer</label>
                     <select
@@ -384,6 +420,32 @@ export default function Projects() {
                       value={filters.price_max}
                       onChange={(e) => updateFilters({ price_max: e.target.value })}
                       placeholder="e.g. 25000000"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Min Down Payment</label>
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      value={filters.minDownPayment}
+                      onChange={(e) => updateFilters({ minDownPayment: e.target.value })}
+                      placeholder="e.g. 500000"
+                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Max Down Payment</label>
+                    <input
+                      type="number"
+                      min="0"
+                      inputMode="numeric"
+                      value={filters.maxDownPayment}
+                      onChange={(e) => updateFilters({ maxDownPayment: e.target.value })}
+                      placeholder="e.g. 3000000"
                       className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
                     />
                   </div>

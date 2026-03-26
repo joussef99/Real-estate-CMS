@@ -5,6 +5,7 @@ import { Project } from '../types';
 import { MapPin, Building2, CheckCircle2, Phone, Mail, ChevronLeft, ChevronRight, Bed, Maximize2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { motion } from 'motion/react';
+import { formatEGP, normalizeDownPayment } from '../utils/downPayment';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export default function ProjectDetails() {
@@ -151,6 +152,23 @@ export default function ProjectDetails() {
 
   const amenities = projectAmenities.map((a: any) => a.name);
   const galleryImages = getGalleryImages();
+  const downPayment = normalizeDownPayment(project);
+
+  useEffect(() => {
+    if (!project) return;
+
+    if (import.meta.env.DEV) {
+      console.log('Project details payload', project);
+    }
+
+    if (
+      import.meta.env.DEV
+      && downPayment.hasValue
+      && !downPayment.isValid
+    ) {
+      console.warn('Invalid down payment value in project payload:', downPayment.raw);
+    }
+  }, [project, downPayment]);
 
   if (loading) {
     return (
@@ -275,6 +293,14 @@ export default function ProjectDetails() {
                 </span>
                 <span className="text-2xl font-bold text-black">{project.price_range}</span>
               </div>
+              <p className="mb-4 text-sm font-medium text-blue-900">
+                Starting Down Payment:{' '}
+                <span className="text-lg font-bold text-blue-950">
+                  {downPayment.isValid && downPayment.value !== null
+                    ? formatEGP(downPayment.value)
+                    : 'Contact for details'}
+                </span>
+              </p>
               <h1 className="mb-4 text-4xl font-bold text-zinc-900 md:text-5xl">{project.name}</h1>
               <div className="flex flex-wrap gap-6 text-zinc-500">
                 <div className="flex items-center">
@@ -337,11 +363,15 @@ export default function ProjectDetails() {
               </div>
               <div className="flex items-start gap-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
-                  <Building2 className="h-5 w-5" />
+                  <span className="text-sm font-bold">DP</span>
                 </div>
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Developer</p>
-                  <p className="font-bold text-zinc-900">{project.developer_name}</p>
+                  <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Down Payment</p>
+                  <p className="font-bold text-zinc-900">
+                    {downPayment.isValid && downPayment.value !== null
+                      ? formatEGP(downPayment.value)
+                      : 'Contact for details'}
+                  </p>
                 </div>
               </div>
             </div>

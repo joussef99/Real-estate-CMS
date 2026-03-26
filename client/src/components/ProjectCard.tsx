@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom';
 import { MapPin, Building2, Bed, Maximize2, ArrowUpRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from './Button';
+import { formatEGP, normalizeDownPayment } from '../utils/downPayment';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export const ProjectCard = (props: any) => {
   const { project } = props;
+  const downPayment = normalizeDownPayment(project);
   
   // Get the first image from gallery, or use main_image, or fallback to placeholder
   const getCardImage = () => {
@@ -72,6 +74,12 @@ export const ProjectCard = (props: any) => {
             <span className="font-medium">{project.size || 'Area N/A'}</span>
           </div>
         </div>
+
+        {downPayment.isValid && downPayment.value !== null && (
+          <div className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-900">
+            From {formatEGP(downPayment.value)} Down Payment
+          </div>
+        )}
 
         <div className="flex items-center justify-between gap-4">
           <div className="min-w-0 text-sm text-slate-500">

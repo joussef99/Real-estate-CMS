@@ -63,6 +63,7 @@ const mapProjectCard = (project: any) => ({
   name: project.name,
   location: project.location,
   price_range: project.price_range,
+  downPayment: project.downPayment ?? null,
   type: project.type,
   main_image: project.main_image || project.main_image_meta?.url || null,
   main_image_meta: project.main_image_meta,
@@ -82,6 +83,7 @@ const mapProjectDetail = (project: any) => ({
   name: project.name,
   location: project.location,
   price_range: project.price_range,
+  downPayment: project.downPayment ?? null,
   type: project.type,
   status: project.status,
   description: project.description,
@@ -119,6 +121,14 @@ const validateProjectInput = (body: any) => {
   const priceValue = body?.price_range ?? body?.price;
   if (priceValue !== undefined && priceValue !== null && typeof priceValue !== "string") {
     errors.push("price_range must be a string");
+  }
+
+  const downPaymentValue = body?.downPayment;
+  if (downPaymentValue !== undefined && downPaymentValue !== null && downPaymentValue !== "") {
+    const parsedDownPayment = Number(downPaymentValue);
+    if (!Number.isFinite(parsedDownPayment) || parsedDownPayment < 0) {
+      errors.push("downPayment must be a non-negative number");
+    }
   }
 
   if (body?.gallery !== undefined && !Array.isArray(body.gallery)) {
@@ -162,7 +172,19 @@ export async function getProjects(req: Request, res: Response) {
 
   const projects = await prisma.project.findMany({
     where,
-    include: {
+    select: {
+      id: true,
+      name: true,
+      location: true,
+      price_range: true,
+      downPayment: true,
+      type: true,
+      main_image: true,
+      developer_id: true,
+      destination_id: true,
+      beds: true,
+      size: true,
+      slug: true,
       developer: { select: { name: true } },
       destination: { select: { name: true, slug: true } },
     },
@@ -170,9 +192,9 @@ export async function getProjects(req: Request, res: Response) {
     take: limit,
     skip: offset,
   });
+    console.log("RAW PROJECT:", projects[0]);
 
   const transformedProjects = projects.map((p) => transformImagesToFullUrls(req, mapProjectCard(p), ["main_image"]));
-
   return res.json({
     projects: transformedProjects,
     total_pages,
@@ -192,9 +214,19 @@ export async function searchProjects(req: Request, res: Response) {
   const property_type = String(req.query.property_type ?? req.query.types ?? "").split(",").map((value) => value.trim()).find(Boolean) || null;
   const price_min = toNullableNumber(req.query.price_min);
   const price_max = toNullableNumber(req.query.price_max);
+  const minDownPayment = toNullableNumber(req.query.minDownPayment);
+  const maxDownPayment = toNullableNumber(req.query.maxDownPayment);
   const bedrooms = req.query.bedrooms as string || null;
   const amenities = req.query.amenities ? (req.query.amenities as string).split(",").map((a) => parseInt(a, 10)).filter(Number.isFinite) : null;
   const keyword = String(req.query.keyword ?? req.query.q ?? "").trim();
+
+  if (minDownPayment !== null && minDownPayment < 0) {
+    return res.status(400).json({ error: "minDownPayment must be a non-negative number" });
+  }
+
+  if (maxDownPayment !== null && maxDownPayment < 0) {
+    return res.status(400).json({ error: "maxDownPayment must be a non-negative number" });
+  }
 
   const where: any = {
     ...(destination_id ? { destination_id } : {}),
@@ -210,6 +242,14 @@ export async function searchProjects(req: Request, res: Response) {
             { developer: { name: { contains: keyword, mode: "insensitive" as const } } },
             { destination: { name: { contains: keyword, mode: "insensitive" as const } } },
           ],
+        }
+      : {}),
+    ...((minDownPayment !== null || maxDownPayment !== null)
+      ? {
+          downPayment: {
+            ...(minDownPayment !== null ? { gte: minDownPayment } : {}),
+            ...(maxDownPayment !== null ? { lte: maxDownPayment } : {}),
+          },
         }
       : {}),
   };
@@ -281,7 +321,21 @@ export async function getFeaturedProjects(req: Request, res: Response) {
     where: {
       OR: [{ featured: 1 }, { is_featured: 1 }],
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      location: true,
+      price_range: true,
+      downPayment: true,
+      type: true,
+      main_image: true,
+      developer_id: true,
+      destination_id: true,
+      beds: true,
+      size: true,
+      slug: true,
+      main_image_meta: true,
+      gallery_meta: true,
       developer: { select: { name: true } },
       destination: { select: { name: true, slug: true } },
     },
@@ -292,7 +346,6 @@ export async function getFeaturedProjects(req: Request, res: Response) {
   const transformedProjects = featuredProjects
     .map((p) => mapProjectCard(p))
     .map((p) => transformImagesToFullUrls(req, p, ["main_image"]));
-
   return res.json({ projects: transformedProjects });
 }
 
@@ -341,14 +394,58 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
   const project = /^\d+$/.test(identifier)
     ? await prisma.project.findUnique({
         where: { id: parseInt(identifier, 10) },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          price_range: true,
+          downPayment: true,
+          type: true,
+          status: true,
+          description: true,
+          main_image: true,
+          main_image_meta: true,
+          gallery: true,
+          gallery_meta: true,
+          amenities: true,
+          developer_id: true,
+          destination_id: true,
+          is_featured: true,
+          featured: true,
+          beds: true,
+          size: true,
+          slug: true,
+          meta_title: true,
+          meta_description: true,
           developer: { select: { name: true } },
           destination: { select: { name: true, slug: true } },
         },
       })
     : await prisma.project.findUnique({
         where: { slug: identifier },
-        include: {
+        select: {
+          id: true,
+          name: true,
+          location: true,
+          price_range: true,
+          downPayment: true,
+          type: true,
+          status: true,
+          description: true,
+          main_image: true,
+          main_image_meta: true,
+          gallery: true,
+          gallery_meta: true,
+          amenities: true,
+          developer_id: true,
+          destination_id: true,
+          is_featured: true,
+          featured: true,
+          beds: true,
+          size: true,
+          slug: true,
+          meta_title: true,
+          meta_description: true,
           developer: { select: { name: true } },
           destination: { select: { name: true, slug: true } },
         },
@@ -360,11 +457,11 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
   const withFullImage = transformImagesToFullUrls(req, mapped, ["main_image"]);
 
   withFullImage.gallery = transformGalleryToFullUrls(req, withFullImage.gallery, withFullImage.gallery_meta);
-
   return res.json(withFullImage);
 }
 
 export async function createProject(req: Request, res: Response) {
+  console.log("BODY:", req.body);
   const validationErrors = validateProjectInput(req.body);
   if (validationErrors.length > 0) {
     return res.status(400).json({ error: validationErrors[0] });
@@ -376,6 +473,7 @@ export async function createProject(req: Request, res: Response) {
     location,
     price_range,
     price,
+    downPayment,
     type,
     status,
     description,
@@ -396,11 +494,15 @@ export async function createProject(req: Request, res: Response) {
 
   const effectiveName = (typeof name === "string" && name.trim()) || (typeof title === "string" ? title.trim() : "");
   const effectivePriceRange = price_range ?? price ?? null;
-
+  const effectiveDownPayment =
+    req.body.downPayment ??
+    req.body.down_payment ??
+    null;
   const normalized = normalizePropertyPayload({
     name: effectiveName,
     location,
     price_range: effectivePriceRange,
+    downPayment: effectiveDownPayment,
     type,
     status,
     description,
@@ -425,6 +527,7 @@ export async function createProject(req: Request, res: Response) {
       name: normalized.name,
       location: normalized.location,
       price_range: normalized.price_range,
+      downPayment: normalized.downPayment,
       type: normalized.type,
       status: normalized.status,
       description: normalized.description,
@@ -444,6 +547,8 @@ export async function createProject(req: Request, res: Response) {
     },
   });
 
+  console.log("CREATED:", created);
+
   if (normalized.amenities.length > 0) {
     await prisma.projectAmenity.createMany({
       data: normalized.amenities.map((amenityId: number) => ({
@@ -458,6 +563,7 @@ export async function createProject(req: Request, res: Response) {
 }
 
 export async function updateProject(req: Request, res: Response) {
+  console.log("BODY:", req.body);
   const validationErrors = validateProjectInput(req.body);
   if (validationErrors.length > 0) {
     return res.status(400).json({ error: validationErrors[0] });
@@ -469,6 +575,7 @@ export async function updateProject(req: Request, res: Response) {
     location,
     price_range,
     price,
+    downPayment,
     type,
     status,
     description,
@@ -488,13 +595,16 @@ export async function updateProject(req: Request, res: Response) {
   } = req.body;
 
   const projectId = parseInt(req.params.id, 10);
+  const hasDownPayment = Object.prototype.hasOwnProperty.call(req.body, "downPayment");
   const effectiveName = (typeof name === "string" && name.trim()) || (typeof title === "string" ? title.trim() : "");
   const effectivePriceRange = price_range ?? price ?? null;
+  const effectiveDownPayment = downPayment ?? null;
   const normalized = normalizePropertyPayload(
     {
       name: effectiveName,
       location,
       price_range: effectivePriceRange,
+      downPayment: effectiveDownPayment,
       type,
       status,
       description,
@@ -542,6 +652,7 @@ export async function updateProject(req: Request, res: Response) {
         name: normalized.name,
         location: normalized.location,
         price_range: normalized.price_range,
+        ...(hasDownPayment ? { downPayment: normalized.downPayment } : {}),
         type: normalized.type,
         status: normalized.status,
         description: normalized.description,
@@ -598,6 +709,7 @@ export async function duplicateProject(req: Request, res: Response) {
       name: copiedName,
       location: sourceProject.location,
       price_range: sourceProject.price_range,
+      downPayment: sourceProject.downPayment,
       type: sourceProject.type,
       status: sourceProject.status,
       description: sourceProject.description,
