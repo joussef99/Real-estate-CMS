@@ -1,8 +1,8 @@
 import { apiJson } from '../utils/api';
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, useInView } from 'framer-motion';
-import { ArrowRight, Building2, MapPin, Search, Tag } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, Building2, ChevronDown, MapPin, Search, Tag } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
@@ -11,78 +11,10 @@ import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallba
 
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
 
-const HERO_STATS = [
-  { value: 500, suffix: '+', label: 'Premium Properties' },
-  { value: 50,  suffix: '+', label: 'Trusted Developers' },
-  { value: 12,  suffix: '+', label: 'Prime Destinations' },
-  { value: 98,  suffix: '%', label: 'Client Satisfaction' },
-];
-
-const HEADLINE_WORDS: { word: string; highlight: boolean }[] = [
-  { word: 'Own',         highlight: false },
-  { word: 'a',           highlight: false },
-  { word: 'Signature',   highlight: true  },
-  { word: 'Address',     highlight: true  },
-  { word: 'in',          highlight: false },
-  { word: "Egypt's",     highlight: false },
-  { word: 'Most',        highlight: false },
-  { word: 'Prestigious', highlight: false },
-  { word: 'Communities', highlight: false },
-];
+const HERO_VIDEO_URL = '/hero-video.mp4';
+const HERO_POSTER_URL = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2200';
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
-
-const brandBlueStyle: CSSProperties = {
-  background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #334155 100%)',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  backgroundClip: 'text',
-};
-
-const wordContainerVariants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.07, delayChildren: 0.55 } },
-};
-
-const wordVariants = {
-  hidden:  { opacity: 0, y: 32, filter: 'blur(6px)'  },
-  visible: { opacity: 1, y: 0,  filter: 'blur(0px)', transition: { duration: 0.55, ease: EASE_OUT } },
-};
-
-function StatItem({ value, suffix, label, delay }: { value: number; suffix: string; label: string; delay: number }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true });
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isInView) return;
-    const duration = 2400;
-    let start: number | null = null;
-    const step = (ts: number) => {
-      if (!start) start = ts;
-      const progress = Math.min((ts - start) / duration, 1);
-      setCount(Math.floor((1 - Math.pow(1 - progress, 3)) * value));
-      if (progress < 1) requestAnimationFrame(step);
-    };
-    const id = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(id);
-  }, [isInView, value]);
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay, ease: EASE_OUT }}
-      className="flex flex-col items-center gap-1.5"
-    >
-      <span className="text-3xl font-bold tracking-tight text-white md:text-4xl">
-        {count}<span style={brandBlueStyle}>{suffix}</span>
-      </span>
-      <span className="text-[10px] uppercase tracking-[0.25em] text-white/45">{label}</span>
-    </motion.div>
-  );
-}
 
 export default function Home() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -95,6 +27,8 @@ export default function Home() {
   const [locationQuery, setLocationQuery] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [priceRange, setPriceRange] = useState('');
+  const [heroVideoReady, setHeroVideoReady] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
   const navigate = useNavigate();
 
@@ -138,6 +72,11 @@ export default function Home() {
       .catch(() => setPropertyTypes([]));
   }, []);
 
+  useEffect(() => {
+    const fallbackTimer = window.setTimeout(() => setHeroVideoReady(true), 1400);
+    return () => window.clearTimeout(fallbackTimer);
+  }, []);
+
   const latestProjects = useMemo(() => projects.slice(0, 3), [projects]);
   const developersForMarquee = useMemo(() => {
     if (!developers.length) return [] as Developer[];
@@ -156,111 +95,58 @@ export default function Home() {
     <div className="min-h-screen overflow-x-hidden">
 
       {/* ══════════════════════ CINEMATIC HERO ══════════════════════ */}
-      <section className="relative flex min-h-screen items-center overflow-hidden pb-24 pt-36">
+      <section className="relative min-h-screen overflow-hidden bg-slate-950">
+        <div className="absolute inset-0">
+          <video
+            className="h-full w-full object-cover transition-opacity duration-1000 ease-out"
+            style={{ opacity: heroVideoReady ? 1 : 0.68 }}
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={HERO_POSTER_URL}
+            onCanPlay={() => setHeroVideoReady(true)}
+            onLoadedData={() => setHeroVideoReady(true)}
+          >
+            <source src={HERO_VIDEO_URL} type="video/mp4" />
+          </video>
+        </div>
 
-        {/* Background — slow cinematic zoom-out */}
-        <motion.div
-          className="absolute inset-0 z-0"
-          initial={{ scale: 1.12 }}
-          animate={{ scale: 1.0 }}
-          transition={{ duration: 20, ease: 'linear' }}
-        >
-          <img
-            src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2200"
-            alt="Luxury property"
-            className="h-full w-full object-cover"
-            fetchPriority="high"
-            decoding="async"
-            referrerPolicy="no-referrer"
-          />
-        </motion.div>
+        <div className="absolute inset-0 bg-linear-to-r from-slate-950/34 via-slate-950/12 to-slate-950/8 sm:from-slate-950/24 sm:via-transparent sm:to-slate-950/10" />
+        <div className="absolute inset-0 bg-linear-to-t from-slate-950/88 via-slate-950/32 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-slate-950 via-slate-950/55 to-transparent sm:h-36" />
 
-        {/* Layered gradient overlays for depth */}
-        <div className="absolute inset-0 z-1 bg-linear-to-r from-slate-950/92 via-slate-900/68 to-slate-900/25" />
-        <div className="absolute inset-0 z-1 bg-linear-to-t from-slate-950/80 via-transparent to-slate-950/20" />
-        {/* Bottom dissolve into next section */}
-        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-2 h-52 bg-linear-to-t from-slate-950 to-transparent" />
-
-        {/* Hero content */}
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-6">
-
-          {/* ① Animated brand accent line */}
+        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-end px-5 pb-10 pt-24 sm:px-6 sm:pb-14 sm:pt-28 md:pb-40 md:pt-36">
           <motion.div
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ duration: 1.5, delay: 0.15, ease: EASE_OUT }}
-            className="mb-8 h-[1.5px] w-16 origin-left"
-            style={{ background: 'linear-gradient(90deg, #0f172a, #1e293b 60%, transparent)' }}
-          />
-
-          {/* ② Eyebrow label */}
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.3 }}
-            className="mb-7 text-[11px] uppercase tracking-[0.38em] text-slate-300/80"
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18 }}
+            animate={heroVideoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: prefersReducedMotion ? 0 : 18 }}
+            transition={{ duration: prefersReducedMotion ? 0.45 : 1.15, delay: heroVideoReady ? 0.28 : 0, ease: EASE_OUT }}
+            className="max-w-xl sm:max-w-2xl md:max-w-3xl"
           >
-            Curated Luxury Residences — Egypt
-          </motion.p>
+            <p className="text-[0.6rem] uppercase tracking-[0.32em] text-white/60 sm:text-[0.72rem] sm:tracking-[0.42em]">
+              Signature Living
+            </p>
+            <h1 className="mt-3 max-w-[8ch] text-4xl font-semibold leading-[0.96] tracking-[-0.045em] text-white/96 sm:mt-4 sm:max-w-none sm:text-6xl sm:tracking-[-0.05em] md:text-7xl lg:text-[5.5rem] lg:leading-[0.94]">
+              Where Luxury
+              <span className="mt-1.5 block text-white/86 sm:mt-2">Begins</span>
+            </h1>
+          </motion.div>
 
-          {/* ③ Word-by-word headline */}
-          <motion.h1
-            variants={wordContainerVariants}
-            initial="hidden"
-            animate="visible"
-            className="max-w-5xl text-5xl font-bold leading-[1.07] tracking-tight text-white md:text-6xl lg:text-7xl"
-          >
-            {HEADLINE_WORDS.map((item, i) => (
-              <motion.span
-                key={i}
-                variants={wordVariants}
-                className="mr-[0.22em] inline-block last:mr-0"
-                style={item.highlight ? brandBlueStyle : undefined}
-              >
-                {item.word}
-              </motion.span>
-            ))}
-          </motion.h1>
-
-          {/* ④ Description */}
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, delay: 1.3, ease: EASE_OUT }}
-            className="mt-7 max-w-xl text-lg leading-relaxed text-slate-300/80"
-          >
-            Discover handpicked properties from trusted developers, prime destinations,
-            and refined living standards.
-          </motion.p>
-
-          {/* ⑤ Stats — authority proof with count-up */}
-          <div className="mt-10 grid grid-cols-2 gap-6 border-t border-white/10 pt-8 sm:grid-cols-4">
-            {HERO_STATS.map((s, i) => (
-              <StatItem
-                key={s.label}
-                value={s.value}
-                suffix={s.suffix}
-                label={s.label}
-                delay={1.55 + i * 0.1}
-              />
-            ))}
-          </div>
-
-          {/* ⑥ Floating premium search panel */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 1.88, ease: EASE_OUT }}
-            className="mt-10"
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
+            animate={heroVideoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
+            transition={{ duration: prefersReducedMotion ? 0.45 : 0.95, delay: heroVideoReady ? 1.05 : 0, ease: EASE_OUT }}
+            className="mt-10 w-full md:absolute md:bottom-10 md:left-1/2 md:z-10 md:mt-0 md:w-[calc(100%-3rem)] md:max-w-6xl md:-translate-x-1/2"
           >
-            <div className="overflow-hidden rounded-2xl border border-white/15 bg-white/7 p-1.5 shadow-[0_8px_64px_rgba(0,0,0,0.5)] backdrop-blur-2xl">
-              <div className="grid grid-cols-1 gap-1.5 md:grid-cols-2 lg:grid-cols-4">
+            <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-1.5 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-2">
+              <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:grid-cols-2 lg:grid-cols-4">
 
                 {/* Location */}
-                <label className="flex cursor-text flex-col rounded-xl bg-white/8 px-4 py-3.5 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:bg-white/13 focus-within:bg-white/15 focus-within:ring-slate-700/60">
+                <label className="flex cursor-text flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
                   <div className="mb-1.5 flex items-center gap-2">
-                    <MapPin className="h-3 w-3 shrink-0 text-slate-300" />
-                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/50">
+                    <MapPin className="h-3 w-3 shrink-0 text-slate-200/72" />
+                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
                       Location
                     </span>
                   </div>
@@ -268,57 +154,59 @@ export default function Home() {
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     placeholder="New Cairo, North Coast..."
-                    className="bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none"
+                    className="bg-transparent text-[0.95rem] text-white placeholder:text-white/34 focus:outline-none sm:text-sm"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
                 </label>
 
                 {/* Property Type */}
-                <label className="flex cursor-pointer flex-col rounded-xl bg-white/8 px-4 py-3.5 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:bg-white/13 focus-within:bg-white/15 focus-within:ring-slate-700/60">
+                <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
                   <div className="mb-1.5 flex items-center gap-2">
-                    <Building2 className="h-3 w-3 shrink-0 text-slate-300" />
-                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/50">
+                    <Building2 className="h-3 w-3 shrink-0 text-slate-200/72" />
+                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
                       Property Type
                     </span>
                   </div>
                   <select
                     value={propertyType}
                     onChange={(e) => setPropertyType(e.target.value)}
-                    className="cursor-pointer appearance-none bg-transparent text-sm text-white focus:outline-none"
+                    className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
                   >
-                    <option value="" className="bg-slate-900 text-white">Any Type</option>
+                    <option value="" className="bg-slate-950 text-white">Any Type</option>
                     {propertyTypes.map((type) => (
-                      <option key={type} value={type} className="bg-slate-900 text-white">{type}</option>
+                      <option key={type} value={type} className="bg-slate-950 text-white">{type}</option>
                     ))}
                   </select>
+                  <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
                 </label>
 
                 {/* Price Range */}
-                <label className="flex cursor-pointer flex-col rounded-xl bg-white/8 px-4 py-3.5 ring-1 ring-inset ring-white/10 transition-all duration-300 hover:bg-white/13 focus-within:bg-white/15 focus-within:ring-slate-700/60">
+                <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
                   <div className="mb-1.5 flex items-center gap-2">
-                    <Tag className="h-3 w-3 shrink-0 text-slate-300" />
-                    <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-white/50">
+                    <Tag className="h-3 w-3 shrink-0 text-slate-200/72" />
+                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
                       Price Range
                     </span>
                   </div>
                   <select
                     value={priceRange}
                     onChange={(e) => setPriceRange(e.target.value)}
-                    className="cursor-pointer appearance-none bg-transparent text-sm text-white focus:outline-none"
+                    className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
                   >
-                    <option value="" className="bg-slate-900 text-white">Any Budget</option>
+                    <option value="" className="bg-slate-950 text-white">Any Budget</option>
                     {PRICE_RANGES.map((range) => (
-                      <option key={range} value={range} className="bg-slate-900 text-white">{range}</option>
+                      <option key={range} value={range} className="bg-slate-950 text-white">{range}</option>
                     ))}
                   </select>
+                  <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
                 </label>
 
                 {/* Search CTA */}
                 <motion.button
-                  whileHover={{ scale: 1.02, boxShadow: '0 0 32px rgba(30,41,59,0.40)' }}
-                  whileTap={{ scale: 0.97 }}
+                  whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.99 }}
                   onClick={handleSearch}
-                  className="flex min-h-15.5 items-center justify-center gap-2.5 rounded-xl bg-slate-900 text-sm font-semibold text-white transition-all duration-300 hover:bg-slate-800"
+                  className="flex min-h-14 items-center justify-center gap-2.5 rounded-[1.15rem] bg-white/92 px-4 text-sm font-semibold text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-colors duration-300 hover:bg-white sm:min-h-15.5 sm:rounded-2xl"
                 >
                   <Search className="h-4 w-4" />
                   Explore Properties
@@ -327,7 +215,6 @@ export default function Home() {
               </div>
             </div>
           </motion.div>
-
         </div>
       </section>
 
