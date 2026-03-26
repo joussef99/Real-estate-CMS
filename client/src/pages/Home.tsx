@@ -12,7 +12,7 @@ import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallba
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
 
 const HERO_VIDEO_URL = '/hero-video.mp4';
-const HERO_POSTER_URL = 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=2200';
+const HERO_POSTER_URL = '/livin-copy.png';
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -128,8 +128,8 @@ export default function Home() {
               Signature Living
             </p>
             <h1 className="mt-3 max-w-[8ch] text-4xl font-semibold leading-[0.96] tracking-[-0.045em] text-white/96 sm:mt-4 sm:max-w-none sm:text-6xl sm:tracking-[-0.05em] md:text-7xl lg:text-[5.5rem] lg:leading-[0.94]">
-              Where Luxury
-              <span className="mt-1.5 block text-white/86 sm:mt-2">Begins</span>
+              WHERE LUXURY 
+              <span className="mt-1.5 block text-white/86 sm:mt-2">BEGINS</span>
             </h1>
           </motion.div>
 
