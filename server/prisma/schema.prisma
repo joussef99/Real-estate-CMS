@@ -7,16 +7,18 @@ datasource db {
 }
 
 model User {
-    id       Int    @id @default(autoincrement())
-    username String @unique
-    password String
-    role     String @default("admin")
+    id        Int    @id @default(autoincrement())
+    public_id String @unique @default(uuid())
+    username  String @unique
+    password  String
+    role      String @default("admin")
 
     @@map("users")
 }
 
 model Developer {
     id          Int       @id @default(autoincrement())
+    public_id   String    @unique @default(uuid())
     name        String
     logo        String?
     logo_meta   Json?
@@ -31,6 +33,7 @@ model Developer {
 
 model Destination {
     id          Int       @id @default(autoincrement())
+    public_id   String    @unique @default(uuid())
     name        String
     image       String?
     image_meta  Json?
@@ -44,6 +47,7 @@ model Destination {
 
 model Project {
     id               Int     @id @default(autoincrement())
+    public_id        String  @unique @default(uuid())
     name             String
     location         String?
     price_range      String?
@@ -80,6 +84,7 @@ model Project {
 
 model Blog {
     id               Int      @id @default(autoincrement())
+    public_id        String   @unique @default(uuid())
     title            String
     content          String?
     image            String?
@@ -98,6 +103,7 @@ model Blog {
 
 model Career {
     id           Int     @id @default(autoincrement())
+    public_id    String  @unique @default(uuid())
     title        String
     location     String?
     type         String?
@@ -110,6 +116,7 @@ model Career {
 
 model PropertyType {
     id         Int      @id @default(autoincrement())
+    public_id  String   @unique @default(uuid())
     name       String   @unique
     created_at DateTime @default(now())
 
@@ -118,6 +125,7 @@ model PropertyType {
 
 model Lead {
     id         Int      @id @default(autoincrement())
+    public_id  String   @unique @default(uuid())
     name       String
     email      String
     phone      String?
@@ -135,6 +143,7 @@ model Lead {
 
 model Amenity {
     id               Int              @id @default(autoincrement())
+    public_id        String           @unique @default(uuid())
     name             String           @unique
     created_at       DateTime         @default(now())
     projectAmenities ProjectAmenity[]
@@ -145,6 +154,7 @@ model Amenity {
 model ProjectAmenity {
     project_id Int
     amenity_id Int
+    public_id  String? @unique @default(uuid())
 
     project Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
     amenity Amenity @relation(fields: [amenity_id], references: [id], onDelete: Cascade)
@@ -156,6 +166,7 @@ model ProjectAmenity {
 
 model NewsletterSubscriber {
     id         Int      @id @default(autoincrement())
+    public_id  String   @unique @default(uuid())
     email      String   @unique
     created_at DateTime @default(now())
 

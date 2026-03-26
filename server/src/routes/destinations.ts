@@ -12,7 +12,7 @@ import {
 const router = Router();
 
 router.get("/", asyncHandler(getDestinations));
-router.get("/:slug/projects", asyncHandler(getDestinationProjects));
+router.get("/:identifier/projects", asyncHandler(getDestinationProjects));
 router.post("/", authenticate, asyncHandler(createDestination));
 router.put("/:id", authenticate, asyncHandler(updateDestination));
 router.delete("/:id", authenticate, asyncHandler(deleteDestination));

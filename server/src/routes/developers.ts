@@ -15,6 +15,6 @@ router.get("/", asyncHandler(getDevelopers));
 router.post("/", authenticate, asyncHandler(createDeveloper));
 router.put("/:id", authenticate, asyncHandler(updateDeveloper));
 router.delete("/:id", authenticate, asyncHandler(deleteDeveloper));
-router.get("/:slug/projects", asyncHandler(getDeveloperProjects));
+router.get("/:identifier/projects", asyncHandler(getDeveloperProjects));
 
 export default router;

@@ -60,6 +60,7 @@ const getProjectPriceBounds = (priceRange?: string | null) => {
 
 const mapProjectCard = (project: any) => ({
   id: project.id,
+  public_id: project.public_id,
   name: project.name,
   location: project.location,
   price_range: project.price_range,
@@ -80,6 +81,7 @@ const mapProjectCard = (project: any) => ({
 
 const mapProjectDetail = (project: any) => ({
   id: project.id,
+  public_id: project.public_id,
   name: project.name,
   location: project.location,
   price_range: project.price_range,
@@ -153,6 +155,9 @@ const resolveProject = async (identifier: string) => {
     return prisma.project.findUnique({ where: { id: parseInt(identifier, 10) } });
   }
 
+  const byPublicId = await prisma.project.findUnique({ where: { public_id: identifier } });
+  if (byPublicId) return byPublicId;
+
   return prisma.project.findUnique({ where: { slug: identifier } });
 };
 
@@ -174,6 +179,7 @@ export async function getProjects(req: Request, res: Response) {
     where,
     select: {
       id: true,
+      public_id: true,
       name: true,
       location: true,
       price_range: true,
@@ -323,6 +329,7 @@ export async function getFeaturedProjects(req: Request, res: Response) {
     },
     select: {
       id: true,
+      public_id: true,
       name: true,
       location: true,
       price_range: true,
@@ -396,6 +403,7 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
         where: { id: parseInt(identifier, 10) },
         select: {
           id: true,
+          public_id: true,
           name: true,
           location: true,
           price_range: true,
@@ -421,10 +429,13 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           destination: { select: { name: true, slug: true } },
         },
       })
-    : await prisma.project.findUnique({
-        where: { slug: identifier },
+    : await prisma.project.findFirst({
+        where: {
+          OR: [{ slug: identifier }, { public_id: identifier }],
+        },
         select: {
           id: true,
+          public_id: true,
           name: true,
           location: true,
           price_range: true,
@@ -559,7 +570,7 @@ export async function createProject(req: Request, res: Response) {
     });
   }
 
-  return res.json({ id: created.id, slug: finalSlug });
+  return res.json({ id: created.id, public_id: created.public_id, slug: finalSlug });
 }
 
 export async function updateProject(req: Request, res: Response) {
@@ -742,7 +753,7 @@ export async function duplicateProject(req: Request, res: Response) {
     });
   }
 
-  return res.json({ id: duplicated.id });
+  return res.json({ id: duplicated.id, public_id: duplicated.public_id });
 }
 
 export async function deleteProject(req: Request, res: Response) {

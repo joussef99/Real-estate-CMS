@@ -31,6 +31,7 @@ export async function getDestinations(req: Request, res: Response) {
     });
     const mapped = destinations.map((d) => ({
       id: d.id,
+      public_id: d.public_id,
       name: d.name,
       image: d.image || (d as any).image_meta?.url || null,
       image_meta: (d as any).image_meta ?? null,
@@ -53,6 +54,7 @@ export async function getDestinations(req: Request, res: Response) {
 
   const mappedDestinations = destinations.map((d) => ({
     id: d.id,
+    public_id: d.public_id,
     name: d.name,
     image: d.image || (d as any).image_meta?.url || null,
     image_meta: (d as any).image_meta ?? null,
@@ -76,6 +78,7 @@ export async function getDestinations(req: Request, res: Response) {
 
         const mappedProjects = previewProjects.map((p) => ({
           id: p.id,
+          public_id: p.public_id,
           name: p.name,
           location: p.location,
           price_range: p.price_range,
@@ -108,10 +111,18 @@ export async function getDestinations(req: Request, res: Response) {
 }
 
 export async function getDestinationProjects(req: Request, res: Response) {
-  const destination = await prisma.destination.findUnique({
-    where: { slug: req.params.slug },
-    select: { id: true, name: true, slug: true, image: true, image_meta: true, description: true },
-  });
+  const identifier = req.params.identifier;
+  const destination = /^\d+$/.test(identifier)
+    ? await prisma.destination.findUnique({
+        where: { id: parseInt(identifier, 10) },
+        select: { id: true, public_id: true, name: true, slug: true, image: true, image_meta: true, description: true },
+      })
+    : await prisma.destination.findFirst({
+        where: {
+          OR: [{ slug: identifier }, { public_id: identifier }],
+        },
+        select: { id: true, public_id: true, name: true, slug: true, image: true, image_meta: true, description: true },
+      });
   if (!destination) {
     return res.status(404).json({ error: "Destination not found" });
   }
@@ -127,6 +138,7 @@ export async function getDestinationProjects(req: Request, res: Response) {
 
   const mappedProjects = projects.map((p) => ({
     id: p.id,
+    public_id: p.public_id,
     name: p.name,
     location: p.location,
     price_range: p.price_range,
@@ -153,7 +165,7 @@ export async function createDestination(req: Request, res: Response) {
   const { name, image, image_meta, description } = req.body;
   const slug = await makeUniqueSlug(name);
   const created = await prisma.destination.create({ data: { name, image, image_meta: image_meta || null, description, slug } });
-  return res.json({ id: created.id, slug });
+  return res.json({ id: created.id, public_id: created.public_id, slug });
 }
 
 export async function updateDestination(req: Request, res: Response) {

@@ -26,7 +26,7 @@ export async function getDevelopers(req: Request, res: Response) {
 
   if (limit <= 0 && !req.query.page && !includeProjectPreviews) {
     const developers = await prisma.developer.findMany({
-      select: { id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
+      select: { id: true, public_id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
       orderBy: { id: "desc" },
     });
     const transformedDevelopers = (developers as any[])
@@ -40,7 +40,7 @@ export async function getDevelopers(req: Request, res: Response) {
   const offset = (Math.max(page, 1) - 1) * Math.max(limit, 1);
 
   const developers = await prisma.developer.findMany({
-    select: { id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
+    select: { id: true, public_id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
     orderBy: { id: "desc" },
     ...(limit > 0 ? { take: limit, skip: offset } : {}),
   });
@@ -60,6 +60,7 @@ export async function getDevelopers(req: Request, res: Response) {
 
         const mappedProjects = previewProjects.map((p) => ({
           id: p.id,
+          public_id: p.public_id,
           name: p.name,
           location: p.location,
           price_range: p.price_range,
@@ -100,7 +101,7 @@ export async function createDeveloper(req: Request, res: Response) {
   const created = await prisma.developer.create({
     data: { name, logo, logo_meta: logo_meta || null, description, slug },
   });
-  return res.json({ id: created.id, slug });
+  return res.json({ id: created.id, public_id: created.public_id, slug });
 }
 
 export async function updateDeveloper(req: Request, res: Response) {
@@ -134,10 +135,18 @@ export async function deleteDeveloper(req: Request, res: Response) {
 }
 
 export async function getDeveloperProjects(req: Request, res: Response) {
-  const developer = await prisma.developer.findUnique({
-    where: { slug: req.params.slug },
-    select: { id: true, name: true },
-  });
+  const identifier = req.params.identifier;
+  const developer = /^\d+$/.test(identifier)
+    ? await prisma.developer.findUnique({
+        where: { id: parseInt(identifier, 10) },
+        select: { id: true, public_id: true, name: true },
+      })
+    : await prisma.developer.findFirst({
+        where: {
+          OR: [{ slug: identifier }, { public_id: identifier }],
+        },
+        select: { id: true, public_id: true, name: true },
+      });
   if (!developer) {
     return res.status(404).json({ error: "Developer not found" });
   }
@@ -153,6 +162,7 @@ export async function getDeveloperProjects(req: Request, res: Response) {
 
   const mappedProjects = projects.map((p) => ({
     id: p.id,
+    public_id: p.public_id,
     name: p.name,
     location: p.location,
     price_range: p.price_range,
