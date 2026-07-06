@@ -29,16 +29,16 @@ export const Navbar = () => {
 
   return (
     <nav
-      className={`fixed top-0 z-50 w-full transition-all duration-300 ${
-        scrolled ? 'border-b border-white/25 bg-white/70 py-4 shadow-lg backdrop-blur' : 'bg-transparent py-6'
+      className={`fixed top-0 z-50 w-full transition-all duration-300  ${
+        scrolled ? 'border-b border-black/25 bg-slate-950/70 py-4 shadow-lg backdrop-blur-md' : 'bg-transparent py-6'
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
         <Link to="/" className="flex items-center gap-2 text-2xl font-semibold tracking-tight text-slate-950">
-          <span className="inline-flex h-9 w-25 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg">
+          {/* <span className="inline-flex h-9 w-25 items-center justify-center rounded-xl bg-slate-950 text-white shadow-lg"> */}
             {/* <Building2 className="h-10 w-auto" /> */}
             <img src="/livin-copy.png" alt="LIVIN Logo" className="h-15 w-auto" />
-          </span>
+          {/* </span> */}
         </Link>
 
         {/* Desktop Nav */}
@@ -48,7 +48,7 @@ export const Navbar = () => {
               key={link.name}
               to={link.path}
               className={`text-sm font-medium transition-colors hover:text-slate-950 ${
-                location.pathname === link.path ? 'text-slate-950' : 'text-slate-500'
+                location.pathname === link.path ? 'text-slate-950' : 'text-slate-300'
               }`}
             >
               {link.name}
@@ -128,11 +128,11 @@ export const Navbar = () => {
                           <Link to="/projects">Explore Projects</Link>
                         </Button>
                       </Dialog.Close>
-                      <Dialog.Close asChild>
+                      {/* <Dialog.Close asChild>
                         <Button variant="secondary" className="w-full" asChild>
                           <Link to="/admin/login">Admin Login</Link>
                         </Button>
-                      </Dialog.Close>
+                      </Dialog.Close> */}
                     </div>
                   </motion.div>
                 </Dialog.Content>
