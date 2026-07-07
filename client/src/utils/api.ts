@@ -91,6 +91,57 @@ export async function authJson<T>(path: string, init?: RequestInit): Promise<T> 
 	return parseJsonResponse<T>(response);
 }
 
+/**
+ * Multipart upload for public, unauthenticated endpoints (e.g. the resale
+ * submission form) — same XHR/progress plumbing as authUploadJson, but with
+ * no Authorization header and no 401-redirect (there's no session to expire).
+ */
+export function apiUploadJson<T>(path: string, body: FormData, onProgress?: (percent: number) => void): Promise<T> {
+	return new Promise((resolve, reject) => {
+		const xhr = new XMLHttpRequest();
+		xhr.open('POST', `${API_BASE}${path}`);
+
+		xhr.upload.onprogress = (event) => {
+			if (event.lengthComputable && onProgress) {
+				onProgress(Math.round((event.loaded / event.total) * 100));
+			}
+		};
+
+		xhr.onerror = () => {
+			reject(new Error('Upload failed. Please try again.'));
+		};
+
+		xhr.onload = () => {
+			const contentType = xhr.getResponseHeader('content-type') || '';
+			const rawResponse = xhr.responseText || '';
+
+			if (!contentType.includes('application/json')) {
+				const preview = rawResponse.slice(0, 140);
+				reject(new Error(`Expected JSON response but received: ${preview || '[empty response]'}`));
+				return;
+			}
+
+			try {
+				const data = JSON.parse(rawResponse);
+				if (xhr.status < 200 || xhr.status >= 300) {
+					const errorMessage = typeof data?.error === 'string'
+						? data.error
+						: `Request failed with status ${xhr.status}`;
+					reject(new Error(errorMessage));
+					return;
+				}
+
+				onProgress?.(100);
+				resolve(data as T);
+			} catch {
+				reject(new Error('Failed to parse upload response.'));
+			}
+		};
+
+		xhr.send(body);
+	});
+}
+
 export function authUploadJson<T>(path: string, body: FormData, onProgress?: (percent: number) => void): Promise<T> {
 	return new Promise((resolve, reject) => {
 		const xhr = new XMLHttpRequest();

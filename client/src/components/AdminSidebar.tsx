@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Building2, MapPin, Newspaper, Briefcase, LogOut, Tag, Mail, Zap, KeyRound, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Building2, MapPin, Newspaper, Briefcase, LogOut, Tag, Mail, Zap, KeyRound, MessageSquare, Home, Inbox } from 'lucide-react';
 import { clearAdminToken } from '../utils/api';
 
 export function AdminSidebar() {
@@ -21,6 +21,8 @@ export function AdminSidebar() {
     { name: 'Property Types', path: '/admin/property-types', icon: Tag },
     { name: 'Amenities', path: '/admin/amenities', icon: Zap },
     { name: 'Leads', path: '/admin/leads', icon: Mail },
+    { name: 'Resale Submissions', path: '/admin/resale/submissions', icon: Inbox },
+    { name: 'Resale Listings', path: '/admin/resale/listings', icon: Home },
     { name: 'Newsletter Subscribers', path: '/admin/newsletter', icon: MessageSquare },
     { name: 'Change Password', path: '/admin/change-password', icon: KeyRound },
   ];

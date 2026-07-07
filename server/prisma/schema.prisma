@@ -124,18 +124,21 @@ model PropertyType {
 }
 
 model Lead {
-    id         Int      @id @default(autoincrement())
-    public_id  String   @unique @default(uuid())
-    name       String
-    email      String
-    phone      String?
-    message    String?
-    project_id Int?
-    created_at DateTime @default(now())
+    id                Int      @id @default(autoincrement())
+    public_id         String   @unique @default(uuid())
+    name              String
+    email             String
+    phone             String?
+    message           String?
+    project_id        Int?
+    resale_listing_id Int?
+    created_at        DateTime @default(now())
 
-    project Project? @relation(fields: [project_id], references: [id], onDelete: SetNull)
+    project       Project?       @relation(fields: [project_id], references: [id], onDelete: SetNull)
+    resaleListing ResaleListing? @relation(fields: [resale_listing_id], references: [id], onDelete: SetNull)
 
     @@index([project_id])
+    @@index([resale_listing_id])
     @@index([created_at])
     @@index([email])
     @@map("leads")
@@ -162,6 +165,67 @@ model ProjectAmenity {
     @@id([project_id, amenity_id])
     @@index([amenity_id])
     @@map("project_amenities")
+}
+
+model ResaleSubmission {
+    id                    Int      @id @default(autoincrement())
+    public_id             String   @unique @default(uuid())
+    owner_name            String
+    owner_email           String
+    owner_phone           String?
+    location              String
+    unit_type             String?
+    beds                  String?
+    size                  String?
+    asking_price          String?
+    installment_value     Int?
+    remaining_amount      Int?
+    remaining_installments Int?
+    delivery_time         String?
+    description           String?
+    photos                String?
+    photos_meta           Json?
+    status                String   @default("pending") // pending | reviewed | rejected | published
+    admin_notes           String?
+    created_at            DateTime @default(now())
+
+    listing ResaleListing?
+
+    @@index([status])
+    @@index([created_at])
+    @@map("resale_submissions")
+}
+
+model ResaleListing {
+    id                     Int      @id @default(autoincrement())
+    public_id              String   @unique @default(uuid())
+    title                  String
+    slug                   String   @unique
+    location               String?
+    price                  String?
+    installment_value      Int?
+    remaining_amount       Int?
+    remaining_installments Int?
+    delivery_time          String?
+    description            String?
+    main_image             String?
+    main_image_meta        Json?
+    gallery                String?
+    gallery_meta           Json?
+    beds                   String?
+    size                   String?
+    unit_type              String?
+    status                 String   @default("published") // published | unpublished
+    meta_title             String?
+    meta_description       String?
+    submission_id          Int?     @unique
+    created_at             DateTime @default(now())
+
+    submission ResaleSubmission? @relation(fields: [submission_id], references: [id], onDelete: SetNull)
+    leads      Lead[]
+
+    @@index([status])
+    @@map("resale_listings")
 }
 
 model NewsletterSubscriber {

@@ -29,6 +29,14 @@ export const uploadDestination = multer({
   limits: { fileSize: 2 * 1024 * 1024 }
 });
 
+// Used by the public (unauthenticated) resale submission form — capped lower
+// than admin uploads (6 files) since it's a public, unauthenticated endpoint.
+export const uploadResalePhotos = multer({
+  storage: memoryStorage,
+  fileFilter: fileFilter,
+  limits: { fileSize: 2 * 1024 * 1024, files: 6 }
+});
+
 // Error handling middleware for multer
 export function handleMulterError(err, req, res, next) {
   if (err instanceof multer.MulterError) {
@@ -36,7 +44,7 @@ export function handleMulterError(err, req, res, next) {
       return res.status(400).json({ error: 'File too large. Maximum 2MB allowed.' });
     }
     if (err.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({ error: 'Too many files. Maximum 10 files allowed.' });
+      return res.status(400).json({ error: 'Too many files uploaded.' });
     }
   } else if (err.message === 'Only image files are allowed') {
     return res.status(400).json({ error: 'Only image files are allowed' });

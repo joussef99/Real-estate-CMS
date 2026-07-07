@@ -86,3 +86,52 @@ export interface Career {
   requirements: string;
   apply_link?: string | null;
 }
+
+export interface ResaleListing {
+  id: number;
+  public_id?: string;
+  title: string;
+  slug?: string;
+  location?: string | null;
+  price?: string | null;
+  installment_value?: number | null;
+  remaining_amount?: number | null;
+  remaining_installments?: number | null;
+  delivery_time?: string | null;
+  description?: string | null;
+  main_image?: string | null;
+  main_image_meta?: MediaAsset | null;
+  gallery?: string | string[];
+  gallery_meta?: MediaAsset[] | null;
+  beds?: string | null;
+  size?: string | null;
+  unit_type?: string | null;
+  status?: string;
+  meta_title?: string;
+  meta_description?: string;
+  submission_id?: number | null;
+}
+
+export interface ResaleSubmission {
+  id: number;
+  public_id?: string;
+  owner_name: string;
+  owner_email: string;
+  owner_phone?: string | null;
+  location: string;
+  unit_type?: string | null;
+  beds?: string | null;
+  size?: string | null;
+  asking_price?: string | null;
+  installment_value?: number | null;
+  remaining_amount?: number | null;
+  remaining_installments?: number | null;
+  delivery_time?: string | null;
+  description?: string | null;
+  photos?: string | string[] | null;
+  photos_meta?: MediaAsset[] | null;
+  status: string;
+  admin_notes?: string | null;
+  created_at: string;
+  listing?: { id: number; public_id: string; slug: string } | null;
+}

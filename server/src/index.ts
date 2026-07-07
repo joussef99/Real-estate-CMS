@@ -12,6 +12,7 @@ import careersRoutes from "./routes/careers.ts";
 import propertyTypesRoutes from "./routes/property-types.ts";
 import amenitiesRoutes from "./routes/amenities.ts";
 import leadsRoutes from "./routes/leads.ts";
+import resaleRoutes from "./routes/resale.ts";
 import statsRoutes from "./routes/stats.ts";
 import uploadRoutes from "./routes/uploads.ts";
 import mediaRoutes from "./routes/media.ts";
@@ -102,6 +103,7 @@ async function startServer() {
   app.use("/api/property-types", propertyTypesRoutes);
   app.use("/api/amenities", amenitiesRoutes);
   app.use("/api/leads", leadsRoutes);
+  app.use("/api/resale", resaleRoutes);
   app.use("/api/admin/stats", statsRoutes);
   app.use("/api/upload", uploadRoutes);
   app.use("/api/media", mediaRoutes);

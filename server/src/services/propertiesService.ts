@@ -39,9 +39,11 @@ export async function makeUniqueProjectSlug(baseSlugCandidate: string, currentId
 }
 
 export function normalizePropertyPayload(payload: PropertyPayload, currentId?: number) {
-  const featuredValue = payload.featured !== undefined
-    ? (payload.featured ? 1 : 0)
-    : (payload.is_featured ? 1 : 0);
+  // `is_featured` is the single source of truth. `featured` is a legacy duplicate
+  // column kept in sync here rather than derived independently, since two
+  // independent derivations let them drift apart (e.g. a caller sending only
+  // one of the two fields).
+  const isFeaturedValue = payload.is_featured ? 1 : 0;
 
   const gallery = Array.isArray(payload.gallery) ? payload.gallery : [];
   const galleryMeta = Array.isArray(payload.gallery_meta) ? payload.gallery_meta : [];
@@ -75,8 +77,8 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
     gallery_meta: galleryMeta,
     developer_id: payload.developer_id ? Number(payload.developer_id) : null,
     destination_id: payload.destination_id ? Number(payload.destination_id) : null,
-    is_featured: payload.is_featured ? 1 : 0,
-    featured: featuredValue,
+    is_featured: isFeaturedValue,
+    featured: isFeaturedValue,
     beds: payload.beds ?? null,
     size: payload.size ?? null,
     main_image: gallery.length > 0 ? gallery[0] : null,

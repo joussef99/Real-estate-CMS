@@ -6,7 +6,7 @@ import { ArrowRight, Building2, ChevronDown, MapPin, Search, Tag } from 'lucide-
 import { Button } from '../components/Button';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
-import { Blog, Destination, Developer, Project } from '../types';
+import { Blog, Destination, Developer, Project, ResaleListing } from '../types';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
@@ -22,12 +22,14 @@ export default function Home() {
   const [destinations, setDestinations] = useState<Destination[]>([]);
   const [developers, setDevelopers] = useState<Developer[]>([]);
   const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [resaleListings, setResaleListings] = useState<ResaleListing[]>([]);
   const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
 
   const [locationQuery, setLocationQuery] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [priceRange, setPriceRange] = useState('');
   const [heroVideoReady, setHeroVideoReady] = useState(false);
+  const [heroMode, setHeroMode] = useState<'buy' | 'sell'>('buy');
   const prefersReducedMotion = useReducedMotion();
 
   const navigate = useNavigate();
@@ -65,6 +67,10 @@ export default function Home() {
       .then((data) => setBlogs(normalize<Blog>(data, 'blogs')))
       .catch(() => setBlogs([]));
 
+    apiJson<any>(`/api/resale/listings?limit=3`)
+      .then((data) => setResaleListings(Array.isArray(data?.listings) ? data.listings : []))
+      .catch(() => setResaleListings([]));
+
     apiJson<{ name: string }[]>(`/api/property-types`)
       .then((data: { name: string }[]) =>
         setPropertyTypes(Array.isArray(data) ? data.map((pt) => pt.name) : [])
@@ -92,10 +98,10 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen overflow-x-hidden">
+    <div className="min-h-dvh overflow-x-hidden">
 
       {/* ══════════════════════ CINEMATIC HERO ══════════════════════ */}
-      <section className="relative min-h-screen overflow-hidden bg-slate-950">
+      <section className="relative min-h-dvh overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
           <video
             className="h-full w-full object-cover transition-opacity duration-1000 ease-out"
@@ -117,7 +123,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-linear-to-t from-slate-950/88 via-slate-950/32 to-transparent" />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-28 bg-linear-to-t from-slate-950 via-slate-950/55 to-transparent sm:h-36" />
 
-        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col justify-end px-5 pb-10 pt-24 sm:px-6 sm:pb-14 sm:pt-28 md:pb-40 md:pt-36">
+        <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-7xl flex-col justify-end px-5 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 md:pb-20 md:pt-36">
           <motion.div
             initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18 }}
             animate={heroVideoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: prefersReducedMotion ? 0 : 18 }}
@@ -137,8 +143,45 @@ export default function Home() {
             initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
             animate={heroVideoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
             transition={{ duration: prefersReducedMotion ? 0.45 : 0.95, delay: heroVideoReady ? 1.05 : 0, ease: EASE_OUT }}
-            className="mt-10 w-full md:absolute md:bottom-10 md:left-1/2 md:z-10 md:mt-0 md:w-[calc(100%-3rem)] md:max-w-6xl md:-translate-x-1/2"
+            className="mt-8 w-full max-w-6xl sm:mt-10"
           >
+            <div className="mb-3 inline-flex rounded-full border border-white/14 bg-slate-950/34 p-1 backdrop-blur-xl">
+              <button
+                type="button"
+                onClick={() => setHeroMode('buy')}
+                className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors sm:text-sm ${
+                  heroMode === 'buy' ? 'bg-white text-slate-950' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Buy
+              </button>
+              <button
+                type="button"
+                onClick={() => setHeroMode('sell')}
+                className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors sm:text-sm ${
+                  heroMode === 'sell' ? 'bg-white text-slate-950' : 'text-white/70 hover:text-white'
+                }`}
+              >
+                Sell
+              </button>
+            </div>
+
+            {heroMode === 'sell' ? (
+              <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-6 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-8">
+                <p className="max-w-xl text-sm text-white/80 sm:text-base">
+                  Own a unit you'd like to sell? Submit your unit's details and our team will review, curate,
+                  and publish it as a resale listing for qualified buyers.
+                </p>
+                <motion.button
+                  whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
+                  whileTap={prefersReducedMotion ? undefined : { scale: 0.99 }}
+                  onClick={() => navigate('/sell')}
+                  className="mt-5 flex min-h-14 items-center justify-center gap-2.5 rounded-[1.15rem] bg-white/92 px-6 text-sm font-semibold text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-colors duration-300 hover:bg-white sm:min-h-15.5 sm:rounded-2xl sm:w-fit"
+                >
+                  List Your Unit <ArrowRight className="h-4 w-4" />
+                </motion.button>
+              </div>
+            ) : (
             <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-1.5 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-2">
               <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:grid-cols-2 lg:grid-cols-4">
 
@@ -214,12 +257,13 @@ export default function Home() {
 
               </div>
             </div>
+            )}
           </motion.div>
         </div>
       </section>
 
       {/* ══════════════════════ FEATURED COLLECTION ══════════════════════ */}
-      <section className="bg-slate-950 px-6 py-24 text-white">
+      <section className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
             eyebrow="Featured Collection"
@@ -232,7 +276,7 @@ export default function Home() {
             }
           />
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {(featuredProjects.length ? featuredProjects : latestProjects).slice(0, 6).map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
@@ -241,7 +285,7 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════ LATEST PROJECTS ══════════════════════ */}
-      <section className="px-6 py-24">
+      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
             eyebrow="Latest Projects"
@@ -256,7 +300,7 @@ export default function Home() {
             }
           />
 
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
             {latestProjects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
@@ -264,8 +308,66 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ══════════════════════ RESALE UNITS ══════════════════════ */}
+      {resaleListings.length > 0 && (
+        <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl">
+            <SectionHeading
+              eyebrow="Resale Marketplace"
+              title="Units Available From Current Owners"
+              description="Browse curated resale opportunities, or list your own unit in minutes."
+              action={
+                <Button variant="ghost" asChild>
+                  <Link to="/resale" className="inline-flex items-center gap-2">
+                    Browse Resale <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              }
+            />
+
+            <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
+              {resaleListings.map((listing) => (
+                <Link
+                  key={listing.id}
+                  to={`/resale/${listing.slug || listing.id}`}
+                  className="group overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-lg transition-all hover:shadow-2xl"
+                >
+                  <div className="relative aspect-16/11 overflow-hidden">
+                    <img
+                      src={cloudinaryOptimizedUrl(resolveImageUrl(listing.main_image), { width: 900, height: 620 }) || FALLBACK_IMAGE_URL}
+                      alt={listing.title}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      onError={withFallbackImage}
+                    />
+                    <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
+                      {listing.price || 'Price on request'}
+                    </div>
+                  </div>
+                  <div className="space-y-2 p-5 sm:p-6">
+                    <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 sm:text-xl">{listing.title}</h3>
+                    <div className="flex items-center text-sm text-zinc-500">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      <span className="line-clamp-1">{listing.location}</span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center sm:mt-10">
+              <Button variant="secondary" className="w-full sm:w-auto" asChild>
+                <Link to="/sell">Own a Unit? List It for Resale</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ══════════════════════ TOP DESTINATIONS ══════════════════════ */}
-      <section className="bg-slate-50 px-6 py-24">
+      <section className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
             eyebrow="Top Destinations"
@@ -274,7 +376,7 @@ export default function Home() {
             align="center"
           />
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {destinations.map((dest, index) => (
               <motion.article
                 key={dest.id}
@@ -289,7 +391,7 @@ export default function Home() {
                   <img
                     src={cloudinaryOptimizedUrl(resolveImageUrl(dest.image), { width: 900, height: 1200 }) || `https://picsum.photos/seed/destination-${dest.id}/900/1200`}
                     alt={dest.name}
-                    className="h-96 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-72 lg:h-96"
                     loading="lazy"
                     decoding="async"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -297,11 +399,11 @@ export default function Home() {
                     onError={withFallbackImage}
                   />
                   <div className="absolute inset-0 bg-linear-to-t from-slate-950/90 via-slate-900/25 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <div className="absolute bottom-0 left-0 right-0 p-4 text-white sm:p-6">
                     <p className="mb-2 inline-flex rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs backdrop-blur-xl">
                       {dest.project_count || 0} projects
                     </p>
-                    <h3 className="text-3xl font-semibold">{dest.name}</h3>
+                    <h3 className="text-xl font-semibold sm:text-2xl lg:text-3xl">{dest.name}</h3>
                     <p className="mt-2 flex items-center text-sm text-white/80">
                       <MapPin className="mr-2 h-4 w-4" /> Signature communities
                     </p>
@@ -314,7 +416,7 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════ TRUSTED DEVELOPERS ══════════════════════ */}
-      <section className="px-6 py-24">
+      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
             eyebrow="Trusted Developers"
@@ -399,9 +501,9 @@ export default function Home() {
             `}</style>
           </motion.div>
 
-          <div className="mt-10">
-            <Button asChild>
-              <Link to="/developers" className="inline-flex items-center gap-2">
+          <div className="mt-8 sm:mt-10">
+            <Button className="w-full sm:w-auto" asChild>
+              <Link to="/developers" className="inline-flex items-center justify-center gap-2">
                 View All Developers <Building2 className="h-4 w-4" />
               </Link>
             </Button>
@@ -410,7 +512,7 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════ MARKET INTELLIGENCE ══════════════════════ */}
-      <section className="bg-slate-950 px-6 py-24 text-white">
+      <section className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:py-24">
         <div className="mx-auto max-w-7xl">
           <SectionHeading
             eyebrow="Market Intelligence"
@@ -423,7 +525,7 @@ export default function Home() {
             }
           />
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
             {blogs.slice(0, 3).map((blog, index) => (
               <motion.article
                 key={blog.id}
@@ -437,16 +539,16 @@ export default function Home() {
                   <img
                     src={cloudinaryOptimizedUrl(resolveImageUrl(blog.image), { width: 900, height: 560 }) || FALLBACK_IMAGE_URL}
                     alt={blog.title}
-                    className="h-56 w-full object-cover"
+                    className="h-44 w-full object-cover sm:h-56"
                     loading="lazy"
                     decoding="async"
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     referrerPolicy="no-referrer"
                     onError={withFallbackImage}
                   />
-                  <div className="p-6">
+                  <div className="p-5 sm:p-6">
                     <p className="text-xs uppercase tracking-[0.2em] text-white/70">{blog.category}</p>
-                    <h3 className="mt-3 line-clamp-2 text-2xl font-semibold leading-tight">{blog.title}</h3>
+                    <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight sm:text-2xl">{blog.title}</h3>
                     <p className="mt-4 text-sm text-white/70">By {blog.author}</p>
                   </div>
                 </Link>

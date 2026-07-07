@@ -7,6 +7,7 @@ import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
 import { RouteSkeleton } from './components/ui/route-skeleton';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const Home = lazy(() => import('./pages/Home'));
 const Projects = lazy(() => import('./pages/Projects'));
@@ -20,6 +21,9 @@ const Developers = lazy(() => import('./pages/Developers'));
 const DeveloperProjects = lazy(() => import('./pages/DeveloperProjects'));
 const Destinations = lazy(() => import('./pages/Destinations'));
 const DestinationProjects = lazy(() => import('./pages/DestinationProjects'));
+const Resale = lazy(() => import('./pages/Resale'));
+const ResaleDetails = lazy(() => import('./pages/ResaleDetails'));
+const SellUnit = lazy(() => import('./pages/SellUnit'));
 const Login = lazy(() => import('./pages/admin/Login'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const ManageProjects = lazy(() => import('./pages/admin/ManageProjects'));
@@ -35,6 +39,9 @@ const AddEditCareer = lazy(() => import('./pages/admin/AddEditCareer'));
 const AdminPropertyTypes = lazy(() => import('./pages/admin/AdminPropertyTypes'));
 const AdminAmenities = lazy(() => import('./pages/admin/AdminAmenities'));
 const AdminLeads = lazy(() => import('./pages/admin/AdminLeads'));
+const AdminResaleSubmissions = lazy(() => import('./pages/admin/AdminResaleSubmissions'));
+const ManageResaleListings = lazy(() => import('./pages/admin/ManageResaleListings'));
+const AddEditResaleListing = lazy(() => import('./pages/admin/AddEditResaleListing'));
 const AdminNewsletterSubscribers = lazy(() => import('./pages/admin/AdminNewsletterSubscribers'));
 const ChangePassword = lazy(() => import('./pages/admin/ChangePassword'));
 
@@ -66,28 +73,35 @@ export default function App() {
             <Route path="/developers/:slug" element={<DeveloperProjects />} />
             <Route path="/destinations" element={<Destinations />} />
             <Route path="/destinations/:slug" element={<DestinationProjects />} />
+            <Route path="/resale" element={<Resale />} />
+            <Route path="/resale/:slug" element={<ResaleDetails />} />
+            <Route path="/sell" element={<SellUnit />} />
             <Route path="/admin/login" element={<Login />} />
-            <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/admin/projects" element={<ManageProjects />} />
-            <Route path="/admin/projects/new" element={<AddProject />} />
-            <Route path="/admin/projects/edit/:id" element={<AddProject />} />
-            <Route path="/admin/developers" element={<ManageDevelopers />} />
-            <Route path="/admin/developers/new" element={<AddEditDeveloper />} />
-            <Route path="/admin/developers/edit/:id" element={<AddEditDeveloper />} />
-            <Route path="/admin/destinations" element={<ManageDestinations />} />
-            <Route path="/admin/destinations/new" element={<AddEditDestination />} />
-            <Route path="/admin/destinations/edit/:id" element={<AddEditDestination />} />
-            <Route path="/admin/blogs" element={<ManageBlogs />} />
-            <Route path="/admin/blogs/new" element={<AddEditBlog />} />
-            <Route path="/admin/blogs/edit/:id" element={<AddEditBlog />} />
-            <Route path="/admin/careers" element={<ManageCareers />} />
-            <Route path="/admin/careers/new" element={<AddEditCareer />} />
-            <Route path="/admin/careers/edit/:id" element={<AddEditCareer />} />
-            <Route path="/admin/property-types" element={<AdminPropertyTypes />} />
-            <Route path="/admin/amenities" element={<AdminAmenities />} />
-            <Route path="/admin/leads" element={<AdminLeads />} />
-            <Route path="/admin/newsletter" element={<AdminNewsletterSubscribers />} />
-            <Route path="/admin/change-password" element={<ChangePassword />} />
+            <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/admin/projects" element={<ProtectedRoute><ManageProjects /></ProtectedRoute>} />
+            <Route path="/admin/projects/new" element={<ProtectedRoute><AddProject /></ProtectedRoute>} />
+            <Route path="/admin/projects/edit/:id" element={<ProtectedRoute><AddProject /></ProtectedRoute>} />
+            <Route path="/admin/developers" element={<ProtectedRoute><ManageDevelopers /></ProtectedRoute>} />
+            <Route path="/admin/developers/new" element={<ProtectedRoute><AddEditDeveloper /></ProtectedRoute>} />
+            <Route path="/admin/developers/edit/:id" element={<ProtectedRoute><AddEditDeveloper /></ProtectedRoute>} />
+            <Route path="/admin/destinations" element={<ProtectedRoute><ManageDestinations /></ProtectedRoute>} />
+            <Route path="/admin/destinations/new" element={<ProtectedRoute><AddEditDestination /></ProtectedRoute>} />
+            <Route path="/admin/destinations/edit/:id" element={<ProtectedRoute><AddEditDestination /></ProtectedRoute>} />
+            <Route path="/admin/blogs" element={<ProtectedRoute><ManageBlogs /></ProtectedRoute>} />
+            <Route path="/admin/blogs/new" element={<ProtectedRoute><AddEditBlog /></ProtectedRoute>} />
+            <Route path="/admin/blogs/edit/:id" element={<ProtectedRoute><AddEditBlog /></ProtectedRoute>} />
+            <Route path="/admin/careers" element={<ProtectedRoute><ManageCareers /></ProtectedRoute>} />
+            <Route path="/admin/careers/new" element={<ProtectedRoute><AddEditCareer /></ProtectedRoute>} />
+            <Route path="/admin/careers/edit/:id" element={<ProtectedRoute><AddEditCareer /></ProtectedRoute>} />
+            <Route path="/admin/property-types" element={<ProtectedRoute><AdminPropertyTypes /></ProtectedRoute>} />
+            <Route path="/admin/amenities" element={<ProtectedRoute><AdminAmenities /></ProtectedRoute>} />
+            <Route path="/admin/leads" element={<ProtectedRoute><AdminLeads /></ProtectedRoute>} />
+            <Route path="/admin/resale/submissions" element={<ProtectedRoute><AdminResaleSubmissions /></ProtectedRoute>} />
+            <Route path="/admin/resale/listings" element={<ProtectedRoute><ManageResaleListings /></ProtectedRoute>} />
+            <Route path="/admin/resale/listings/new" element={<ProtectedRoute><AddEditResaleListing /></ProtectedRoute>} />
+            <Route path="/admin/resale/listings/edit/:id" element={<ProtectedRoute><AddEditResaleListing /></ProtectedRoute>} />
+            <Route path="/admin/newsletter" element={<ProtectedRoute><AdminNewsletterSubscribers /></ProtectedRoute>} />
+            <Route path="/admin/change-password" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
             <Route path="*" element={<div className="pt-32 text-center">Page Not Found</div>} />
           </Routes>
         </Suspense>
@@ -186,6 +200,7 @@ function Footer() {
             <h4 className="mb-6 text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Explore</h4>
             <ul className="space-y-4 text-sm text-slate-300">
               <li><Link to="/projects" className="hover:text-white">Projects</Link></li>
+              <li><Link to="/resale" className="hover:text-white">Resale Units</Link></li>
               <li><Link to="/developers" className="hover:text-white">Developers</Link></li>
               <li><Link to="/destinations" className="hover:text-white">Destinations</Link></li>
               <li><Link to="/blogs" className="hover:text-white">Blogs</Link></li>

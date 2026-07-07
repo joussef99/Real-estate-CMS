@@ -39,7 +39,16 @@ BACKEND_URL=
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+RESEND_API_KEY=your_resend_api_key
+ADMIN_NOTIFICATION_EMAIL=you@example.com
+RESEND_FROM_EMAIL="Livin Investments <onboarding@resend.dev>"
 ```
+
+> `CORS_ORIGIN` and `ADMIN_INITIAL_PASSWORD` are **required when `NODE_ENV=production`** — the server refuses to start without them, since their dev-mode defaults (allow-all origins, `admin123`) are unsafe in production.
+
+### Admin email notifications (Resend)
+
+`RESEND_API_KEY` and `ADMIN_NOTIFICATION_EMAIL` are optional. When set, the server emails the admin inbox whenever a new lead or resale submission comes in (`server/src/services/notificationService.ts`). If either is unset, notifications are silently disabled with a one-time startup warning — the app still runs fine without them.
 
 ### Generating JWT_SECRET
 

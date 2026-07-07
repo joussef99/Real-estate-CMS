@@ -18,6 +18,11 @@ export interface ValidatedEnv {
  */
 const REQUIRED_VARS = ["DATABASE_URL", "JWT_SECRET"] as const;
 const REQUIRED_UPLOAD_VARS = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET"] as const;
+/**
+ * Required only in production — allowing all origins or a guessable admin
+ * password is acceptable for local dev but must never happen silently in prod.
+ */
+const REQUIRED_PRODUCTION_VARS = ["CORS_ORIGIN", "ADMIN_INITIAL_PASSWORD"] as const;
 
 /**
  * Variables with defaults and descriptions.
@@ -40,7 +45,7 @@ const VAR_DESCRIPTIONS: Record<string, { default?: string; description: string; 
   },
   ADMIN_INITIAL_PASSWORD: {
     default: "admin123",
-    description: "Password for the initial admin user (ignored if admin already exists). Change after first login",
+    description: "Password for the initial admin user (ignored if admin already exists). Change after first login. Required in production — the 'admin123' default is dev-only.",
     required: false,
   },
   NODE_ENV: {
@@ -51,7 +56,7 @@ const VAR_DESCRIPTIONS: Record<string, { default?: string; description: string; 
   CORS_ORIGIN: {
     default: "http://localhost:5173,http://localhost:3000",
     description:
-      "Comma-separated list of frontend origins allowed to call the API. Example: https://yourdomain.com,https://www.yourdomain.com (or leave empty to allow all)",
+      "Comma-separated list of frontend origins allowed to call the API. Example: https://yourdomain.com,https://www.yourdomain.com. Required in production — leaving it unset allows all origins, which is dev-only behavior.",
     required: false,
   },
   BACKEND_URL: {
@@ -70,6 +75,20 @@ const VAR_DESCRIPTIONS: Record<string, { default?: string; description: string; 
   CLOUDINARY_API_SECRET: {
     description: "Cloudinary API secret for authenticated uploads",
     required: true,
+  },
+  RESEND_API_KEY: {
+    description:
+      "Resend API key used to email the admin when a new lead or resale submission comes in. Get one at resend.com. Notifications are silently disabled if unset.",
+    required: false,
+  },
+  ADMIN_NOTIFICATION_EMAIL: {
+    description: "Inbox that receives new-lead / new-resale-submission notification emails. Notifications are silently disabled if unset.",
+    required: false,
+  },
+  RESEND_FROM_EMAIL: {
+    default: "Livin Investments <onboarding@resend.dev>",
+    description: "From address for notification emails. Use the Resend sandbox sender until you verify your own domain.",
+    required: false,
   },
 };
 
@@ -98,6 +117,19 @@ export function validateEnv(): ValidatedEnv {
       errors.push(
         `  - JWT_SECRET: Too short (${value.length} chars, minimum 32 required). Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
       );
+    }
+  }
+
+  // Check production-only required variables — these have safe defaults in dev
+  // (allow-all CORS, admin123 password) that must never be relied on in production.
+  if (isProduction) {
+    for (const varName of REQUIRED_PRODUCTION_VARS) {
+      const value = process.env[varName];
+      if (!value || (typeof value === "string" && value.trim() === "")) {
+        const desc = VAR_DESCRIPTIONS[varName];
+        const hint = desc ? `\n   ${desc.description}` : "";
+        errors.push(`  - ${varName}: Missing (required in production)${hint}`);
+      }
     }
   }
 
