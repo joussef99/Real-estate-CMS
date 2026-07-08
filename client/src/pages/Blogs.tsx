@@ -1,40 +1,31 @@
-﻿import { apiJson } from '../utils/api';
-import { useState, useEffect } from 'react';
+﻿import { normalizeListResponse } from '../utils/api';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Blog } from '../types';
 import { SectionHeading } from '../components/ui/section-heading';
 import { BlogCardSkeleton } from '../components/ui/blog-card-skeleton';
+import { ErrorState, EmptyState } from '../components/ui/state-message';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { useApiData } from '../hooks/useApiData';
+
+interface BlogsPage {
+  blogs: Blog[];
+  totalPages: number;
+}
 
 export default function Blogs() {
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    const normalize = <T,>(data: any, key?: string): T[] => {
-      if (Array.isArray(data)) return data;
-      if (key && data && Array.isArray(data[key])) return data[key];
-      if (data && Array.isArray(data.blogs)) return data.blogs;
-      return [];
-    };
+  const normalize = useCallback((raw: any): BlogsPage => ({
+    blogs: normalizeListResponse<Blog>(raw, 'blogs'),
+    totalPages: Math.max(raw?.total_pages || 1, 1),
+  }), []);
 
-    setLoading(true);
-    apiJson<any>(`/api/blogs?limit=9&page=${currentPage}`)
-      .then(data => {
-        setBlogs(normalize<Blog>(data, 'blogs'));
-        setCurrentPage(data?.current_page || 1);
-        setTotalPages(Math.max(data?.total_pages || 1, 1));
-      })
-      .catch(() => {
-        setBlogs([]);
-        setTotalPages(1);
-      })
-      .finally(() => setLoading(false));
-  }, [currentPage]);
+  const { data, loading, error, refetch } = useApiData(`/api/blogs?limit=9&page=${currentPage}`, normalize);
+  const blogs = data?.blogs ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className="bg-slate-50 px-6 pb-24 pt-32">
@@ -44,6 +35,14 @@ export default function Blogs() {
           title="Insights and Market Stories"
           description="Deep dives into market movements, high-yield opportunities, and luxury property trends."
         />
+
+        {error && !loading && (
+          <ErrorState message="We couldn't load the blog posts right now." onRetry={refetch} className="mb-8" />
+        )}
+
+        {!loading && !error && blogs.length === 0 && (
+          <EmptyState message="No blog posts published yet — check back soon." />
+        )}
 
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
           {loading

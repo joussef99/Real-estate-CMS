@@ -1,29 +1,29 @@
-import { apiJson, apiFetch, parseJsonResponse } from '../utils/api';
+import { apiFetch, parseJsonResponse } from '../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ResaleListing } from '../types';
 import { MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, CalendarClock, ListChecks } from 'lucide-react';
 import { Button } from '../components/Button';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { ErrorState } from '../components/ui/state-message';
+import { useApiData } from '../hooks/useApiData';
 
 export default function ResaleDetails() {
   const { slug } = useParams();
-  const [listing, setListing] = useState<ResaleListing | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data: listing, loading, error, refetch } = useApiData<ResaleListing>(slug ? `/api/resale/listings/${slug}` : null);
   const [activeImage, setActiveImage] = useState<string>('');
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const notFound = Boolean(error) && error!.toLowerCase().includes('not found');
+  const genericError = error && !notFound;
+
   useEffect(() => {
-    apiJson<any>(`/api/resale/listings/${slug}`)
-      .then((data) => {
-        setListing(data);
-        setActiveImage(resolveImageUrl(data.main_image) || FALLBACK_IMAGE_URL);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [slug]);
+    if (listing) {
+      setActiveImage(resolveImageUrl(listing.main_image) || FALLBACK_IMAGE_URL);
+    }
+  }, [listing]);
 
   useEffect(() => {
     if (!listing) return;
@@ -114,6 +114,16 @@ export default function ResaleDetails() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="aspect-video animate-pulse rounded-[2.5rem] bg-slate-200" />
           <div className="mt-16 h-12 w-3/4 animate-pulse rounded-2xl bg-slate-200" />
+        </div>
+      </div>
+    );
+  }
+  if (genericError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="w-full max-w-xl text-center">
+          <h1 className="mb-6 text-3xl font-bold text-slate-900">Unable to load this listing</h1>
+          <ErrorState onRetry={refetch} />
         </div>
       </div>
     );

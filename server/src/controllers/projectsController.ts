@@ -4,6 +4,7 @@ import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls, transformGalleryToFullUrls } from "../utils/imageUrl.ts";
 import { makeUniqueProjectSlug, normalizePropertyPayload } from "../services/propertiesService.ts";
 import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
+import { bedsMatchesFilter } from "../utils/bedsRange.ts";
 
 const toPositiveInteger = (value: unknown) => {
   const parsed = parseInt(String(value ?? ""), 10);
@@ -238,7 +239,6 @@ export async function searchProjects(req: Request, res: Response) {
     ...(destination_id ? { destination_id } : {}),
     ...(developer_id ? { developer_id } : {}),
     ...(property_type ? { type: property_type } : {}),
-    ...(bedrooms ? { beds: { contains: bedrooms, mode: "insensitive" as const } } : {}),
     ...(keyword
       ? {
           OR: [
@@ -275,6 +275,10 @@ export async function searchProjects(req: Request, res: Response) {
       const projectAmenityIds = project.projectAmenities.map((pa) => pa.amenity_id);
       return amenities.every((amenity_id) => projectAmenityIds.includes(amenity_id));
     });
+  }
+
+  if (bedrooms) {
+    projects = projects.filter((project) => bedsMatchesFilter(project.beds, bedrooms));
   }
 
   if (price_min !== null || price_max !== null) {

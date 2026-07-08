@@ -1,5 +1,4 @@
-﻿import { apiJson } from '../utils/api';
-import { useState, useEffect } from 'react';
+﻿import { useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
@@ -7,52 +6,34 @@ import { Project, Developer } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { ProjectCardSkeleton } from '../components/ui/project-card-skeleton';
+import { ErrorState } from '../components/ui/state-message';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { useApiData } from '../hooks/useApiData';
+
+interface DeveloperProjectsData {
+  developer: Developer;
+  projects: Project[];
+}
 
 export default function DeveloperProjects() {
   const { slug } = useParams<{ slug: string }>();
-  const [developer, setDeveloper] = useState<Developer | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!slug) return;
-    setLoading(true);
-    setNotFound(false);
-    setError(null);
-
-    apiJson<any>(`/api/developers/${encodeURIComponent(slug)}/projects`)
-      .then(data => {
-        const projectsData = Array.isArray(data)
-          ? data
-          : Array.isArray(data?.projects)
-            ? data.projects
-            : [];
-
-        setProjects(projectsData);
-        if (projectsData.length > 0) {
-          setDeveloper({
-            id: projectsData[0].developer_id,
-            name: projectsData[0].developer_name || slug,
-            logo: '',
-            description: '',
-            slug,
-          });
-        } else {
-          setDeveloper({ id: 0, name: slug, logo: '', description: '', slug });
-        }
-      })
-      .catch(err => {
-        if (String(err?.message || '').toLowerCase().includes('not found')) {
-          setNotFound(true);
-          return;
-        }
-        setError(err?.message || 'Failed to load projects');
-      })
-      .finally(() => setLoading(false));
+  const normalize = useCallback((raw: any): DeveloperProjectsData => {
+    const projectsData = Array.isArray(raw) ? raw : Array.isArray(raw?.projects) ? raw.projects : [];
+    const developer: Developer = projectsData.length > 0
+      ? { id: projectsData[0].developer_id, name: projectsData[0].developer_name || slug || '', logo: '', description: '', slug }
+      : { id: 0, name: slug || '', logo: '', description: '', slug };
+    return { developer, projects: projectsData };
   }, [slug]);
+
+  const { data, loading, error, refetch } = useApiData(
+    slug ? `/api/developers/${encodeURIComponent(slug)}/projects` : null,
+    normalize,
+  );
+  const developer = data?.developer ?? null;
+  const projects = data?.projects ?? [];
+  const notFound = Boolean(error) && error!.toLowerCase().includes('not found');
+  const genericError = error && !notFound;
 
   if (loading) {
     return (
@@ -70,11 +51,13 @@ export default function DeveloperProjects() {
     );
   }
 
-  if (notFound || !developer) {
+  if (genericError) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 pt-32 text-center">
-        <h1 className="text-4xl font-bold text-slate-900">Developer Not Found</h1>
-        <p className="text-slate-500">The developer you're looking for doesn't exist or may have been removed.</p>
+        <h1 className="text-4xl font-bold text-slate-900">Unable to load developer projects</h1>
+        <div className="w-full max-w-xl">
+          <ErrorState onRetry={refetch} />
+        </div>
         <Link
           to="/developers"
           className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-700"
@@ -86,11 +69,11 @@ export default function DeveloperProjects() {
     );
   }
 
-  if (error) {
+  if (notFound || !developer) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 pt-32 text-center">
-        <h1 className="text-4xl font-bold text-slate-900">Unable to load developer projects</h1>
-        <p className="max-w-xl text-slate-500">{error}</p>
+        <h1 className="text-4xl font-bold text-slate-900">Developer Not Found</h1>
+        <p className="text-slate-500">The developer you're looking for doesn't exist or may have been removed.</p>
         <Link
           to="/developers"
           className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-700"

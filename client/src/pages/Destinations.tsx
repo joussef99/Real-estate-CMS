@@ -1,5 +1,5 @@
-﻿import { apiJson } from '../utils/api';
-import { useState, useEffect } from 'react';
+﻿import { normalizeListResponse } from '../utils/api';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -7,35 +7,29 @@ import { Destination, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { DestinationSkeleton } from '../components/ui/destination-skeleton';
+import { ErrorState, EmptyState } from '../components/ui/state-message';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { useApiData } from '../hooks/useApiData';
+
+interface DestinationsPage {
+  destinations: Destination[];
+  totalPages: number;
+}
 
 export default function Destinations() {
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    const normalize = <T,>(data: any, key?: string): T[] => {
-      if (Array.isArray(data)) return data;
-      if (key && data && Array.isArray(data[key])) return data[key];
-      if (data && Array.isArray(data.destinations)) return data.destinations;
-      return [];
-    };
+  const normalize = useCallback((raw: any): DestinationsPage => ({
+    destinations: normalizeListResponse<Destination>(raw, 'destinations'),
+    totalPages: Math.max(raw?.total_pages || 1, 1),
+  }), []);
 
-    setLoading(true);
-    apiJson<any>(`/api/destinations?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
-      .then(data => {
-        setDestinations(normalize<Destination>(data, 'destinations'));
-        setCurrentPage(data?.current_page || 1);
-        setTotalPages(Math.max(data?.total_pages || 1, 1));
-      })
-      .catch(() => {
-        setDestinations([]);
-        setTotalPages(1);
-      })
-      .finally(() => setLoading(false));
-  }, [currentPage]);
+  const { data, loading, error, refetch } = useApiData(
+    `/api/destinations?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`,
+    normalize,
+  );
+  const destinations = data?.destinations ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className="bg-slate-50 px-6 pb-24 pt-32">
@@ -45,7 +39,15 @@ export default function Destinations() {
           title="Explore Prime Locations"
           description="From beachfront retreats to metropolitan landmarks, discover where luxury meets opportunity."
         />
-        
+
+        {error && !loading && (
+          <ErrorState message="We couldn't load destinations right now." onRetry={refetch} className="mb-8" />
+        )}
+
+        {!loading && !error && destinations.length === 0 && (
+          <EmptyState message="No destinations published yet — check back soon." />
+        )}
+
         <div className="space-y-24">
           {loading
             ? Array.from({ length: 3 }).map((_, index) => <DestinationSkeleton key={index} />)

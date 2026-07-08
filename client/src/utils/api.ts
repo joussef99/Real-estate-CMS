@@ -62,6 +62,17 @@ export async function apiJson<T>(path: string, init?: RequestInit): Promise<T> {
 	return parseJsonResponse<T>(response);
 }
 
+/**
+ * List endpoints in this app return either a bare array or `{ [key]: [...] }`
+ * depending on the route. Centralizes the coercion that was previously
+ * duplicated in nearly every list page's own local `normalize()` helper.
+ */
+export function normalizeListResponse<T>(data: any, key?: string): T[] {
+	if (Array.isArray(data)) return data;
+	if (key && data && Array.isArray(data[key])) return data[key];
+	return [];
+}
+
 function redirectToAdminLogin() {
 	if (typeof window === 'undefined') {
 		return;

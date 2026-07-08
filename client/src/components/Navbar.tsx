@@ -1,11 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Search, User, Building2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from './Button';
 
+// Mirrors the lazy() imports in App.tsx — calling the same dynamic import
+// again here doesn't re-fetch the chunk (the bundler dedupes it), so
+// prefetching on hover/focus just gets the JS loaded before the user clicks,
+// removing the lazy-load delay for the most common navigation path.
+const routePrefetchers: Record<string, () => Promise<unknown>> = {
+  '/': () => import('../pages/Home'),
+  '/projects': () => import('../pages/Projects'),
+  '/resale': () => import('../pages/Resale'),
+  '/developers': () => import('../pages/Developers'),
+  '/destinations': () => import('../pages/Destinations'),
+  '/blogs': () => import('../pages/Blogs'),
+  '/careers': () => import('../pages/Careers'),
+  '/contact': () => import('../pages/Contact'),
+  '/about': () => import('../pages/About'),
+};
+
 export const Navbar = () => {
+  const prefetchedRef = useRef(new Set<string>());
+  const prefetch = (path: string) => {
+    if (prefetchedRef.current.has(path)) return;
+    prefetchedRef.current.add(path);
+    routePrefetchers[path]?.();
+  };
+
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
@@ -15,6 +38,14 @@ export const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Hover-to-prefetch doesn't apply on touch devices, so prefetch every
+  // route the moment the mobile drawer opens — the user is about to browse.
+  useEffect(() => {
+    if (!isOpen) return;
+    Object.keys(routePrefetchers).forEach(prefetch);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const navLinks = [
     { name: 'Home', path: '/' },
@@ -28,10 +59,16 @@ export const Navbar = () => {
     { name: 'About', path: '/about' },
   ];
 
+  // The transparent, unscrolled nav style only has enough contrast over the Home
+  // page's dark hero video. Every other page has a plain light background at the
+  // top, so give the nav its solid dark background there regardless of scroll.
+  const isHome = location.pathname === '/';
+  const solid = scrolled || !isHome;
+
   return (
     <nav
       className={`fixed top-0 z-50 w-full transition-all duration-300  ${
-        scrolled ? 'border-b border-black/25 bg-slate-950/70 py-4 shadow-lg backdrop-blur-md' : 'bg-transparent py-6'
+        solid ? 'border-b border-black/25 bg-slate-950/70 py-4 shadow-lg backdrop-blur-md' : 'bg-transparent py-6'
       }`}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6">
@@ -48,14 +85,16 @@ export const Navbar = () => {
             <Link
               key={link.name}
               to={link.path}
-              className={`text-sm font-medium transition-colors hover:text-slate-950 ${
-                location.pathname === link.path ? 'text-slate-950' : 'text-slate-300'
+              onMouseEnter={() => prefetch(link.path)}
+              onFocus={() => prefetch(link.path)}
+              className={`text-sm font-medium transition-colors hover:text-white ${
+                location.pathname === link.path ? 'text-white' : 'text-slate-300'
               }`}
             >
               {link.name}
             </Link>
           ))}
-          <button className="text-slate-500 hover:text-slate-950" aria-label="Search projects">
+          <button className="text-slate-300 hover:text-white" aria-label="Search projects">
             <Link to="/projects" aria-label="Explore projects">
               <Search className="h-5 w-5" />
             </Link>

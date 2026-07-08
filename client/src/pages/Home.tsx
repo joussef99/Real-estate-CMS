@@ -1,5 +1,5 @@
-import { apiJson } from '../utils/api';
-import { useEffect, useMemo, useState } from 'react';
+import { normalizeListResponse } from '../utils/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight, Building2, ChevronDown, MapPin, Search, Tag } from 'lucide-react';
@@ -8,6 +8,7 @@ import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { Blog, Destination, Developer, Project, ResaleListing } from '../types';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { useApiData } from '../hooks/useApiData';
 
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
 
@@ -17,14 +18,6 @@ const HERO_POSTER_URL = '/livin-copy.png';
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 export default function Home() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
-  const [destinations, setDestinations] = useState<Destination[]>([]);
-  const [developers, setDevelopers] = useState<Developer[]>([]);
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [resaleListings, setResaleListings] = useState<ResaleListing[]>([]);
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
-
   const [locationQuery, setLocationQuery] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [priceRange, setPriceRange] = useState('');
@@ -34,49 +27,32 @@ export default function Home() {
 
   const navigate = useNavigate();
 
-  const normalize = <T,>(data: any, key?: string): T[] => {
-    if (Array.isArray(data)) return data;
-    if (key && data && Array.isArray(data[key])) return data[key];
-    if (data && Array.isArray(data.projects)) return data.projects;
-    if (data && Array.isArray(data.destinations)) return data.destinations;
-    if (data && Array.isArray(data.developers)) return data.developers;
-    if (data && Array.isArray(data.blogs)) return data.blogs;
-    return [];
-  };
+  // Home is an aggregate of independent optional sections — a failed fetch
+  // for one section just quietly renders that section empty rather than
+  // blocking the whole page with an error banner. Each call is still cached
+  // via useApiData, so revisiting Home in the same session renders instantly.
+  const normalizeProjects = useCallback((raw: any) => normalizeListResponse<Project>(raw, 'projects'), []);
+  const normalizeDestinations = useCallback((raw: any) => normalizeListResponse<Destination>(raw, 'destinations'), []);
+  const normalizeDevelopers = useCallback((raw: any) => normalizeListResponse<Developer>(raw, 'developers'), []);
+  const normalizeBlogs = useCallback((raw: any) => normalizeListResponse<Blog>(raw, 'blogs'), []);
+  const normalizeResale = useCallback((raw: any) => (Array.isArray(raw?.listings) ? raw.listings : []) as ResaleListing[], []);
+  const normalizePropertyTypes = useCallback((raw: any) => (Array.isArray(raw) ? raw.map((pt: { name: string }) => pt.name) : []) as string[], []);
 
-  useEffect(() => {
-    apiJson<any>(`/api/projects?limit=6`)
-      .then((data) => setProjects(normalize<Project>(data, 'projects')))
-      .catch(() => setProjects([]));
+  const { data: projectsData } = useApiData<Project[]>('/api/projects?limit=6', normalizeProjects);
+  const { data: featuredProjectsData } = useApiData<Project[]>('/api/projects/featured?limit=6', normalizeProjects);
+  const { data: destinationsData } = useApiData<Destination[]>('/api/destinations?limit=6&page=1', normalizeDestinations);
+  const { data: developersData } = useApiData<Developer[]>('/api/developers?limit=10&page=1', normalizeDevelopers);
+  const { data: blogsData } = useApiData<Blog[]>('/api/blogs?limit=3', normalizeBlogs);
+  const { data: resaleListingsData } = useApiData<ResaleListing[]>('/api/resale/listings?limit=3', normalizeResale);
+  const { data: propertyTypesData } = useApiData<string[]>('/api/property-types', normalizePropertyTypes);
 
-    apiJson<any>(`/api/projects/featured?limit=6`)
-      .then((data) => setFeaturedProjects(normalize<Project>(data, 'projects')))
-      .catch(() => setFeaturedProjects([]));
-
-    apiJson<any>(`/api/destinations?limit=6&page=1`)
-      .then((data) => setDestinations(normalize<Destination>(data, 'destinations')))
-      .catch(() => setDestinations([]));
-
-    apiJson<any>(`/api/developers?limit=10&page=1`)
-      .then((data) => {
-        setDevelopers(Array.isArray(data) ? data : data?.developers || []);
-      })
-      .catch(() => setDevelopers([]));
-
-    apiJson<any>(`/api/blogs?limit=3`)
-      .then((data) => setBlogs(normalize<Blog>(data, 'blogs')))
-      .catch(() => setBlogs([]));
-
-    apiJson<any>(`/api/resale/listings?limit=3`)
-      .then((data) => setResaleListings(Array.isArray(data?.listings) ? data.listings : []))
-      .catch(() => setResaleListings([]));
-
-    apiJson<{ name: string }[]>(`/api/property-types`)
-      .then((data: { name: string }[]) =>
-        setPropertyTypes(Array.isArray(data) ? data.map((pt) => pt.name) : [])
-      )
-      .catch(() => setPropertyTypes([]));
-  }, []);
+  const projects = projectsData ?? [];
+  const featuredProjects = featuredProjectsData ?? [];
+  const destinations = destinationsData ?? [];
+  const developers = developersData ?? [];
+  const blogs = blogsData ?? [];
+  const resaleListings = resaleListingsData ?? [];
+  const propertyTypes = propertyTypesData ?? [];
 
   useEffect(() => {
     const fallbackTimer = window.setTimeout(() => setHeroVideoReady(true), 1400);
@@ -130,13 +106,13 @@ export default function Home() {
             transition={{ duration: prefersReducedMotion ? 0.45 : 1.15, delay: heroVideoReady ? 0.28 : 0, ease: EASE_OUT }}
             className="max-w-xl sm:max-w-2xl md:max-w-3xl"
           >
-            <p className="text-[0.6rem] uppercase tracking-[0.32em] text-white/60 sm:text-[0.72rem] sm:tracking-[0.42em]">
+            {/* <p className="text-[0.6rem] uppercase tracking-[0.32em] text-white/60 sm:text-[0.72rem] sm:tracking-[0.42em]">
               Signature Living
             </p>
             <h1 className="mt-3 max-w-[8ch] text-4xl font-semibold leading-[0.96] tracking-[-0.045em] text-white/96 sm:mt-4 sm:max-w-none sm:text-6xl sm:tracking-[-0.05em] md:text-7xl lg:text-[5.5rem] lg:leading-[0.94]">
               WHERE LUXURY 
               <span className="mt-1.5 block text-white/86 sm:mt-2">BEGINS</span>
-            </h1>
+            </h1> */}
           </motion.div>
 
           <motion.div
@@ -169,7 +145,7 @@ export default function Home() {
             {heroMode === 'sell' ? (
               <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-6 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-8">
                 <p className="max-w-xl text-sm text-white/80 sm:text-base">
-                  Own a unit you'd like to sell? Submit your unit's details and our team will review, curate,
+                  Own a unit you'd like to sell? <br />Submit your unit's details and our team will review, curate,
                   and publish it as a resale listing for qualified buyers.
                 </p>
                 <motion.button
@@ -358,7 +334,7 @@ export default function Home() {
             </div>
 
             <div className="mt-8 text-center sm:mt-10">
-              <Button variant="secondary" className="w-full sm:w-auto" asChild>
+              <Button variant="secondary" className="w-full sm:w-auto" asChild >
                 <Link to="/sell">Own a Unit? List It for Resale</Link>
               </Button>
             </div>

@@ -5,6 +5,7 @@ import { transformImagesToFullUrls, transformGalleryToFullUrls } from "../utils/
 import { makeUniqueResaleSlug, normalizeResaleListingPayload, toNullableNonNegativeInt } from "../services/resaleService.ts";
 import { deleteImages, getPublicIdsFromMediaCollection, uploadImage } from "../services/mediaService.ts";
 import { notifyAdmin } from "../services/notificationService.ts";
+import { bedsMatchesFilter } from "../utils/bedsRange.ts";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_TEXT_LENGTH = 5000;
@@ -250,7 +251,6 @@ export async function getResaleListings(req: Request, res: Response) {
 
   const where: any = {
     status: "published",
-    ...(bedrooms ? { beds: { contains: bedrooms, mode: "insensitive" as const } } : {}),
     ...(keyword
       ? {
           OR: [
@@ -263,6 +263,10 @@ export async function getResaleListings(req: Request, res: Response) {
   };
 
   let listings = await prisma.resaleListing.findMany({ where, orderBy: { id: "desc" } });
+
+  if (bedrooms) {
+    listings = listings.filter((listing) => bedsMatchesFilter(listing.beds, bedrooms));
+  }
 
   if (price_min !== null || price_max !== null) {
     listings = listings.filter((listing) => {

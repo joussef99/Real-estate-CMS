@@ -1,37 +1,34 @@
-﻿import { apiJson } from '../utils/api';
-import { useState, useEffect } from 'react';
+﻿import { normalizeListResponse } from '../utils/api';
+import { useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Developer, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
+import { ErrorState, EmptyState } from '../components/ui/state-message';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { useApiData } from '../hooks/useApiData';
+
+interface DevelopersPage {
+  developers: Developer[];
+  totalPages: number;
+}
 
 export default function Developers() {
-  const [developers, setDevelopers] = useState<Developer[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    const normalize = <T,>(data: any, key?: string): T[] => {
-      if (Array.isArray(data)) return data;
-      if (key && data && Array.isArray(data[key])) return data[key];
-      if (data && Array.isArray(data.developers)) return data.developers;
-      return [];
-    };
+  const normalize = useCallback((raw: any): DevelopersPage => ({
+    developers: normalizeListResponse<Developer>(raw, 'developers'),
+    totalPages: Math.max(raw?.total_pages || 1, 1),
+  }), []);
 
-    apiJson<any>(`/api/developers?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`)
-      .then(data => {
-        setDevelopers(normalize<Developer>(data, 'developers'));
-        setCurrentPage(data?.current_page || 1);
-        setTotalPages(Math.max(data?.total_pages || 1, 1));
-      })
-      .catch(() => {
-        setDevelopers([]);
-        setTotalPages(1);
-      });
-  }, [currentPage]);
+  const { data, loading, error, refetch } = useApiData(
+    `/api/developers?limit=6&page=${currentPage}&include_project_previews=1&project_preview_limit=2`,
+    normalize,
+  );
+  const developers = data?.developers ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
   return (
     <div className="px-6 pb-24 pt-32">
@@ -42,8 +39,23 @@ export default function Developers() {
           description="Discover the visionary firms behind Egypt's most sought-after communities."
         />
 
+        {error && !loading && (
+          <ErrorState message="We couldn't load developers right now." onRetry={refetch} className="mb-8" />
+        )}
+
+        {!loading && !error && developers.length === 0 && (
+          <EmptyState message="No developers published yet — check back soon." />
+        )}
+
         <div className="scrollbar-hide -mx-2 mb-16 flex gap-5 overflow-x-auto px-2 pb-2">
-          {developers.map((dev, index) => (
+          {loading
+            ? Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="min-w-60 animate-pulse rounded-2xl border border-slate-100 bg-white p-5 shadow-lg">
+                  <div className="mb-4 h-20 rounded-xl bg-slate-200" />
+                  <div className="h-5 w-2/3 rounded bg-slate-200" />
+                </div>
+              ))
+            : developers.map((dev, index) => (
             <Link key={dev.id} to={`/developers/${dev.slug}`}>
               <motion.article
                 initial={{ opacity: 0, y: 16 }}

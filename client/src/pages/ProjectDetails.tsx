@@ -1,5 +1,5 @@
-﻿import { apiJson, apiFetch, parseJsonResponse } from '../utils/api';
-import React ,{ useState, useEffect } from 'react';
+﻿import { apiFetch, parseJsonResponse } from '../utils/api';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Project } from '../types';
 import { MapPin, Building2, CheckCircle2, Phone, Mail, ChevronLeft, ChevronRight, Bed, Maximize2 } from 'lucide-react';
@@ -7,31 +7,30 @@ import { Button } from '../components/Button';
 import { motion } from 'motion/react';
 import { formatEGP, normalizeDownPayment } from '../utils/downPayment';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { ErrorState } from '../components/ui/state-message';
+import { useApiData } from '../hooks/useApiData';
 
 export default function ProjectDetails() {
   const { slug } = useParams();
-  const [project, setProject] = useState<Project | null>(null);
-  const [projectAmenities, setProjectAmenities] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: project, loading, error, refetch } = useApiData<Project>(slug ? `/api/projects/${slug}` : null);
+
+  const normalizeAmenities = useCallback((raw: any) => (Array.isArray(raw) ? raw : []), []);
+  const { data: amenitiesData } = useApiData<any[]>(slug ? `/api/projects/${slug}/amenities` : null, normalizeAmenities);
+  const projectAmenities = amenitiesData ?? [];
+
   const [activeImage, setActiveImage] = useState<string>('');
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', message: '' });
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const notFound = Boolean(error) && error!.toLowerCase().includes('not found');
+  const genericError = error && !notFound;
+
   useEffect(() => {
-    apiJson<any>(`/api/projects/${slug}`)
-      .then(data => {
-        setProject(data);
-        setActiveImage(resolveImageUrl(data.main_image) || FALLBACK_IMAGE_URL);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-    
-    // Fetch project amenities
-    apiJson<any[]>(`/api/projects/${slug}/amenities`)
-      .then(data => setProjectAmenities(Array.isArray(data) ? data : []))
-      .catch(() => setProjectAmenities([]));
-  }, [slug]);
+    if (project) {
+      setActiveImage(resolveImageUrl(project.main_image) || FALLBACK_IMAGE_URL);
+    }
+  }, [project]);
 
   useEffect(() => {
     if (!project) return;
@@ -200,6 +199,16 @@ export default function ProjectDetails() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+  if (genericError) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-6">
+        <div className="w-full max-w-xl text-center">
+          <h1 className="mb-6 text-3xl font-bold text-slate-900">Unable to load this project</h1>
+          <ErrorState onRetry={refetch} />
         </div>
       </div>
     );

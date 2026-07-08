@@ -1,10 +1,12 @@
-﻿import { apiJson } from '../utils/api';
+﻿import { apiJson, normalizeListResponse } from '../utils/api';
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ProjectCard } from '../components/ProjectCard';
 import { ProjectCardSkeleton } from '../components/ui/project-card-skeleton';
+import { ErrorState } from '../components/ui/state-message';
+import { FilterSelect, BEDROOM_OPTIONS } from '../components/ui/filter-select';
 import { Destination, Developer, Project } from '../types';
-import { Search, Filter, X, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 const RESULTS_PER_PAGE = 12;
@@ -15,6 +17,7 @@ interface ProjectFilters {
   developer: string;
   destination: string;
   property_type: string;
+  bedrooms: string;
   price_min: string;
   price_max: string;
   minDownPayment: string;
@@ -28,12 +31,6 @@ const LEGACY_PRICE_RANGES: Record<string, { price_min: string; price_max: string
   'Over 30M EGP': { price_min: '30000000', price_max: '' },
 };
 
-const normalize = <T,>(data: any, key: string): T[] => {
-  if (Array.isArray(data)) return data;
-  if (data && Array.isArray(data[key])) return data[key];
-  return [];
-};
-
 const getInitialFilters = (searchParams: URLSearchParams): ProjectFilters => {
   const legacyPriceRange = LEGACY_PRICE_RANGES[searchParams.get('prices') || ''] || { price_min: '', price_max: '' };
 
@@ -42,6 +39,7 @@ const getInitialFilters = (searchParams: URLSearchParams): ProjectFilters => {
     developer: searchParams.get('developer') || '',
     destination: searchParams.get('destination') || '',
     property_type: searchParams.get('property_type') || searchParams.get('types')?.split(',').map((value) => value.trim()).find(Boolean) || '',
+    bedrooms: searchParams.get('bedrooms') || '',
     price_min: searchParams.get('price_min') || legacyPriceRange.price_min,
     price_max: searchParams.get('price_max') || legacyPriceRange.price_max,
     minDownPayment: searchParams.get('minDownPayment') || '',
@@ -64,11 +62,13 @@ export default function Projects() {
   const [filters, setFilters] = useState<ProjectFilters>(() => getInitialFilters(searchParams));
   const [debouncedFilters, setDebouncedFilters] = useState<ProjectFilters>(() => getInitialFilters(searchParams));
   const [showFilters, setShowFilters] = useState(searchParams.toString().length > 0);
+  const [retryToken, setRetryToken] = useState(0);
   const hasActiveQuery = Boolean(
     debouncedFilters.keyword.trim() ||
     debouncedFilters.developer ||
     debouncedFilters.destination ||
     debouncedFilters.property_type ||
+    debouncedFilters.bedrooms ||
     debouncedFilters.price_min ||
     debouncedFilters.price_max ||
     debouncedFilters.minDownPayment ||
@@ -80,6 +80,7 @@ export default function Projects() {
     filters.developer,
     filters.destination,
     filters.property_type,
+    filters.bedrooms,
     filters.price_min,
     filters.price_max,
     filters.minDownPayment,
@@ -88,6 +89,8 @@ export default function Projects() {
 
   const selectedDeveloper = developers.find((developer) => String(developer.id) === filters.developer);
   const selectedDestination = destinations.find((destination) => String(destination.id) === filters.destination);
+  const showSkeleton = loading && projects.length === 0;
+  const isRefetching = loading && projects.length > 0;
 
   const pageTitle = useMemo(() => {
     if (!filters.developer) return 'All Projects';
@@ -136,6 +139,17 @@ export default function Projects() {
         label: `Type: ${filters.property_type}`,
         clear: () => {
           setFilters((current) => ({ ...current, property_type: '' }));
+          setCurrentPage(1);
+        },
+      });
+    }
+
+    if (filters.bedrooms) {
+      chips.push({
+        key: 'bedrooms',
+        label: `Beds: ${filters.bedrooms}`,
+        clear: () => {
+          setFilters((current) => ({ ...current, bedrooms: '' }));
           setCurrentPage(1);
         },
       });
@@ -205,8 +219,8 @@ export default function Projects() {
       apiJson<any>(`/api/property-types`, { signal: controller.signal }),
     ])
       .then(([developersData, destinationsData, propertyTypesData]) => {
-        setDevelopers(normalize<Developer>(developersData, 'developers'));
-        setDestinations(normalize<Destination>(destinationsData, 'destinations'));
+        setDevelopers(normalizeListResponse<Developer>(developersData, 'developers'));
+        setDestinations(normalizeListResponse<Destination>(destinationsData, 'destinations'));
         setPropertyTypes((Array.isArray(propertyTypesData) ? propertyTypesData : []).map((item: { name: string }) => item.name).filter(Boolean));
       })
       .catch((err) => {
@@ -224,6 +238,7 @@ export default function Projects() {
     if (filters.developer) params.set('developer', filters.developer);
     if (filters.destination) params.set('destination', filters.destination);
     if (filters.property_type) params.set('property_type', filters.property_type);
+    if (filters.bedrooms) params.set('bedrooms', filters.bedrooms);
     if (filters.price_min) params.set('price_min', filters.price_min);
     if (filters.price_max) params.set('price_max', filters.price_max);
     if (filters.minDownPayment) params.set('minDownPayment', filters.minDownPayment);
@@ -243,6 +258,7 @@ export default function Projects() {
     if (debouncedFilters.developer) params.set('developer', debouncedFilters.developer);
     if (debouncedFilters.destination) params.set('destination', debouncedFilters.destination);
     if (debouncedFilters.property_type) params.set('property_type', debouncedFilters.property_type);
+    if (debouncedFilters.bedrooms) params.set('bedrooms', debouncedFilters.bedrooms);
     if (debouncedFilters.price_min) params.set('price_min', debouncedFilters.price_min);
     if (debouncedFilters.price_max) params.set('price_max', debouncedFilters.price_max);
     if (debouncedFilters.minDownPayment) params.set('minDownPayment', debouncedFilters.minDownPayment);
@@ -253,7 +269,7 @@ export default function Projects() {
 
     apiJson<any>(`/api/projects/search?${params.toString()}`, { signal: controller.signal })
       .then((data) => {
-        setProjects(normalize<Project>(data, 'projects'));
+        setProjects(normalizeListResponse<Project>(data, 'projects'));
         setCurrentPage(data?.current_page || 1);
         setTotalPages(Math.max(data?.total_pages || 1, 1));
         setTotalResults(Number(data?.total || 0));
@@ -272,7 +288,7 @@ export default function Projects() {
       });
 
     return () => controller.abort();
-  }, [currentPage, debouncedFilters]);
+  }, [currentPage, debouncedFilters, retryToken]);
 
   useEffect(() => {
     setCurrentPage(Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1));
@@ -289,6 +305,7 @@ export default function Projects() {
       developer: '',
       destination: '',
       property_type: '',
+      bedrooms: '',
       price_min: '',
       price_max: '',
       minDownPayment: '',
@@ -355,48 +372,38 @@ export default function Projects() {
                 exit={{ opacity: 0, height: 0 }}
                 className="overflow-hidden"
               >
-                <div className="grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-8 md:grid-cols-2 xl:grid-cols-7">
-                  <div>
-                    <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Developer</label>
-                    <select
-                      value={filters.developer}
-                      onChange={(e) => updateFilters({ developer: e.target.value })}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
-                    >
-                      <option value="">All developers</option>
-                      {developers.map((developer) => (
-                        <option key={developer.id} value={developer.id}>{developer.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-8 md:grid-cols-2 xl:grid-cols-4">
+                  <FilterSelect
+                    label="Developer"
+                    value={filters.developer}
+                    onChange={(value) => updateFilters({ developer: value })}
+                    placeholder="All developers"
+                    options={developers.map((developer) => ({ value: String(developer.id), label: developer.name }))}
+                  />
 
-                  <div>
-                    <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Destination</label>
-                    <select
-                      value={filters.destination}
-                      onChange={(e) => updateFilters({ destination: e.target.value })}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
-                    >
-                      <option value="">All destinations</option>
-                      {destinations.map((destination) => (
-                        <option key={destination.id} value={destination.id}>{destination.name}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <FilterSelect
+                    label="Destination"
+                    value={filters.destination}
+                    onChange={(value) => updateFilters({ destination: value })}
+                    placeholder="All destinations"
+                    options={destinations.map((destination) => ({ value: String(destination.id), label: destination.name }))}
+                  />
 
-                  <div>
-                    <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Property Type</label>
-                    <select
-                      value={filters.property_type}
-                      onChange={(e) => updateFilters({ property_type: e.target.value })}
-                      className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
-                    >
-                      <option value="">All property types</option>
-                      {propertyTypes.map((propertyType) => (
-                        <option key={propertyType} value={propertyType}>{propertyType}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <FilterSelect
+                    label="Property Type"
+                    value={filters.property_type}
+                    onChange={(value) => updateFilters({ property_type: value })}
+                    placeholder="All property types"
+                    options={propertyTypes.map((propertyType) => ({ value: propertyType, label: propertyType }))}
+                  />
+
+                  <FilterSelect
+                    label="Bedrooms"
+                    value={filters.bedrooms}
+                    onChange={(value) => updateFilters({ bedrooms: value })}
+                    placeholder="Any bedrooms"
+                    options={BEDROOM_OPTIONS}
+                  />
 
                   <div>
                     <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Minimum Price</label>
@@ -477,22 +484,25 @@ export default function Projects() {
           </AnimatePresence>
         </div>
 
-        <div className="mb-8 flex items-center justify-between text-sm text-zinc-500">
+        <div className="mb-8 flex items-center gap-2 text-sm text-zinc-500">
+          {isRefetching && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
           <p>{loading ? 'Updating results...' : `${totalResults.toLocaleString()} projects found`}</p>
           {hasActiveQuery && !loading && (
-            <p>Debounced live search is active</p>
+            <p>&middot; Debounced live search is active</p>
           )}
         </div>
 
         {error && (
-          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">
-            {error}
-          </div>
+          <ErrorState
+            message="We couldn't load projects right now."
+            onRetry={() => setRetryToken((token) => token + 1)}
+            className="mb-8"
+          />
         )}
 
         {/* Grid */}
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {loading
+        <div className={`grid gap-8 transition-opacity duration-200 md:grid-cols-2 lg:grid-cols-3 ${isRefetching ? 'opacity-40' : ''}`}>
+          {showSkeleton
             ? Array.from({ length: 6 }).map((_, index) => <ProjectCardSkeleton key={index} />)
             : projects.map(project => <ProjectCard key={project.id} project={project} />)}
         </div>

@@ -1,5 +1,4 @@
-﻿import { apiJson } from '../utils/api';
-import { useEffect, useState } from 'react';
+﻿import { useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { ArrowLeft, ExternalLink, MapPin } from 'lucide-react';
@@ -7,37 +6,31 @@ import { Destination, Project } from '../types';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
 import { ProjectCardSkeleton } from '../components/ui/project-card-skeleton';
+import { ErrorState } from '../components/ui/state-message';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { useApiData } from '../hooks/useApiData';
+
+interface DestinationProjectsData {
+  destination: Destination | null;
+  projects: Project[];
+}
 
 export default function DestinationProjects() {
   const { slug } = useParams<{ slug: string }>();
-  const [destination, setDestination] = useState<Destination | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!slug) return;
+  const normalize = useCallback((raw: any): DestinationProjectsData => ({
+    destination: raw?.destination || null,
+    projects: Array.isArray(raw?.projects) ? raw.projects : [],
+  }), []);
 
-    setLoading(true);
-    setNotFound(false);
-    setError(null);
-
-    apiJson<any>(`/api/destinations/${encodeURIComponent(slug)}/projects`)
-      .then((data) => {
-        setDestination(data?.destination || null);
-        setProjects(Array.isArray(data?.projects) ? data.projects : []);
-      })
-      .catch((err) => {
-        if (String(err?.message || '').toLowerCase().includes('not found')) {
-          setNotFound(true);
-          return;
-        }
-        setError(err?.message || 'Failed to load projects');
-      })
-      .finally(() => setLoading(false));
-  }, [slug]);
+  const { data, loading, error, refetch } = useApiData(
+    slug ? `/api/destinations/${encodeURIComponent(slug)}/projects` : null,
+    normalize,
+  );
+  const destination = data?.destination ?? null;
+  const projects = data?.projects ?? [];
+  const notFound = Boolean(error) && error!.toLowerCase().includes('not found');
+  const genericError = error && !notFound;
 
   if (loading) {
     return (
@@ -55,11 +48,13 @@ export default function DestinationProjects() {
     );
   }
 
-  if (notFound || !destination) {
+  if (genericError) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 pt-32 text-center">
-        <h1 className="text-4xl font-bold text-slate-900">Destination Not Found</h1>
-        <p className="text-slate-500">The destination you're looking for doesn't exist or may have been removed.</p>
+        <h1 className="text-4xl font-bold text-slate-900">Unable to load destination projects</h1>
+        <div className="w-full max-w-xl">
+          <ErrorState onRetry={refetch} />
+        </div>
         <Link
           to="/destinations"
           className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-700"
@@ -71,11 +66,11 @@ export default function DestinationProjects() {
     );
   }
 
-  if (error) {
+  if (notFound || !destination) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 pt-32 text-center">
-        <h1 className="text-4xl font-bold text-slate-900">Unable to load destination projects</h1>
-        <p className="max-w-xl text-slate-500">{error}</p>
+        <h1 className="text-4xl font-bold text-slate-900">Destination Not Found</h1>
+        <p className="text-slate-500">The destination you're looking for doesn't exist or may have been removed.</p>
         <Link
           to="/destinations"
           className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-700"

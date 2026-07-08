@@ -1,9 +1,11 @@
 import { apiJson } from '../utils/api';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ResaleListing } from '../types';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
-import { Search, MapPin, Bed, Maximize2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ErrorState } from '../components/ui/state-message';
+import { FilterSelect, BEDROOM_OPTIONS } from '../components/ui/filter-select';
+import { Search, MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 
 const RESULTS_PER_PAGE = 12;
 const FILTER_DEBOUNCE_MS = 450;
@@ -33,6 +35,32 @@ export default function Resale() {
   const [totalResults, setTotalResults] = useState(0);
   const [filters, setFilters] = useState<ResaleFilters>(() => getInitialFilters(searchParams));
   const [debouncedFilters, setDebouncedFilters] = useState<ResaleFilters>(() => getInitialFilters(searchParams));
+  const [retryToken, setRetryToken] = useState(0);
+
+  const showSkeleton = loading && listings.length === 0;
+  const isRefetching = loading && listings.length > 0;
+
+  const activeFiltersCount = [filters.keyword.trim(), filters.bedrooms, filters.price_min, filters.price_max].filter(Boolean).length;
+
+  const activeChips = useMemo(() => {
+    const chips: Array<{ key: string; label: string; clear: () => void }> = [];
+
+    if (filters.keyword.trim()) {
+      chips.push({ key: 'keyword', label: `Keyword: ${filters.keyword.trim()}`, clear: () => updateFilters({ keyword: '' }) });
+    }
+    if (filters.bedrooms) {
+      chips.push({ key: 'bedrooms', label: `Beds: ${filters.bedrooms}`, clear: () => updateFilters({ bedrooms: '' }) });
+    }
+    if (filters.price_min) {
+      chips.push({ key: 'price_min', label: `Min: ${Number(filters.price_min).toLocaleString()}`, clear: () => updateFilters({ price_min: '' }) });
+    }
+    if (filters.price_max) {
+      chips.push({ key: 'price_max', label: `Max: ${Number(filters.price_max).toLocaleString()}`, clear: () => updateFilters({ price_max: '' }) });
+    }
+
+    return chips;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedFilters(filters), FILTER_DEBOUNCE_MS);
@@ -81,7 +109,7 @@ export default function Resale() {
       });
 
     return () => controller.abort();
-  }, [currentPage, debouncedFilters]);
+  }, [currentPage, debouncedFilters, retryToken]);
 
   useEffect(() => {
     setCurrentPage(Number.isNaN(pageParam) ? 1 : Math.max(pageParam, 1));
@@ -89,6 +117,11 @@ export default function Resale() {
 
   const updateFilters = (partial: Partial<ResaleFilters>) => {
     setFilters((current) => ({ ...current, ...partial }));
+    setCurrentPage(1);
+  };
+
+  const clearFilters = () => {
+    setFilters({ keyword: '', bedrooms: '', price_min: '', price_max: '' });
     setCurrentPage(1);
   };
 
@@ -107,50 +140,91 @@ export default function Resale() {
           </Link>
         </div>
 
-        <div className="mb-12 grid gap-4 rounded-4xl border border-zinc-100 bg-white p-4 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)] md:grid-cols-4">
-          <div className="relative md:col-span-2">
-            <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
-            <input
-              type="text"
-              placeholder="Search by location or unit type"
-              value={filters.keyword}
-              onChange={(e) => updateFilters({ keyword: e.target.value })}
-              className="w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 py-4 pl-14 pr-6 text-base shadow-inner outline-none transition-all focus:border-black focus:bg-white"
-            />
+        <div className="mb-12 rounded-4xl border border-zinc-100 bg-white p-4 shadow-[0_24px_70px_-48px_rgba(15,23,42,0.55)]">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="relative flex-1">
+              <Search className="absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
+              <input
+                type="text"
+                placeholder="Search by location or unit type"
+                value={filters.keyword}
+                onChange={(e) => updateFilters({ keyword: e.target.value })}
+                className="w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 py-4 pl-14 pr-6 text-base shadow-inner outline-none transition-all focus:border-black focus:bg-white"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={activeFiltersCount === 0}
+              className="inline-flex items-center justify-center rounded-2xl border border-zinc-200 px-5 py-4 text-sm font-medium text-zinc-700 transition-all hover:border-zinc-400 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Clear Filters
+            </button>
           </div>
-          <input
-            type="text"
-            placeholder="Beds (e.g. 2)"
-            value={filters.bedrooms}
-            onChange={(e) => updateFilters({ bedrooms: e.target.value })}
-            className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <input
-              type="number"
-              min="0"
-              placeholder="Min price"
-              value={filters.price_min}
-              onChange={(e) => updateFilters({ price_min: e.target.value })}
-              className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
+
+          <div className="mt-4 grid gap-6 rounded-3xl border border-zinc-100 bg-zinc-50/60 p-6 sm:grid-cols-3">
+            <FilterSelect
+              label="Bedrooms"
+              value={filters.bedrooms}
+              onChange={(value) => updateFilters({ bedrooms: value })}
+              placeholder="Any bedrooms"
+              options={BEDROOM_OPTIONS}
             />
-            <input
-              type="number"
-              min="0"
-              placeholder="Max price"
-              value={filters.price_max}
-              onChange={(e) => updateFilters({ price_max: e.target.value })}
-              className="rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
-            />
+            <div>
+              <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Minimum Price</label>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="e.g. 3000000"
+                value={filters.price_min}
+                onChange={(e) => updateFilters({ price_min: e.target.value })}
+                className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
+              />
+            </div>
+            <div>
+              <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-zinc-400">Maximum Price</label>
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                placeholder="e.g. 15000000"
+                value={filters.price_max}
+                onChange={(e) => updateFilters({ price_max: e.target.value })}
+                className="w-full rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-800 outline-none transition-colors focus:border-black"
+              />
+            </div>
           </div>
+
+          {activeChips.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {activeChips.map((chip) => (
+                <span key={chip.key} className="flex items-center gap-1 rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-600">
+                  {chip.label}
+                  <button type="button" onClick={chip.clear}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         {error && (
-          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700">{error}</div>
+          <ErrorState
+            message="We couldn't load resale listings right now."
+            onRetry={() => setRetryToken((token) => token + 1)}
+            className="mb-8"
+          />
         )}
 
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {loading
+        <div className="mb-6 flex items-center gap-2 text-sm text-zinc-500">
+          {isRefetching && <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />}
+          <p>{loading ? 'Updating results...' : `${totalResults.toLocaleString()} resale units found`}</p>
+        </div>
+
+        <div className={`grid gap-8 transition-opacity duration-200 md:grid-cols-2 lg:grid-cols-3 ${isRefetching ? 'opacity-40' : ''}`}>
+          {showSkeleton
             ? Array.from({ length: 6 }).map((_, index) => (
                 <div key={index} className="overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-lg">
                   <div className="aspect-16/11 animate-pulse bg-zinc-200" />

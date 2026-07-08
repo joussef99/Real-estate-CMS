@@ -1,11 +1,13 @@
-﻿import { API_BASE } from '../utils/api';
-import { useEffect, useMemo, useState } from 'react';
+﻿import { normalizeListResponse } from '../utils/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { ArrowLeft, ArrowUpRight, Calendar, Copy, Facebook, Instagram, Linkedin, Twitter, User } from 'lucide-react';
 import { Blog } from '../types';
 import { Button } from '../components/Button';
 import { GlassPanel } from '../components/ui/glass-panel';
+import { ErrorState } from '../components/ui/state-message';
+import { useApiData } from '../hooks/useApiData';
 
 const authorBios: Record<string, string> = {
   'Editorial Team': 'A team of analysts and storytellers covering market movements and premium real estate opportunities.',
@@ -18,11 +20,13 @@ const sectionReveal = {
 
 export default function BlogDetails() {
   const { slug } = useParams();
-  const [blog, setBlog] = useState<Blog | null>(null);
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const { data: blog, loading, error, refetch } = useApiData<Blog>(slug ? `/api/blogs/${slug}` : null);
+
+  const normalizeBlogs = useCallback((raw: any) => normalizeListResponse<Blog>(raw, 'blogs'), []);
+  const { data: relatedBlogsData } = useApiData<Blog[]>('/api/blogs?limit=4&page=1', normalizeBlogs);
+  const blogs = relatedBlogsData ?? [];
 
   const { scrollYProgress } = useScroll();
   const progressScale = useSpring(scrollYProgress, {
@@ -30,27 +34,6 @@ export default function BlogDetails() {
     damping: 28,
     mass: 0.2,
   });
-
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-
-    Promise.all([
-      fetch(`${API_BASE}/api/blogs/${slug}`).then((res) => {
-        if (!res.ok) throw new Error('Blog not found');
-        return res.json();
-      }),
-      fetch(`${API_BASE}/api/blogs?limit=4&page=1`).then((res) => res.json()),
-    ])
-      .then(([blogData, blogsData]) => {
-        setBlog(blogData);
-        setBlogs(Array.isArray(blogsData) ? blogsData : blogsData?.blogs || []);
-      })
-      .catch((err) => {
-        setError(err?.message || 'Failed to load blog');
-      })
-      .finally(() => setLoading(false));
-  }, [slug]);
 
   useEffect(() => {
     if (!blog) return;
@@ -155,12 +138,23 @@ export default function BlogDetails() {
     );
   }
 
-  if (error || !blog) {
+  if (error && !error.toLowerCase().includes('not found')) {
+    return (
+      <div className="px-6 pb-24 pt-32">
+        <div className="mx-auto max-w-xl text-center">
+          <h1 className="mb-6 text-3xl font-bold text-slate-900">Unable to load this article</h1>
+          <ErrorState onRetry={refetch} />
+        </div>
+      </div>
+    );
+  }
+
+  if (!blog) {
     return (
       <div className="px-6 pb-24 pt-32">
         <div className="mx-auto max-w-3xl text-center">
           <h1 className="mb-4 text-3xl font-bold text-slate-900">Blog Not Found</h1>
-          <p className="mb-8 text-slate-500">{error || 'The blog you are looking for could not be found.'}</p>
+          <p className="mb-8 text-slate-500">The blog you are looking for could not be found.</p>
           <Button asChild>
             <Link to="/blogs" className="inline-flex items-center gap-2">
               <ArrowLeft className="h-4 w-4" />
