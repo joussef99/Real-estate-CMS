@@ -12,8 +12,10 @@ import { useApiData } from '../hooks/useApiData';
 
 const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
 
-const HERO_VIDEO_URL = '/hero-video.mp4';
+const HERO_VIDEO_URL = '/livin-bk.mp4';
+const HERO_VIDEO_MOBILE_URL = '/livin-hero-mobile.mp4';
 const HERO_POSTER_URL = '/livin-copy.png';
+const HERO_MOBILE_QUERY = '(max-width: 767px)';
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
@@ -21,8 +23,22 @@ export default function Home() {
   const [locationQuery, setLocationQuery] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [priceRange, setPriceRange] = useState('');
-  const [heroVideoReady, setHeroVideoReady] = useState(false);
   const [heroMode, setHeroMode] = useState<'buy' | 'sell'>('buy');
+  // Only one hero video is mounted at a time (matching the viewport at first
+  // render), so most sessions never pay to download both files. If the
+  // viewport crosses the mobile breakpoint (e.g. a phone rotating, or a
+  // desktop window being resized), `crossfadeReady` flips true and the other
+  // video mounts alongside it so the two can crossfade instead of hard-cutting.
+  // Readiness is tracked per video (not shared) so a freshly-mounted video
+  // fades in from its own dim/loading state instead of snapping straight to
+  // full opacity just because the other video had already finished loading.
+  const [isMobileHero, setIsMobileHero] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia(HERO_MOBILE_QUERY).matches,
+  );
+  const [crossfadeReady, setCrossfadeReady] = useState(false);
+  const [desktopVideoReady, setDesktopVideoReady] = useState(false);
+  const [mobileVideoReady, setMobileVideoReady] = useState(false);
+  const heroVideoReady = desktopVideoReady || mobileVideoReady;
   const prefersReducedMotion = useReducedMotion();
 
   const navigate = useNavigate();
@@ -54,9 +70,33 @@ export default function Home() {
   const resaleListings = resaleListingsData ?? [];
   const propertyTypes = propertyTypesData ?? [];
 
+  const desktopVideoMounted = !isMobileHero || crossfadeReady;
+  const mobileVideoMounted = isMobileHero || crossfadeReady;
+
+  // Each video gets its own 1400ms "reveal anyway" fallback, started from
+  // when it actually mounts — not a single timer fired once on page load,
+  // which would mark a video mounted minutes later (after a resize) ready
+  // before it had even begun loading.
   useEffect(() => {
-    const fallbackTimer = window.setTimeout(() => setHeroVideoReady(true), 1400);
+    if (!desktopVideoMounted) return;
+    const fallbackTimer = window.setTimeout(() => setDesktopVideoReady(true), 1400);
     return () => window.clearTimeout(fallbackTimer);
+  }, [desktopVideoMounted]);
+
+  useEffect(() => {
+    if (!mobileVideoMounted) return;
+    const fallbackTimer = window.setTimeout(() => setMobileVideoReady(true), 1400);
+    return () => window.clearTimeout(fallbackTimer);
+  }, [mobileVideoMounted]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(HERO_MOBILE_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobileHero(event.matches);
+      setCrossfadeReady(true);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
   }, []);
 
   const latestProjects = useMemo(() => projects.slice(0, 3), [projects]);
@@ -79,20 +119,38 @@ export default function Home() {
       {/* ══════════════════════ CINEMATIC HERO ══════════════════════ */}
       <section className="relative min-h-dvh overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
-          <video
-            className="h-full w-full object-cover transition-opacity duration-1000 ease-out"
-            style={{ opacity: heroVideoReady ? 1 : 0.68 }}
-            autoPlay
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            poster={HERO_POSTER_URL}
-            onCanPlay={() => setHeroVideoReady(true)}
-            onLoadedData={() => setHeroVideoReady(true)}
-          >
-            <source src={HERO_VIDEO_URL} type="video/mp4" />
-          </video>
+          {desktopVideoMounted && (
+            <video
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
+              style={{ opacity: isMobileHero ? 0 : (desktopVideoReady ? 1 : 0.68) }}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={HERO_POSTER_URL}
+              onCanPlay={() => setDesktopVideoReady(true)}
+              onLoadedData={() => setDesktopVideoReady(true)}
+            >
+              <source src={HERO_VIDEO_URL} type="video/mp4" />
+            </video>
+          )}
+          {mobileVideoMounted && (
+            <video
+              className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
+              style={{ opacity: isMobileHero ? (mobileVideoReady ? 1 : 0.68) : 0 }}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              poster={HERO_POSTER_URL}
+              onCanPlay={() => setMobileVideoReady(true)}
+              onLoadedData={() => setMobileVideoReady(true)}
+            >
+              <source src={HERO_VIDEO_MOBILE_URL} type="video/mp4" />
+            </video>
+          )}
         </div>
 
         <div className="absolute inset-0 bg-linear-to-r from-slate-950/34 via-slate-950/12 to-slate-950/8 sm:from-slate-950/24 sm:via-transparent sm:to-slate-950/10" />
