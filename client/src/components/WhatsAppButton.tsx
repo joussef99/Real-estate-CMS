@@ -18,9 +18,9 @@ export function FloatingWhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Chat with us on WhatsApp"
-      className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-[0_10px_30px_rgba(37,211,102,0.45)] transition-transform duration-300 hover:scale-110 sm:bottom-7 sm:right-7"
+      className="fixed bottom-5 right-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 text-white shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-transform duration-300 hover:scale-110 sm:bottom-7 sm:right-7"
     >
-      <span className="absolute inset-0 animate-ping rounded-full bg-[#25D366] opacity-40" />
+      <span className="absolute inset-0 animate-ping rounded-full bg-slate-900 opacity-40" />
       <WhatsAppIcon className="relative h-7 w-7" />
     </a>
   );

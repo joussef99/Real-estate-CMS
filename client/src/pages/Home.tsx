@@ -1,35 +1,54 @@
-import { apiJson, normalizeListResponse } from '../utils/api';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Building2, ChevronDown, Landmark, MapPin, Search, Tag } from 'lucide-react';
-import { Button } from '../components/Button';
-import { ProjectCard } from '../components/ProjectCard';
-import { SectionHeading } from '../components/ui/section-heading';
-import { WHATSAPP_URL, WhatsAppIcon } from '../components/WhatsAppButton';
-import { Blog, Destination, Developer, Project, ResaleListing } from '../types';
-import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
-import { useApiData } from '../hooks/useApiData';
+import { apiJson, normalizeListResponse } from "../utils/api";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type React from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion, useReducedMotion } from "framer-motion";
+import {
+  ArrowRight,
+  ArrowUpRight,
+  Building2,
+  ChevronDown,
+  Landmark,
+  MapPin,
+  Search,
+  Tag,
+} from "lucide-react";
+import { Button } from "../components/Button";
+import { ProjectCard } from "../components/ProjectCard";
+import { SectionHeading } from "../components/ui/section-heading";
+import { WHATSAPP_URL, WhatsAppIcon } from "../components/WhatsAppButton";
+import { Blog, Destination, Developer, Project, ResaleListing } from "../types";
+import {
+  FALLBACK_IMAGE_URL,
+  cloudinaryOptimizedUrl,
+  resolveImageUrl,
+  withFallbackImage,
+} from "../utils/image";
+import { useApiData } from "../hooks/useApiData";
 
-const PRICE_RANGES = ['Under 5M EGP', '5M - 15M EGP', '15M - 30M EGP', 'Over 30M EGP'];
+const PRICE_RANGES = [
+  "Under 5M EGP",
+  "5M - 15M EGP",
+  "15M - 30M EGP",
+  "Over 30M EGP",
+];
 
-const HERO_VIDEO_URL = '/livin-bk.mp4';
-const HERO_VIDEO_MOBILE_URL = '/livin-hero-mobile.mp4';
-const HERO_POSTER_URL = '/livin-copy.png';
-const HERO_MOBILE_QUERY = '(max-width: 767px)';
+const HERO_VIDEO_URL = "/livin-bk.mp4";
+const HERO_VIDEO_MOBILE_URL = "/livin-hero-mobile.mp4";
+const HERO_POSTER_URL = "/livin-copy.png";
+const HERO_MOBILE_QUERY = "(max-width: 767px)";
 
 const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 export default function Home() {
-  const [locationQuery, setLocationQuery] = useState('');
-  const [developerId, setDeveloperId] = useState('');
-  const [propertyType, setPropertyType] = useState('');
-  const [priceRange, setPriceRange] = useState('');
-  const [heroMode, setHeroMode] = useState<'buy' | 'sell'>('buy');
-  const [leadName, setLeadName] = useState('');
-  const [leadPhone, setLeadPhone] = useState('');
-  const [leadEmail, setLeadEmail] = useState('');
+  const [locationQuery, setLocationQuery] = useState("");
+  const [developerId, setDeveloperId] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [priceRange, setPriceRange] = useState("");
+  const [heroMode, setHeroMode] = useState<"buy" | "sell">("buy");
+  const [leadName, setLeadName] = useState("");
+  const [leadPhone, setLeadPhone] = useState("");
+  const [leadEmail, setLeadEmail] = useState("");
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const [leadSubmitted, setLeadSubmitted] = useState(false);
   const [leadError, setLeadError] = useState<string | null>(null);
@@ -42,7 +61,9 @@ export default function Home() {
   // fades in from its own dim/loading state instead of snapping straight to
   // full opacity just because the other video had already finished loading.
   const [isMobileHero, setIsMobileHero] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia(HERO_MOBILE_QUERY).matches,
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia(HERO_MOBILE_QUERY).matches,
   );
   const [crossfadeReady, setCrossfadeReady] = useState(false);
   const [desktopVideoReady, setDesktopVideoReady] = useState(false);
@@ -56,20 +77,63 @@ export default function Home() {
   // for one section just quietly renders that section empty rather than
   // blocking the whole page with an error banner. Each call is still cached
   // via useApiData, so revisiting Home in the same session renders instantly.
-  const normalizeProjects = useCallback((raw: any) => normalizeListResponse<Project>(raw, 'projects'), []);
-  const normalizeDestinations = useCallback((raw: any) => normalizeListResponse<Destination>(raw, 'destinations'), []);
-  const normalizeDevelopers = useCallback((raw: any) => normalizeListResponse<Developer>(raw, 'developers'), []);
-  const normalizeBlogs = useCallback((raw: any) => normalizeListResponse<Blog>(raw, 'blogs'), []);
-  const normalizeResale = useCallback((raw: any) => (Array.isArray(raw?.listings) ? raw.listings : []) as ResaleListing[], []);
-  const normalizePropertyTypes = useCallback((raw: any) => (Array.isArray(raw) ? raw.map((pt: { name: string }) => pt.name) : []) as string[], []);
+  const normalizeProjects = useCallback(
+    (raw: any) => normalizeListResponse<Project>(raw, "projects"),
+    [],
+  );
+  const normalizeDestinations = useCallback(
+    (raw: any) => normalizeListResponse<Destination>(raw, "destinations"),
+    [],
+  );
+  const normalizeDevelopers = useCallback(
+    (raw: any) => normalizeListResponse<Developer>(raw, "developers"),
+    [],
+  );
+  const normalizeBlogs = useCallback(
+    (raw: any) => normalizeListResponse<Blog>(raw, "blogs"),
+    [],
+  );
+  const normalizeResale = useCallback(
+    (raw: any) =>
+      (Array.isArray(raw?.listings) ? raw.listings : []) as ResaleListing[],
+    [],
+  );
+  const normalizePropertyTypes = useCallback(
+    (raw: any) =>
+      (Array.isArray(raw)
+        ? raw.map((pt: { name: string }) => pt.name)
+        : []) as string[],
+    [],
+  );
 
-  const { data: projectsData } = useApiData<Project[]>('/api/projects?limit=6', normalizeProjects);
-  const { data: featuredProjectsData } = useApiData<Project[]>('/api/projects/featured?limit=6', normalizeProjects);
-  const { data: destinationsData } = useApiData<Destination[]>('/api/destinations?limit=6&page=1', normalizeDestinations);
-  const { data: developersData } = useApiData<Developer[]>('/api/developers?limit=10&page=1', normalizeDevelopers);
-  const { data: blogsData } = useApiData<Blog[]>('/api/blogs?limit=3', normalizeBlogs);
-  const { data: resaleListingsData } = useApiData<ResaleListing[]>('/api/resale/listings?limit=3', normalizeResale);
-  const { data: propertyTypesData } = useApiData<string[]>('/api/property-types', normalizePropertyTypes);
+  const { data: projectsData } = useApiData<Project[]>(
+    "/api/projects?limit=6",
+    normalizeProjects,
+  );
+  const { data: featuredProjectsData } = useApiData<Project[]>(
+    "/api/projects/featured?limit=6",
+    normalizeProjects,
+  );
+  const { data: destinationsData } = useApiData<Destination[]>(
+    "/api/destinations?limit=6&page=1",
+    normalizeDestinations,
+  );
+  const { data: developersData } = useApiData<Developer[]>(
+    "/api/developers?limit=10&page=1",
+    normalizeDevelopers,
+  );
+  const { data: blogsData } = useApiData<Blog[]>(
+    "/api/blogs?limit=3",
+    normalizeBlogs,
+  );
+  const { data: resaleListingsData } = useApiData<ResaleListing[]>(
+    "/api/resale/listings?limit=3",
+    normalizeResale,
+  );
+  const { data: propertyTypesData } = useApiData<string[]>(
+    "/api/property-types",
+    normalizePropertyTypes,
+  );
 
   const projects = projectsData ?? [];
   const featuredProjects = featuredProjectsData ?? [];
@@ -88,13 +152,19 @@ export default function Home() {
   // before it had even begun loading.
   useEffect(() => {
     if (!desktopVideoMounted) return;
-    const fallbackTimer = window.setTimeout(() => setDesktopVideoReady(true), 1400);
+    const fallbackTimer = window.setTimeout(
+      () => setDesktopVideoReady(true),
+      1400,
+    );
     return () => window.clearTimeout(fallbackTimer);
   }, [desktopVideoMounted]);
 
   useEffect(() => {
     if (!mobileVideoMounted) return;
-    const fallbackTimer = window.setTimeout(() => setMobileVideoReady(true), 1400);
+    const fallbackTimer = window.setTimeout(
+      () => setMobileVideoReady(true),
+      1400,
+    );
     return () => window.clearTimeout(fallbackTimer);
   }, [mobileVideoMounted]);
 
@@ -104,8 +174,8 @@ export default function Home() {
       setIsMobileHero(event.matches);
       setCrossfadeReady(true);
     };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
   const latestProjects = useMemo(() => projects.slice(0, 3), [projects]);
@@ -116,10 +186,10 @@ export default function Home() {
 
   const handleSearch = () => {
     const params = new URLSearchParams();
-    if (locationQuery.trim()) params.set('q', locationQuery.trim());
-    if (developerId) params.set('developer', developerId);
-    if (propertyType) params.set('types', propertyType);
-    if (priceRange) params.set('prices', priceRange);
+    if (locationQuery.trim()) params.set("q", locationQuery.trim());
+    if (developerId) params.set("developer", developerId);
+    if (propertyType) params.set("types", propertyType);
+    if (priceRange) params.set("prices", priceRange);
     navigate(`/projects?${params.toString()}`);
   };
 
@@ -129,22 +199,26 @@ export default function Home() {
     setLeadError(null);
 
     try {
-      await apiJson('/api/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await apiJson("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: leadName.trim(),
           email: leadEmail.trim(),
           phone: leadPhone.trim(),
-          message: 'Requested a callback from the Home page.',
+          message: "Requested a callback from the Home page.",
         }),
       });
       setLeadSubmitted(true);
-      setLeadName('');
-      setLeadPhone('');
-      setLeadEmail('');
+      setLeadName("");
+      setLeadPhone("");
+      setLeadEmail("");
     } catch (err) {
-      setLeadError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setLeadError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again.",
+      );
     } finally {
       setLeadSubmitting(false);
     }
@@ -152,14 +226,15 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh overflow-x-hidden">
-
       {/* ══════════════════════ CINEMATIC HERO ══════════════════════ */}
       <section className="relative min-h-dvh overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
           {desktopVideoMounted && (
             <video
               className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
-              style={{ opacity: isMobileHero ? 0 : (desktopVideoReady ? 1 : 0.68) }}
+              style={{
+                opacity: isMobileHero ? 0 : desktopVideoReady ? 1 : 0.68,
+              }}
               autoPlay
               muted
               loop
@@ -175,7 +250,9 @@ export default function Home() {
           {mobileVideoMounted && (
             <video
               className="absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ease-out"
-              style={{ opacity: isMobileHero ? (mobileVideoReady ? 1 : 0.68) : 0 }}
+              style={{
+                opacity: isMobileHero ? (mobileVideoReady ? 1 : 0.68) : 0,
+              }}
               autoPlay
               muted
               loop
@@ -197,8 +274,16 @@ export default function Home() {
         <div className="relative z-10 mx-auto flex min-h-dvh w-full max-w-7xl flex-col justify-end px-5 pb-12 pt-24 sm:px-6 sm:pb-16 sm:pt-28 md:pb-20 md:pt-36">
           <motion.div
             initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18 }}
-            animate={heroVideoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: prefersReducedMotion ? 0 : 18 }}
-            transition={{ duration: prefersReducedMotion ? 0.45 : 1.15, delay: heroVideoReady ? 0.28 : 0, ease: EASE_OUT }}
+            animate={
+              heroVideoReady
+                ? { opacity: 1, y: 0 }
+                : { opacity: 0, y: prefersReducedMotion ? 0 : 18 }
+            }
+            transition={{
+              duration: prefersReducedMotion ? 0.45 : 1.15,
+              delay: heroVideoReady ? 0.28 : 0,
+              ease: EASE_OUT,
+            }}
             className="max-w-xl sm:max-w-2xl md:max-w-3xl"
           >
             {/* <p className="text-[0.6rem] uppercase tracking-[0.32em] text-white/60 sm:text-[0.72rem] sm:tracking-[0.42em]">
@@ -212,143 +297,185 @@ export default function Home() {
 
           <motion.div
             initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
-            animate={heroVideoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
-            transition={{ duration: prefersReducedMotion ? 0.45 : 0.95, delay: heroVideoReady ? 1.05 : 0, ease: EASE_OUT }}
+            animate={
+              heroVideoReady
+                ? { opacity: 1, y: 0 }
+                : { opacity: 0, y: prefersReducedMotion ? 0 : 28 }
+            }
+            transition={{
+              duration: prefersReducedMotion ? 0.45 : 0.95,
+              delay: heroVideoReady ? 1.05 : 0,
+              ease: EASE_OUT,
+            }}
             className="mt-8 w-full max-w-6xl sm:mt-10"
           >
             <div className="mb-3 inline-flex rounded-full border border-white/14 bg-slate-950/34 p-1 backdrop-blur-xl">
               <button
                 type="button"
-                onClick={() => setHeroMode('buy')}
+                onClick={() => setHeroMode("buy")}
                 className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors sm:text-sm ${
-                  heroMode === 'buy' ? 'bg-white text-slate-950' : 'text-white/70 hover:text-white'
+                  heroMode === "buy"
+                    ? "bg-white text-slate-950"
+                    : "text-white/70 hover:text-white"
                 }`}
               >
                 Buy
               </button>
               <button
                 type="button"
-                onClick={() => setHeroMode('sell')}
+                onClick={() => setHeroMode("sell")}
                 className={`rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.15em] transition-colors sm:text-sm ${
-                  heroMode === 'sell' ? 'bg-white text-slate-950' : 'text-white/70 hover:text-white'
+                  heroMode === "sell"
+                    ? "bg-white text-slate-950"
+                    : "text-white/70 hover:text-white"
                 }`}
               >
                 Sell
               </button>
             </div>
 
-            {heroMode === 'sell' ? (
+            {heroMode === "sell" ? (
               <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-6 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-8">
-                <p className="max-w-xl text-sm text-white/80 sm:text-base">
-                  Own a unit you'd like to sell? <br />Submit your unit's details and our team will review, curate,
+                <span className="max-w-xl text-sm text-white/80 sm:text-base">
+                  Own a unit you'd like to sell?
+                  <br /> <br />
+                  Submit your unit's details and our team will review, curate,
                   and publish it as a resale listing for qualified buyers.
-                </p>
+                </span>
                 <motion.button
-                  whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
+                  whileHover={
+                    prefersReducedMotion ? undefined : { scale: 1.01 }
+                  }
                   whileTap={prefersReducedMotion ? undefined : { scale: 0.99 }}
-                  onClick={() => navigate('/sell')}
+                  onClick={() => navigate("/sell")}
                   className="mt-5 flex min-h-14 items-center justify-center gap-2.5 rounded-[1.15rem] bg-white/92 px-6 text-sm font-semibold text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-colors duration-300 hover:bg-white sm:min-h-15.5 sm:rounded-2xl sm:w-fit"
                 >
                   List Your Unit <ArrowRight className="h-4 w-4" />
                 </motion.button>
               </div>
             ) : (
-            <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-1.5 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-2">
-              <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:grid-cols-2 lg:grid-cols-5">
+              <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-1.5 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-2">
+                <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:grid-cols-2 lg:grid-cols-5">
+                  {/* Location */}
+                  <label className="flex cursor-text flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <MapPin className="h-3 w-3 shrink-0 text-slate-200/72" />
+                      <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
+                        Location
+                      </span>
+                    </div>
+                    <input
+                      value={locationQuery}
+                      onChange={(e) => setLocationQuery(e.target.value)}
+                      placeholder="New Cairo, North Coast..."
+                      className="bg-transparent text-[0.95rem] text-white placeholder:text-white/34 focus:outline-none sm:text-sm"
+                      onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    />
+                  </label>
 
-                {/* Location */}
-                <label className="flex cursor-text flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <MapPin className="h-3 w-3 shrink-0 text-slate-200/72" />
-                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
-                      Location
-                    </span>
-                  </div>
-                  <input
-                    value={locationQuery}
-                    onChange={(e) => setLocationQuery(e.target.value)}
-                    placeholder="New Cairo, North Coast..."
-                    className="bg-transparent text-[0.95rem] text-white placeholder:text-white/34 focus:outline-none sm:text-sm"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                  />
-                </label>
+                  {/* Developer */}
+                  <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <Landmark className="h-3 w-3 shrink-0 text-slate-200/72" />
+                      <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
+                        Developer
+                      </span>
+                    </div>
+                    <select
+                      value={developerId}
+                      onChange={(e) => setDeveloperId(e.target.value)}
+                      className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
+                    >
+                      <option value="" className="bg-slate-950 text-white">
+                        Any Developer
+                      </option>
+                      {developers.map((developer) => (
+                        <option
+                          key={developer.id}
+                          value={developer.id}
+                          className="bg-slate-950 text-white"
+                        >
+                          {developer.name}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
+                  </label>
 
-                {/* Developer */}
-                <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <Landmark className="h-3 w-3 shrink-0 text-slate-200/72" />
-                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
-                      Developer
-                    </span>
-                  </div>
-                  <select
-                    value={developerId}
-                    onChange={(e) => setDeveloperId(e.target.value)}
-                    className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
+                  {/* Property Type */}
+                  <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <Building2 className="h-3 w-3 shrink-0 text-slate-200/72" />
+                      <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
+                        Property Type
+                      </span>
+                    </div>
+                    <select
+                      value={propertyType}
+                      onChange={(e) => setPropertyType(e.target.value)}
+                      className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
+                    >
+                      <option value="" className="bg-slate-950 text-white">
+                        Any Type
+                      </option>
+                      {propertyTypes.map((type) => (
+                        <option
+                          key={type}
+                          value={type}
+                          className="bg-slate-950 text-white"
+                        >
+                          {type}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
+                  </label>
+
+                  {/* Price Range */}
+                  <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
+                    <div className="mb-1.5 flex items-center gap-2">
+                      <Tag className="h-3 w-3 shrink-0 text-slate-200/72" />
+                      <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
+                        Price Range
+                      </span>
+                    </div>
+                    <select
+                      value={priceRange}
+                      onChange={(e) => setPriceRange(e.target.value)}
+                      className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
+                    >
+                      <option value="" className="bg-slate-950 text-white">
+                        Any Budget
+                      </option>
+                      {PRICE_RANGES.map((range) => (
+                        <option
+                          key={range}
+                          value={range}
+                          className="bg-slate-950 text-white"
+                        >
+                          {range}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
+                  </label>
+
+                  {/* Search CTA */}
+                  <motion.button
+                    whileHover={
+                      prefersReducedMotion ? undefined : { scale: 1.01 }
+                    }
+                    whileTap={
+                      prefersReducedMotion ? undefined : { scale: 0.99 }
+                    }
+                    onClick={handleSearch}
+                    className="flex min-h-14 items-center justify-center gap-2.5 rounded-[1.15rem] bg-white/92 px-4 text-sm font-semibold text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-colors duration-300 hover:bg-white sm:min-h-15.5 sm:rounded-2xl"
                   >
-                    <option value="" className="bg-slate-950 text-white">Any Developer</option>
-                    {developers.map((developer) => (
-                      <option key={developer.id} value={developer.id} className="bg-slate-950 text-white">{developer.name}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
-                </label>
-
-                {/* Property Type */}
-                <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <Building2 className="h-3 w-3 shrink-0 text-slate-200/72" />
-                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
-                      Property Type
-                    </span>
-                  </div>
-                  <select
-                    value={propertyType}
-                    onChange={(e) => setPropertyType(e.target.value)}
-                    className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
-                  >
-                    <option value="" className="bg-slate-950 text-white">Any Type</option>
-                    {propertyTypes.map((type) => (
-                      <option key={type} value={type} className="bg-slate-950 text-white">{type}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
-                </label>
-
-                {/* Price Range */}
-                <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
-                  <div className="mb-1.5 flex items-center gap-2">
-                    <Tag className="h-3 w-3 shrink-0 text-slate-200/72" />
-                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
-                      Price Range
-                    </span>
-                  </div>
-                  <select
-                    value={priceRange}
-                    onChange={(e) => setPriceRange(e.target.value)}
-                    className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
-                  >
-                    <option value="" className="bg-slate-950 text-white">Any Budget</option>
-                    {PRICE_RANGES.map((range) => (
-                      <option key={range} value={range} className="bg-slate-950 text-white">{range}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
-                </label>
-
-                {/* Search CTA */}
-                <motion.button
-                  whileHover={prefersReducedMotion ? undefined : { scale: 1.01 }}
-                  whileTap={prefersReducedMotion ? undefined : { scale: 0.99 }}
-                  onClick={handleSearch}
-                  className="flex min-h-14 items-center justify-center gap-2.5 rounded-[1.15rem] bg-white/92 px-4 text-sm font-semibold text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] transition-colors duration-300 hover:bg-white sm:min-h-15.5 sm:rounded-2xl"
-                >
-                  <Search className="h-4 w-4" />
-                  Explore Properties
-                </motion.button>
-
+                    <Search className="h-4 w-4" />
+                    Explore Properties
+                  </motion.button>
+                </div>
               </div>
-            </div>
             )}
           </motion.div>
         </div>
@@ -370,9 +497,11 @@ export default function Home() {
           />
 
           <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {(featuredProjects.length ? featuredProjects : latestProjects).slice(0, 6).map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
+            {(featuredProjects.length ? featuredProjects : latestProjects)
+              .slice(0, 6)
+              .map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
           </div>
         </div>
       </section>
@@ -427,7 +556,12 @@ export default function Home() {
                 >
                   <div className="relative aspect-16/11 overflow-hidden">
                     <img
-                      src={cloudinaryOptimizedUrl(resolveImageUrl(listing.main_image), { width: 900, height: 620 }) || FALLBACK_IMAGE_URL}
+                      src={
+                        cloudinaryOptimizedUrl(
+                          resolveImageUrl(listing.main_image),
+                          { width: 900, height: 620 },
+                        ) || FALLBACK_IMAGE_URL
+                      }
                       alt={listing.title}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
@@ -436,11 +570,13 @@ export default function Home() {
                       onError={withFallbackImage}
                     />
                     <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
-                      {listing.price || 'Price on request'}
+                      {listing.price || "Price on request"}
                     </div>
                   </div>
                   <div className="space-y-2 p-5 sm:p-6">
-                    <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 sm:text-xl">{listing.title}</h3>
+                    <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 sm:text-xl">
+                      {listing.title}
+                    </h3>
                     <div className="flex items-center text-sm text-zinc-500">
                       <MapPin className="mr-2 h-4 w-4" />
                       <span className="line-clamp-1">{listing.location}</span>
@@ -451,8 +587,10 @@ export default function Home() {
             </div>
 
             <div className="mt-8 text-center sm:mt-10">
-              <Button variant="secondary" className="w-full sm:w-auto" asChild >
-                <Link to="/sell">Own a Unit? List It for Resale</Link>
+              <Button size="sm" className="w-full sm:w-auto" asChild>
+                <Link to="/sell">
+                  List Your Unit for Resale <ArrowUpRight className="h-4 w-4" />
+                </Link>
               </Button>
             </div>
           </div>
@@ -480,9 +618,20 @@ export default function Home() {
                 whileHover={{ y: -8 }}
                 className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-300 hover:shadow-2xl"
               >
-                <Link to={dest.slug ? `/destinations/${dest.slug}` : '/destinations'} className="block">
+                <Link
+                  to={
+                    dest.slug ? `/destinations/${dest.slug}` : "/destinations"
+                  }
+                  className="block"
+                >
                   <img
-                    src={cloudinaryOptimizedUrl(resolveImageUrl(dest.image), { width: 900, height: 1200 }) || `https://picsum.photos/seed/destination-${dest.id}/900/1200`}
+                    src={
+                      cloudinaryOptimizedUrl(resolveImageUrl(dest.image), {
+                        width: 900,
+                        height: 1200,
+                      }) ||
+                      `https://picsum.photos/seed/destination-${dest.id}/900/1200`
+                    }
                     alt={dest.name}
                     className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105 sm:h-72 lg:h-96"
                     loading="lazy"
@@ -496,7 +645,9 @@ export default function Home() {
                     <p className="mb-2 inline-flex rounded-full border border-white/30 bg-white/20 px-3 py-1 text-xs backdrop-blur-xl">
                       {dest.project_count || 0} projects
                     </p>
-                    <h3 className="text-xl font-semibold sm:text-2xl lg:text-3xl">{dest.name}</h3>
+                    <h3 className="text-xl font-semibold sm:text-2xl lg:text-3xl">
+                      {dest.name}
+                    </h3>
                     <p className="mt-2 flex items-center text-sm text-white/80">
                       <MapPin className="mr-2 h-4 w-4" /> Signature communities
                     </p>
@@ -509,52 +660,59 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════ TRUSTED DEVELOPERS ══════════════════════ */}
-        <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
-          <div className="mx-auto max-w-7xl">
-            <SectionHeading
-              eyebrow="Trusted Developers"
-              title="Partners Behind Landmark Communities"
-              description="Browse the developers shaping premium real estate experiences."
-            />
+      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
+        <div className="mx-auto max-w-7xl">
+          <SectionHeading
+            eyebrow="Trusted Developers"
+            title="Partners Behind Landmark Communities"
+            description="Browse the developers shaping premium real estate experiences."
+          />
 
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-              className="group/marquee relative"
-            >
-              <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-20 bg-linear-to-r from-white via-white/85 to-transparent" />
-              <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-20 bg-linear-to-l from-white via-white/85 to-transparent" />
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="group/marquee relative"
+          >
+            <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-20 bg-linear-to-r from-white via-white/85 to-transparent" />
+            <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-20 bg-linear-to-l from-white via-white/85 to-transparent" />
 
-              <div className="overflow-hidden">
-                <div className="marquee-track flex w-max items-center gap-8 py-2 sm:gap-10 lg:gap-14">
-                  {developersForMarquee.map((developer, index) => {
-                    const developerUrl = developer.slug ? `/developers/${developer.slug}` : `/developers/${developer.id}`;
-                    return (
-                      <Link
-                        key={`${developer.id}-${index}`}
-                        to={developerUrl}
-                        className="logo-link relative inline-flex h-20 w-40 items-center justify-center overflow-hidden rounded-xl opacity-100 transition-all duration-300 hover:scale-[1.03] sm:h-22 sm:w-44 lg:h-24 lg:w-48"
-                        aria-label={`View ${developer.name}`}
-                      >
-                        <span className="logo-sheen pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-white/85 to-transparent opacity-0 transition-opacity duration-300" />
-                        <img
-                          src={cloudinaryOptimizedUrl(resolveImageUrl(developer.logo), { width: 320, height: 180, crop: 'fit' }) || FALLBACK_IMAGE_URL}
-                          alt={developer.name}
-                          className="max-h-12 max-w-full object-contain transition-all duration-300 sm:max-h-14 lg:max-h-16"
-                          loading="lazy"
-                          decoding="async"
-                          referrerPolicy="no-referrer"
-                          onError={withFallbackImage}
-                        />
-                      </Link>
-                    );
-                  })}
-                </div>
+            <div className="overflow-hidden">
+              <div className="marquee-track flex w-max items-center gap-8 py-2 sm:gap-10 lg:gap-14">
+                {developersForMarquee.map((developer, index) => {
+                  const developerUrl = developer.slug
+                    ? `/developers/${developer.slug}`
+                    : `/developers/${developer.id}`;
+                  return (
+                    <Link
+                      key={`${developer.id}-${index}`}
+                      to={developerUrl}
+                      className="logo-link relative inline-flex h-20 w-40 items-center justify-center overflow-hidden rounded-xl opacity-100 transition-all duration-300 hover:scale-[1.03] sm:h-22 sm:w-44 lg:h-24 lg:w-48"
+                      aria-label={`View ${developer.name}`}
+                    >
+                      <span className="logo-sheen pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-white/85 to-transparent opacity-0 transition-opacity duration-300" />
+                      <img
+                        src={
+                          cloudinaryOptimizedUrl(
+                            resolveImageUrl(developer.logo),
+                            { width: 320, height: 180, crop: "fit" },
+                          ) || FALLBACK_IMAGE_URL
+                        }
+                        alt={developer.name}
+                        className="max-h-12 max-w-full object-contain transition-all duration-300 sm:max-h-14 lg:max-h-16"
+                        loading="lazy"
+                        decoding="async"
+                        referrerPolicy="no-referrer"
+                        onError={withFallbackImage}
+                      />
+                    </Link>
+                  );
+                })}
               </div>
+            </div>
 
-              <style>{`
+            <style>{`
                 .marquee-track {
                   animation: developer-marquee 42s linear infinite;
                   will-change: transform;
@@ -592,17 +750,20 @@ export default function Home() {
                   }
                 }
               `}</style>
-            </motion.div>
+          </motion.div>
 
-            <div className="mt-8 sm:mt-10">
-              <Button className="w-full sm:w-auto" asChild>
-                <Link to="/developers" className="inline-flex items-center justify-center gap-2">
-                  View All Developers <Building2 className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+          <div className="mt-8 sm:mt-10">
+            <Button className="w-full sm:w-auto" asChild>
+              <Link
+                to="/developers"
+                className="inline-flex items-center justify-center gap-2"
+              >
+                View All Developers <Building2 className="h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-        </section>
+        </div>
+      </section>
 
       {/* ══════════════════════ MARKET INTELLIGENCE ══════════════════════ */}
       <section className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:py-24">
@@ -631,7 +792,12 @@ export default function Home() {
               >
                 <Link to={`/blogs/${blog.slug || blog.id}`} className="block">
                   <img
-                    src={cloudinaryOptimizedUrl(resolveImageUrl(blog.image), { width: 900, height: 560 }) || FALLBACK_IMAGE_URL}
+                    src={
+                      cloudinaryOptimizedUrl(resolveImageUrl(blog.image), {
+                        width: 900,
+                        height: 560,
+                      }) || FALLBACK_IMAGE_URL
+                    }
                     alt={blog.title}
                     className="h-44 w-full object-cover sm:h-56"
                     loading="lazy"
@@ -641,9 +807,15 @@ export default function Home() {
                     onError={withFallbackImage}
                   />
                   <div className="p-5 sm:p-6">
-                    <p className="text-xs uppercase tracking-[0.2em] text-white/70">{blog.category}</p>
-                    <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight sm:text-2xl">{blog.title}</h3>
-                    <p className="mt-4 text-sm text-white/70">By {blog.author}</p>
+                    <p className="text-xs uppercase tracking-[0.2em] text-white/70">
+                      {blog.category}
+                    </p>
+                    <h3 className="mt-3 line-clamp-2 text-xl font-semibold leading-tight sm:text-2xl">
+                      {blog.title}
+                    </h3>
+                    <p className="mt-4 text-sm text-white/70">
+                      By {blog.author}
+                    </p>
                   </div>
                 </Link>
               </motion.article>
@@ -658,10 +830,16 @@ export default function Home() {
         <div className="relative mx-auto max-w-6xl">
           <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
             <div>
-              <p className="mb-3 text-xs uppercase tracking-[0.24em] text-white/50">Let's Talk</p>
-              <h2 className="text-3xl font-semibold sm:text-4xl md:text-5xl">Ready to Find Your Signature Address?</h2>
+              <p className="mb-3 text-xs uppercase tracking-[0.24em] text-white/50">
+                Let's Talk
+              </p>
+              <h2 className="text-3xl font-semibold sm:text-4xl md:text-5xl">
+                Ready to Find Your Signature Address?
+              </h2>
               <p className="mt-4 max-w-md text-sm text-white/70 sm:text-base">
-                Share your details and one of our property consultants will reach out within 24 hours — or skip the wait and message us directly.
+                Share your details and one of our property consultants will
+                reach out within 24 hours — or skip the wait and message us
+                directly.
               </p>
               <a
                 href={WHATSAPP_URL}
@@ -678,15 +856,21 @@ export default function Home() {
               {leadSubmitted ? (
                 <div className="flex flex-col items-center justify-center py-10 text-center">
                   <p className="text-lg font-semibold">Thank you!</p>
-                  <p className="mt-2 text-sm text-white/70">Our team will reach out within 24 hours.</p>
+                  <p className="mt-2 text-sm text-white/70">
+                    Our team will reach out within 24 hours.
+                  </p>
                 </div>
               ) : (
                 <form onSubmit={handleLeadSubmit} className="space-y-4">
                   {leadError && (
-                    <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">{leadError}</p>
+                    <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                      {leadError}
+                    </p>
                   )}
                   <div>
-                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">Full Name</label>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">
+                      Full Name
+                    </label>
                     <input
                       required
                       value={leadName}
@@ -696,7 +880,9 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">Phone Number</label>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">
+                      Phone Number
+                    </label>
                     <input
                       required
                       type="tel"
@@ -707,7 +893,9 @@ export default function Home() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">Email</label>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">
+                      Email
+                    </label>
                     <input
                       required
                       type="email"
@@ -717,8 +905,14 @@ export default function Home() {
                       className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/34 outline-none focus:border-white/40"
                     />
                   </div>
-                  <Button type="submit" variant="secondary" size="lg" className="w-full" disabled={leadSubmitting}>
-                    {leadSubmitting ? 'Sending...' : 'Request a Callback'}
+                  <Button
+                    type="submit"
+                    variant="secondary"
+                    size="lg"
+                    className="w-full"
+                    disabled={leadSubmitting}
+                  >
+                    {leadSubmitting ? "Sending..." : "Request a Callback"}
                   </Button>
                 </form>
               )}
