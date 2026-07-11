@@ -5,6 +5,8 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { Link } from 'react-router-dom';
 import { Navbar } from './components/Navbar';
 import { Button } from './components/Button';
+import { FloatingWhatsAppButton } from './components/WhatsAppButton';
+import { BackToTopButton } from './components/BackToTopButton';
 import { Facebook, Instagram, Linkedin } from 'lucide-react';
 import { RouteSkeleton } from './components/ui/route-skeleton';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -106,6 +108,8 @@ export default function App() {
           </Routes>
         </Suspense>
         <Footer />
+        <ConditionalWhatsAppButton />
+        <ConditionalBackToTop />
       </div>
     </Router>
   );
@@ -116,6 +120,20 @@ function ConditionalNavbar() {
   const isAdmin = location.pathname.startsWith('/admin');
   if (isAdmin) return null;
   return <Navbar />;
+}
+
+function ConditionalWhatsAppButton() {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+  if (isAdmin) return null;
+  return <FloatingWhatsAppButton />;
+}
+
+function ConditionalBackToTop() {
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+  if (isAdmin) return null;
+  return <BackToTopButton />;
 }
 
 function NewsletterForm() {
@@ -179,7 +197,7 @@ function Footer() {
         <div className="relative grid gap-12 md:grid-cols-4">
           <div className="col-span-1 md:col-span-1">
             <Link to="/" className="text-2xl font-semibold tracking-tight text-white">
-              LIVIN <span className="font-light text-slate-400">INVESTMENT</span>
+              LIVIN <span className="font-light text-slate-400">ESTATE</span>
             </Link>
             <p className="mt-6 text-sm leading-relaxed text-slate-300">
               A premium real estate platform connecting modern investors with extraordinary properties and trusted developers.

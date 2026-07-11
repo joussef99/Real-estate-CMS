@@ -1,11 +1,13 @@
-import { normalizeListResponse } from '../utils/api';
+import { apiJson, normalizeListResponse } from '../utils/api';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { ArrowRight, Building2, ChevronDown, MapPin, Search, Tag } from 'lucide-react';
+import { ArrowRight, Building2, ChevronDown, Landmark, MapPin, Search, Tag } from 'lucide-react';
 import { Button } from '../components/Button';
 import { ProjectCard } from '../components/ProjectCard';
 import { SectionHeading } from '../components/ui/section-heading';
+import { WHATSAPP_URL, WhatsAppIcon } from '../components/WhatsAppButton';
 import { Blog, Destination, Developer, Project, ResaleListing } from '../types';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 import { useApiData } from '../hooks/useApiData';
@@ -21,9 +23,16 @@ const EASE_OUT = [0.16, 1, 0.3, 1] as const;
 
 export default function Home() {
   const [locationQuery, setLocationQuery] = useState('');
+  const [developerId, setDeveloperId] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [priceRange, setPriceRange] = useState('');
   const [heroMode, setHeroMode] = useState<'buy' | 'sell'>('buy');
+  const [leadName, setLeadName] = useState('');
+  const [leadPhone, setLeadPhone] = useState('');
+  const [leadEmail, setLeadEmail] = useState('');
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [leadSubmitted, setLeadSubmitted] = useState(false);
+  const [leadError, setLeadError] = useState<string | null>(null);
   // Only one hero video is mounted at a time (matching the viewport at first
   // render), so most sessions never pay to download both files. If the
   // viewport crosses the mobile breakpoint (e.g. a phone rotating, or a
@@ -108,9 +117,37 @@ export default function Home() {
   const handleSearch = () => {
     const params = new URLSearchParams();
     if (locationQuery.trim()) params.set('q', locationQuery.trim());
+    if (developerId) params.set('developer', developerId);
     if (propertyType) params.set('types', propertyType);
     if (priceRange) params.set('prices', priceRange);
     navigate(`/projects?${params.toString()}`);
+  };
+
+  const handleLeadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLeadSubmitting(true);
+    setLeadError(null);
+
+    try {
+      await apiJson('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: leadName.trim(),
+          email: leadEmail.trim(),
+          phone: leadPhone.trim(),
+          message: 'Requested a callback from the Home page.',
+        }),
+      });
+      setLeadSubmitted(true);
+      setLeadName('');
+      setLeadPhone('');
+      setLeadEmail('');
+    } catch (err) {
+      setLeadError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+    } finally {
+      setLeadSubmitting(false);
+    }
   };
 
   return (
@@ -217,7 +254,7 @@ export default function Home() {
               </div>
             ) : (
             <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-1.5 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-2">
-              <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-1.5 sm:gap-2 md:grid-cols-2 lg:grid-cols-5">
 
                 {/* Location */}
                 <label className="flex cursor-text flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
@@ -234,6 +271,27 @@ export default function Home() {
                     className="bg-transparent text-[0.95rem] text-white placeholder:text-white/34 focus:outline-none sm:text-sm"
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   />
+                </label>
+
+                {/* Developer */}
+                <label className="relative flex cursor-pointer flex-col rounded-[1.15rem] bg-slate-950/34 px-3.5 py-3 ring-1 ring-inset ring-white/10 transition-colors duration-300 focus-within:bg-slate-950/42 focus-within:ring-white/24 sm:rounded-2xl sm:bg-slate-950/24 sm:px-4 sm:py-3.5 sm:focus-within:bg-slate-950/34">
+                  <div className="mb-1.5 flex items-center gap-2">
+                    <Landmark className="h-3 w-3 shrink-0 text-slate-200/72" />
+                    <span className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/50 sm:text-[10px] sm:tracking-[0.25em]">
+                      Developer
+                    </span>
+                  </div>
+                  <select
+                    value={developerId}
+                    onChange={(e) => setDeveloperId(e.target.value)}
+                    className="cursor-pointer appearance-none bg-transparent pr-8 text-[0.95rem] text-white focus:outline-none sm:text-sm"
+                  >
+                    <option value="" className="bg-slate-950 text-white">Any Developer</option>
+                    {developers.map((developer) => (
+                      <option key={developer.id} value={developer.id} className="bg-slate-950 text-white">{developer.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-3.5 top-[2.35rem] h-4 w-4 text-white/54 sm:right-4 sm:top-[2.55rem]" />
                 </label>
 
                 {/* Property Type */}
@@ -303,6 +361,7 @@ export default function Home() {
             eyebrow="Featured Collection"
             title="Residences That Define Premium Living"
             description="A refined selection of iconic properties from Egypt's leading developers."
+            tone="light"
             action={
               <Button variant="secondary" size="sm" asChild>
                 <Link to="/projects">View All</Link>
@@ -450,100 +509,100 @@ export default function Home() {
       </section>
 
       {/* ══════════════════════ TRUSTED DEVELOPERS ══════════════════════ */}
-      <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
-        <div className="mx-auto max-w-7xl">
-          <SectionHeading
-            eyebrow="Trusted Developers"
-            title="Partners Behind Landmark Communities"
-            description="Browse the developers shaping premium real estate experiences."
-          />
+        <section className="px-4 py-14 sm:px-6 sm:py-20 lg:py-24">
+          <div className="mx-auto max-w-7xl">
+            <SectionHeading
+              eyebrow="Trusted Developers"
+              title="Partners Behind Landmark Communities"
+              description="Browse the developers shaping premium real estate experiences."
+            />
 
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
-            className="group/marquee relative"
-          >
-            <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-20 bg-linear-to-r from-white via-white/85 to-transparent" />
-            <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-20 bg-linear-to-l from-white via-white/85 to-transparent" />
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+              className="group/marquee relative"
+            >
+              <div className="pointer-events-none absolute bottom-0 left-0 top-0 z-10 w-20 bg-linear-to-r from-white via-white/85 to-transparent" />
+              <div className="pointer-events-none absolute bottom-0 right-0 top-0 z-10 w-20 bg-linear-to-l from-white via-white/85 to-transparent" />
 
-            <div className="overflow-hidden">
-              <div className="marquee-track flex w-max items-center gap-8 py-2 sm:gap-10 lg:gap-14">
-                {developersForMarquee.map((developer, index) => {
-                  const developerUrl = developer.slug ? `/developers/${developer.slug}` : `/developers/${developer.id}`;
-                  return (
-                    <Link
-                      key={`${developer.id}-${index}`}
-                      to={developerUrl}
-                      className="logo-link relative inline-flex h-20 w-40 items-center justify-center overflow-hidden rounded-xl opacity-100 transition-all duration-300 hover:scale-[1.03] sm:h-22 sm:w-44 lg:h-24 lg:w-48"
-                      aria-label={`View ${developer.name}`}
-                    >
-                      <span className="logo-sheen pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-white/85 to-transparent opacity-0 transition-opacity duration-300" />
-                      <img
-                        src={cloudinaryOptimizedUrl(resolveImageUrl(developer.logo), { width: 320, height: 180, crop: 'fit' }) || FALLBACK_IMAGE_URL}
-                        alt={developer.name}
-                        className="max-h-12 max-w-full object-contain transition-all duration-300 sm:max-h-14 lg:max-h-16"
-                        loading="lazy"
-                        decoding="async"
-                        referrerPolicy="no-referrer"
-                        onError={withFallbackImage}
-                      />
-                    </Link>
-                  );
-                })}
+              <div className="overflow-hidden">
+                <div className="marquee-track flex w-max items-center gap-8 py-2 sm:gap-10 lg:gap-14">
+                  {developersForMarquee.map((developer, index) => {
+                    const developerUrl = developer.slug ? `/developers/${developer.slug}` : `/developers/${developer.id}`;
+                    return (
+                      <Link
+                        key={`${developer.id}-${index}`}
+                        to={developerUrl}
+                        className="logo-link relative inline-flex h-20 w-40 items-center justify-center overflow-hidden rounded-xl opacity-100 transition-all duration-300 hover:scale-[1.03] sm:h-22 sm:w-44 lg:h-24 lg:w-48"
+                        aria-label={`View ${developer.name}`}
+                      >
+                        <span className="logo-sheen pointer-events-none absolute inset-y-0 -left-1/2 w-1/2 bg-linear-to-r from-transparent via-white/85 to-transparent opacity-0 transition-opacity duration-300" />
+                        <img
+                          src={cloudinaryOptimizedUrl(resolveImageUrl(developer.logo), { width: 320, height: 180, crop: 'fit' }) || FALLBACK_IMAGE_URL}
+                          alt={developer.name}
+                          className="max-h-12 max-w-full object-contain transition-all duration-300 sm:max-h-14 lg:max-h-16"
+                          loading="lazy"
+                          decoding="async"
+                          referrerPolicy="no-referrer"
+                          onError={withFallbackImage}
+                        />
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
+
+              <style>{`
+                .marquee-track {
+                  animation: developer-marquee 42s linear infinite;
+                  will-change: transform;
+                  transform: translate3d(0, 0, 0);
+                }
+
+                .group\/marquee:hover .marquee-track {
+                  animation-play-state: paused;
+                }
+
+                .logo-link:hover {
+                  box-shadow: 0 0 18px rgba(30, 58, 138, 0.18);
+                }
+
+                .logo-link:hover .logo-sheen {
+                  opacity: 1;
+                  animation: logo-sheen-sweep 1.35s linear 1;
+                }
+
+                @keyframes logo-sheen-sweep {
+                  from {
+                    transform: translate3d(0, 0, 0);
+                  }
+                  to {
+                    transform: translate3d(300%, 0, 0);
+                  }
+                }
+
+                @keyframes developer-marquee {
+                  from {
+                    transform: translate3d(0, 0, 0);
+                  }
+                  to {
+                    transform: translate3d(-50%, 0, 0);
+                  }
+                }
+              `}</style>
+            </motion.div>
+
+            <div className="mt-8 sm:mt-10">
+              <Button className="w-full sm:w-auto" asChild>
+                <Link to="/developers" className="inline-flex items-center justify-center gap-2">
+                  View All Developers <Building2 className="h-4 w-4" />
+                </Link>
+              </Button>
             </div>
-
-            <style>{`
-              .marquee-track {
-                animation: developer-marquee 42s linear infinite;
-                will-change: transform;
-                transform: translate3d(0, 0, 0);
-              }
-
-              .group\/marquee:hover .marquee-track {
-                animation-play-state: paused;
-              }
-
-              .logo-link:hover {
-                box-shadow: 0 0 18px rgba(30, 58, 138, 0.18);
-              }
-
-              .logo-link:hover .logo-sheen {
-                opacity: 1;
-                animation: logo-sheen-sweep 1.35s linear 1;
-              }
-
-              @keyframes logo-sheen-sweep {
-                from {
-                  transform: translate3d(0, 0, 0);
-                }
-                to {
-                  transform: translate3d(300%, 0, 0);
-                }
-              }
-
-              @keyframes developer-marquee {
-                from {
-                  transform: translate3d(0, 0, 0);
-                }
-                to {
-                  transform: translate3d(-50%, 0, 0);
-                }
-              }
-            `}</style>
-          </motion.div>
-
-          <div className="mt-8 sm:mt-10">
-            <Button className="w-full sm:w-auto" asChild>
-              <Link to="/developers" className="inline-flex items-center justify-center gap-2">
-                View All Developers <Building2 className="h-4 w-4" />
-              </Link>
-            </Button>
           </div>
-        </div>
-      </section>
+        </section>
 
       {/* ══════════════════════ MARKET INTELLIGENCE ══════════════════════ */}
       <section className="bg-slate-950 px-4 py-14 text-white sm:px-6 sm:py-20 lg:py-24">
@@ -552,6 +611,7 @@ export default function Home() {
             eyebrow="Market Intelligence"
             title="Insights for High-Value Decisions"
             description="Read expert takes on market shifts, investment trends, and lifestyle-led developments."
+            tone="light"
             action={
               <Button variant="secondary" asChild>
                 <Link to="/blogs">Explore Blogs</Link>
@@ -588,6 +648,81 @@ export default function Home() {
                 </Link>
               </motion.article>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════ LEAD CAPTURE ══════════════════════ */}
+      <section className="relative overflow-hidden bg-slate-950 px-4 py-16 text-white sm:px-6 sm:py-24">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(148,163,184,0.18),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.10),transparent_35%)]" />
+        <div className="relative mx-auto max-w-6xl">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-16">
+            <div>
+              <p className="mb-3 text-xs uppercase tracking-[0.24em] text-white/50">Let's Talk</p>
+              <h2 className="text-3xl font-semibold sm:text-4xl md:text-5xl">Ready to Find Your Signature Address?</h2>
+              <p className="mt-4 max-w-md text-sm text-white/70 sm:text-base">
+                Share your details and one of our property consultants will reach out within 24 hours — or skip the wait and message us directly.
+              </p>
+              <a
+                href={WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 inline-flex items-center gap-2.5 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+              >
+                <WhatsAppIcon className="h-4 w-4 text-[#25D366]" />
+                Chat with us on WhatsApp
+              </a>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-white/14 bg-white/8 p-6 backdrop-blur-xl sm:p-8">
+              {leadSubmitted ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <p className="text-lg font-semibold">Thank you!</p>
+                  <p className="mt-2 text-sm text-white/70">Our team will reach out within 24 hours.</p>
+                </div>
+              ) : (
+                <form onSubmit={handleLeadSubmit} className="space-y-4">
+                  {leadError && (
+                    <p className="rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-300">{leadError}</p>
+                  )}
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">Full Name</label>
+                    <input
+                      required
+                      value={leadName}
+                      onChange={(e) => setLeadName(e.target.value)}
+                      placeholder="Your name"
+                      className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/34 outline-none focus:border-white/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">Phone Number</label>
+                    <input
+                      required
+                      type="tel"
+                      value={leadPhone}
+                      onChange={(e) => setLeadPhone(e.target.value)}
+                      placeholder="+20 1xx xxx xxxx"
+                      className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/34 outline-none focus:border-white/40"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-xs font-medium uppercase tracking-wider text-white/50">Email</label>
+                    <input
+                      required
+                      type="email"
+                      value={leadEmail}
+                      onChange={(e) => setLeadEmail(e.target.value)}
+                      placeholder="you@email.com"
+                      className="w-full rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/34 outline-none focus:border-white/40"
+                    />
+                  </div>
+                  <Button type="submit" variant="secondary" size="lg" className="w-full" disabled={leadSubmitting}>
+                    {leadSubmitting ? 'Sending...' : 'Request a Callback'}
+                  </Button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </section>

@@ -52,6 +52,7 @@ export default function SellUnit() {
 
   const validate = (): string | null => {
     if (!formData.owner_name.trim()) return 'Your name is required.';
+    if (!formData.owner_phone.trim()) return 'Your phone number is required.';
     if (!formData.owner_email.trim()) return 'Your email is required.';
     if (!formData.location.trim()) return 'Unit location is required.';
 
@@ -142,7 +143,7 @@ export default function SellUnit() {
                 </div>
                 <div>
                   <h3 className="font-bold">Call Us</h3>
-                  <p className="text-zinc-500"> +20 150 108 7033</p>
+                  <p className="text-zinc-500"> +20 109 620 7770</p>
                 </div>
               </div>
             </div>
@@ -179,7 +180,7 @@ export default function SellUnit() {
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Phone (Optional)</label>
+                  <label className="mb-2 block text-sm font-medium">Phone</label>
                   <input
                     type="tel"
                     value={formData.owner_phone}
@@ -226,7 +227,7 @@ export default function SellUnit() {
                     type="text"
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                    placeholder="e.g. 1,250 sqft"
+                    placeholder="e.g. 1,250 sqm"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
                   />
                 </div>
@@ -237,7 +238,7 @@ export default function SellUnit() {
                   type="text"
                   value={formData.asking_price}
                   onChange={(e) => setFormData({ ...formData, asking_price: e.target.value })}
-                  placeholder="e.g. AED 1,850,000"
+                  placeholder="e.g. EGP 1,850,000"
                   className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
                 />
               </div>

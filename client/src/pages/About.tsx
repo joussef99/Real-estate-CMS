@@ -176,6 +176,7 @@ export default function About() {
             title="Principles Behind Every Recommendation"
             description="Our standards guide how we select projects, advise clients, and deliver premium outcomes."
             align="center"
+            tone="light"
           />
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">

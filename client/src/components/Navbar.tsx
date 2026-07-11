@@ -4,11 +4,13 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Search, User, Building2 } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from './Button';
+import { WHATSAPP_URL, WhatsAppIcon } from './WhatsAppButton';
 
 // Mirrors the lazy() imports in App.tsx — calling the same dynamic import
 // again here doesn't re-fetch the chunk (the bundler dedupes it), so
 // prefetching on hover/focus just gets the JS loaded before the user clicks,
 // removing the lazy-load delay for the most common navigation path.
+
 const routePrefetchers: Record<string, () => Promise<unknown>> = {
   '/': () => import('../pages/Home'),
   '/projects': () => import('../pages/Projects'),
@@ -94,16 +96,19 @@ export const Navbar = () => {
               {link.name}
             </Link>
           ))}
-          <button className="text-slate-300 hover:text-white" aria-label="Search projects">
+          {/* <button className="text-slate-300 hover:text-white" aria-label="Search projects">
             <Link to="/projects" aria-label="Explore projects">
               <Search className="h-5 w-5" />
             </Link>
-          </button>
+          </button> */}
           {/* <Link to="/admin/login" className="text-slate-500 hover:text-slate-950" aria-label="Admin login">
             <User className="h-5 w-5" />
           </Link> */}
           <Button size="sm" asChild>
-            <Link to="/projects">Explore Projects</Link>
+            <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp us">
+              <WhatsAppIcon className="h-4 w-4" />
+              WhatsApp us
+            </a>
           </Button>
         </div>
 
@@ -165,7 +170,10 @@ export const Navbar = () => {
                     <div className="mt-auto space-y-3 pt-8">
                       <Dialog.Close asChild>
                         <Button className="w-full" asChild>
-                          <Link to="/projects">Explore Projects</Link>
+                          <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
+                            <WhatsAppIcon className="h-4 w-4" />
+                            WhatsApp us
+                          </a>
                         </Button>
                       </Dialog.Close>
                       {/* <Dialog.Close asChild>
