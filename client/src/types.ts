@@ -94,6 +94,7 @@ export interface ResaleListing {
   slug?: string;
   location?: string | null;
   price?: string | null;
+  paid_amount?: number | null;
   installment_value?: number | null;
   remaining_amount?: number | null;
   remaining_installments?: number | null;
@@ -116,13 +117,14 @@ export interface ResaleSubmission {
   id: number;
   public_id?: string;
   owner_name: string;
-  owner_email: string;
-  owner_phone?: string | null;
+  owner_email?: string | null;
+  owner_phone: string;
   location: string;
-  unit_type?: string | null;
-  beds?: string | null;
-  size?: string | null;
-  asking_price?: string | null;
+  unit_type: string;
+  beds: string;
+  size: string;
+  asking_price: string;
+  paid_amount?: number | null;
   installment_value?: number | null;
   remaining_amount?: number | null;
   remaining_installments?: number | null;

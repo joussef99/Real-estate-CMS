@@ -2,7 +2,7 @@ import { apiFetch, parseJsonResponse } from '../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ResaleListing } from '../types';
-import { MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, CalendarClock, ListChecks } from 'lucide-react';
+import { MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, CalendarClock, ListChecks, Wallet } from 'lucide-react';
 import { Button } from '../components/Button';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 import { ErrorState } from '../components/ui/state-message';
@@ -230,6 +230,17 @@ export default function ResaleDetails() {
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Delivery</p>
                     <p className="font-bold text-zinc-900">{listing.delivery_time}</p>
+                  </div>
+                </div>
+              )}
+              {listing.paid_amount != null && (
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                    <Wallet className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Amount Paid</p>
+                    <p className="font-bold text-zinc-900">{listing.paid_amount.toLocaleString()}</p>
                   </div>
                 </div>
               )}

@@ -171,13 +171,14 @@ model ResaleSubmission {
     id                    Int      @id @default(autoincrement())
     public_id             String   @unique @default(uuid())
     owner_name            String
-    owner_email           String
-    owner_phone           String?
+    owner_email           String?
+    owner_phone           String
     location              String
-    unit_type             String?
-    beds                  String?
-    size                  String?
-    asking_price          String?
+    unit_type             String
+    beds                  String
+    size                  String
+    asking_price          String
+    paid_amount           Int?
     installment_value     Int?
     remaining_amount      Int?
     remaining_installments Int?
@@ -203,6 +204,7 @@ model ResaleListing {
     slug                   String   @unique
     location               String?
     price                  String?
+    paid_amount            Int?
     installment_value      Int?
     remaining_amount       Int?
     remaining_installments Int?

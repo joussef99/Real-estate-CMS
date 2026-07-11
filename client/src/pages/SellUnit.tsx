@@ -1,11 +1,15 @@
-import { apiUploadJson } from '../utils/api';
+import { apiJson, apiUploadJson, normalizeListResponse } from '../utils/api';
 import { Mail, Phone, Upload, X } from 'lucide-react';
 import { Button } from '../components/Button';
-import { useState } from 'react';
+import { SelectWithOther } from '../components/ui/select-with-other';
+import { useEffect, useState } from 'react';
 import type React from 'react';
 import { optimizeImageFiles } from '../utils/imageUpload';
+import { RESALE_BEDS_OPTIONS } from '../utils/resaleFormOptions';
+import type { Project } from '../types';
 
 const MAX_PHOTOS = 6;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function SellUnit() {
   const [formData, setFormData] = useState({
@@ -17,16 +21,36 @@ export default function SellUnit() {
     beds: '',
     size: '',
     asking_price: '',
+    paid_amount: '',
     installment_value: '',
     remaining_amount: '',
     remaining_installments: '',
     delivery_time: '',
     description: '',
   });
+  const [compoundOptions, setCompoundOptions] = useState<string[]>([]);
+  const [unitTypeOptions, setUnitTypeOptions] = useState<string[]>([]);
   const [photos, setPhotos] = useState<{ file: File; previewUrl: string }[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+
+  useEffect(() => {
+    apiJson<any>('/api/projects?limit=100')
+      .then((data) => {
+        const projects = normalizeListResponse<Project>(data, 'projects');
+        const names = Array.from(new Set(projects.map((p) => p.name).filter(Boolean)));
+        setCompoundOptions(names.sort((a, b) => a.localeCompare(b)));
+      })
+      .catch(() => {});
+
+    apiJson<any>('/api/property-types')
+      .then((data) => {
+        const types = (Array.isArray(data) ? data : []).map((pt: { name: string }) => pt.name).filter(Boolean);
+        setUnitTypeOptions(types);
+      })
+      .catch(() => {});
+  }, []);
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -53,10 +77,16 @@ export default function SellUnit() {
   const validate = (): string | null => {
     if (!formData.owner_name.trim()) return 'Your name is required.';
     if (!formData.owner_phone.trim()) return 'Your phone number is required.';
-    if (!formData.owner_email.trim()) return 'Your email is required.';
-    if (!formData.location.trim()) return 'Unit location is required.';
+    if (formData.owner_email.trim() && !EMAIL_PATTERN.test(formData.owner_email.trim())) return 'Enter a valid email address, or leave it blank.';
+    if (!formData.location.trim()) return 'Compound name is required.';
+    if (!formData.unit_type.trim()) return 'Unit type is required.';
+    if (!formData.beds.trim()) return 'Beds is required.';
+    if (!formData.size.trim()) return 'Size is required.';
+    if (!formData.asking_price.trim()) return 'Asking price is required.';
 
     for (const [field, label] of [
+      ['asking_price', 'Asking price'],
+      ['paid_amount', 'Paid amount'],
       ['installment_value', 'Installment value'],
       ['remaining_amount', 'Remaining amount'],
       ['remaining_installments', 'Remaining installments'],
@@ -105,7 +135,7 @@ export default function SellUnit() {
       setPhotos([]);
       setFormData({
         owner_name: '', owner_email: '', owner_phone: '', location: '',
-        unit_type: '', beds: '', size: '', asking_price: '', installment_value: '',
+        unit_type: '', beds: '', size: '', asking_price: '', paid_amount: '', installment_value: '',
         remaining_amount: '', remaining_installments: '', delivery_time: '', description: '',
       });
     } catch (err) {
@@ -158,7 +188,7 @@ export default function SellUnit() {
               )}
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Your Name</label>
+                  <label className="mb-2 block text-sm font-medium">Your Name <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     required
@@ -168,63 +198,65 @@ export default function SellUnit() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.owner_email}
-                    onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Phone</label>
+                  <label className="mb-2 block text-sm font-medium">Phone <span className="text-red-500">*</span></label>
                   <input
                     type="tel"
+                    required
                     value={formData.owner_phone}
                     onChange={(e) => setFormData({ ...formData, owner_phone: e.target.value })}
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
                   />
                 </div>
+              </div>
+              <div>
+                <label className="mb-2 block text-sm font-medium">Email</label>
+                <input
+                  type="email"
+                  value={formData.owner_email}
+                  onChange={(e) => setFormData({ ...formData, owner_email: e.target.value })}
+                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
+                />
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                <SelectWithOther
+                  label="Compound Name"
+                  required
+                  options={compoundOptions}
+                  value={formData.location}
+                  onChange={(value) => setFormData({ ...formData, location: value })}
+                  placeholder="Select a compound"
+                  otherPlaceholder="Type the compound name"
+                />
+                <SelectWithOther
+                  label="Unit Type"
+                  required
+                  options={unitTypeOptions}
+                  value={formData.unit_type}
+                  onChange={(value) => setFormData({ ...formData, unit_type: value })}
+                  placeholder="Select a unit type"
+                  otherPlaceholder="Type the unit type"
+                />
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Unit Location</label>
+                  <label className="mb-2 block text-sm font-medium">Beds <span className="text-red-500">*</span></label>
+                  <select
+                    required
+                    value={formData.beds}
+                    onChange={(e) => setFormData({ ...formData, beds: e.target.value })}
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
+                  >
+                    <option value="">Select beds</option>
+                    {RESALE_BEDS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Size <span className="text-red-500">*</span></label>
                   <input
                     type="text"
                     required
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="e.g. Downtown, New Cairo"
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="grid gap-6 md:grid-cols-3">
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Unit Type</label>
-                  <input
-                    type="text"
-                    value={formData.unit_type}
-                    onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
-                    placeholder="Apartment, Villa..."
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Beds</label>
-                  <input
-                    type="text"
-                    value={formData.beds}
-                    onChange={(e) => setFormData({ ...formData, beds: e.target.value })}
-                    placeholder="e.g. 2"
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium">Size</label>
-                  <input
-                    type="text"
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
                     placeholder="e.g. 1,250 sqm"
@@ -232,19 +264,36 @@ export default function SellUnit() {
                   />
                 </div>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-medium">Asking Price</label>
-                <input
-                  type="text"
-                  value={formData.asking_price}
-                  onChange={(e) => setFormData({ ...formData, asking_price: e.target.value })}
-                  placeholder="e.g. EGP 1,850,000"
-                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
-                />
+              <div className="grid gap-6 md:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Amount Paid So Far</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    value={formData.paid_amount}
+                    onChange={(e) => setFormData({ ...formData, paid_amount: e.target.value })}
+                    placeholder="e.g. 1200000"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Asking Price <span className="text-red-500">*</span></label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    required
+                    value={formData.asking_price}
+                    onChange={(e) => setFormData({ ...formData, asking_price: e.target.value })}
+                    placeholder="e.g. 1850000"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
+                  />
+                </div>
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Monthly Installment (Optional)</label>
+                  <label className="mb-2 block text-sm font-medium">Monthly Installment</label>
                   <input
                     type="number"
                     min="0"
@@ -256,7 +305,7 @@ export default function SellUnit() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Delivery Time (Optional)</label>
+                  <label className="mb-2 block text-sm font-medium">Delivery Time</label>
                   <input
                     type="text"
                     value={formData.delivery_time}
@@ -268,7 +317,7 @@ export default function SellUnit() {
               </div>
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Remaining Amount Owed (Optional)</label>
+                  <label className="mb-2 block text-sm font-medium">Remaining Amount Owed</label>
                   <input
                     type="number"
                     min="0"
@@ -280,7 +329,7 @@ export default function SellUnit() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Remaining Installments (Optional)</label>
+                  <label className="mb-2 block text-sm font-medium">Remaining Installments</label>
                   <input
                     type="number"
                     min="0"
@@ -293,7 +342,7 @@ export default function SellUnit() {
                 </div>
               </div>
               <div>
-                <label className="mb-2 block text-sm font-medium">Description (Optional)</label>
+                <label className="mb-2 block text-sm font-medium">Description</label>
                 <textarea
                   rows={5}
                   value={formData.description}
@@ -304,7 +353,7 @@ export default function SellUnit() {
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium">Photos (Optional, up to {MAX_PHOTOS})</label>
+                <label className="mb-2 block text-sm font-medium">Photos (up to {MAX_PHOTOS})</label>
                 <div className="rounded-xl border-2 border-dashed border-zinc-300 p-6 text-center">
                   <input
                     type="file"

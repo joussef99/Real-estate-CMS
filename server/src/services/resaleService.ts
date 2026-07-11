@@ -5,6 +5,7 @@ export type ResaleListingPayload = {
   title: string;
   location?: string | null;
   price?: string | null;
+  paid_amount?: number | string | null;
   installment_value?: number | string | null;
   remaining_amount?: number | string | null;
   remaining_installments?: number | string | null;
@@ -69,6 +70,7 @@ export function normalizeResaleListingPayload(payload: ResaleListingPayload, cur
     price: payload.price ?? null,
     // Validation already rejected malformed numeric values before this runs, so
     // an `undefined` result here can only mean "not provided" — safe to coerce to null.
+    paid_amount: toNullableNonNegativeInt(payload.paid_amount) ?? null,
     installment_value: toNullableNonNegativeInt(payload.installment_value) ?? null,
     remaining_amount: toNullableNonNegativeInt(payload.remaining_amount) ?? null,
     remaining_installments: toNullableNonNegativeInt(payload.remaining_installments) ?? null,

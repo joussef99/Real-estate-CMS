@@ -91,8 +91,10 @@ export default function AdminResaleSubmissions() {
                       <tr key={submission.id} className="border-b border-zinc-100 transition-colors hover:bg-zinc-50">
                         <td className="px-6 py-4 text-sm font-medium text-zinc-700">{submission.owner_name}</td>
                         <td className="px-6 py-4 text-sm text-zinc-600">
-                          <a href={`mailto:${submission.owner_email}`} className="text-blue-600 hover:underline">{submission.owner_email}</a>
-                          {submission.owner_phone && <div className="text-xs text-zinc-400">{submission.owner_phone}</div>}
+                          <div>{submission.owner_phone}</div>
+                          {submission.owner_email && (
+                            <a href={`mailto:${submission.owner_email}`} className="text-xs text-blue-600 hover:underline">{submission.owner_email}</a>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm text-zinc-600">
                           <div className="font-medium">{submission.location}</div>
@@ -101,6 +103,7 @@ export default function AdminResaleSubmissions() {
                         </td>
                         <td className="px-6 py-4 text-xs text-zinc-600">
                           <div>{submission.asking_price || '-'}</div>
+                          {submission.paid_amount != null && <div className="text-zinc-400">Paid so far: {submission.paid_amount.toLocaleString()}</div>}
                           {submission.installment_value != null && <div className="text-zinc-400">Installment: {submission.installment_value.toLocaleString()}</div>}
                           {submission.remaining_amount != null && <div className="text-zinc-400">Remaining: {submission.remaining_amount.toLocaleString()}{submission.remaining_installments != null ? ` (${submission.remaining_installments} left)` : ''}</div>}
                         </td>

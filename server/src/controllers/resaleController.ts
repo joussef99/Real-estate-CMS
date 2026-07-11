@@ -30,15 +30,28 @@ const validateResaleSubmissionInput = (body: any) => {
   else if (ownerName.length > MAX_SHORT_TEXT_LENGTH) errors.push("Owner name is too long");
 
   const ownerEmail = typeof body?.owner_email === "string" ? body.owner_email.trim() : "";
-  if (!ownerEmail || !EMAIL_PATTERN.test(ownerEmail)) errors.push("A valid owner email is required");
+  if (ownerEmail && !EMAIL_PATTERN.test(ownerEmail)) errors.push("Owner email must be a valid email address");
+
+  const ownerPhone = typeof body?.owner_phone === "string" ? body.owner_phone.trim() : "";
+  if (!ownerPhone) errors.push("Owner phone is required");
+  else if (ownerPhone.length > 40) errors.push("Phone number is too long");
 
   const location = typeof body?.location === "string" ? body.location.trim() : "";
-  if (!location) errors.push("Location is required");
-  else if (location.length > MAX_SHORT_TEXT_LENGTH) errors.push("Location is too long");
+  if (!location) errors.push("Compound name is required");
+  else if (location.length > MAX_SHORT_TEXT_LENGTH) errors.push("Compound name is too long");
 
-  if (body?.owner_phone !== undefined && body.owner_phone !== null && String(body.owner_phone).length > 40) {
-    errors.push("Phone number is too long");
-  }
+  const unitType = typeof body?.unit_type === "string" ? body.unit_type.trim() : "";
+  if (!unitType) errors.push("Unit type is required");
+
+  const beds = typeof body?.beds === "string" ? body.beds.trim() : "";
+  if (!beds) errors.push("Beds is required");
+
+  const size = typeof body?.size === "string" ? body.size.trim() : "";
+  if (!size) errors.push("Size is required");
+
+  const askingPrice = typeof body?.asking_price === "string" ? body.asking_price.trim() : "";
+  if (!askingPrice) errors.push("Asking price is required");
+  else if (toNullableNonNegativeInt(askingPrice) === undefined) errors.push("Asking price must be a non-negative number");
 
   if (body?.delivery_time !== undefined && body.delivery_time !== null && String(body.delivery_time).length > MAX_SHORT_TEXT_LENGTH) {
     errors.push("Delivery time is too long");
@@ -48,7 +61,7 @@ const validateResaleSubmissionInput = (body: any) => {
     errors.push("Description is too long");
   }
 
-  for (const field of ["installment_value", "remaining_amount", "remaining_installments"] as const) {
+  for (const field of ["paid_amount", "installment_value", "remaining_amount", "remaining_installments"] as const) {
     if (body?.[field] !== undefined && body[field] !== null && body[field] !== "" && toNullableNonNegativeInt(body[field]) === undefined) {
       errors.push(`${field.replace(/_/g, " ")} must be a non-negative number`);
     }
@@ -71,7 +84,7 @@ const validateResaleListingInput = (body: any) => {
     errors.push("Description is too long");
   }
 
-  for (const field of ["installment_value", "remaining_amount", "remaining_installments"] as const) {
+  for (const field of ["paid_amount", "installment_value", "remaining_amount", "remaining_installments"] as const) {
     if (body?.[field] !== undefined && body[field] !== null && body[field] !== "" && toNullableNonNegativeInt(body[field]) === undefined) {
       errors.push(`${field.replace(/_/g, " ")} must be a non-negative number`);
     }
@@ -96,6 +109,7 @@ const mapListingCard = (listing: any) => ({
 
 const mapListingDetail = (listing: any) => ({
   ...mapListingCard(listing),
+  paid_amount: listing.paid_amount,
   installment_value: listing.installment_value,
   remaining_amount: listing.remaining_amount,
   remaining_installments: listing.remaining_installments,
@@ -132,7 +146,7 @@ export async function createResaleSubmission(req: Request, res: Response) {
 
   const {
     owner_name, owner_email, owner_phone, location, unit_type, beds, size,
-    asking_price, installment_value, remaining_amount, remaining_installments,
+    asking_price, paid_amount, installment_value, remaining_amount, remaining_installments,
     delivery_time, description,
   } = req.body;
 
@@ -149,13 +163,14 @@ export async function createResaleSubmission(req: Request, res: Response) {
   const submission = await prisma.resaleSubmission.create({
     data: {
       owner_name: owner_name.trim(),
-      owner_email: owner_email.trim(),
-      owner_phone: owner_phone || null,
+      owner_email: owner_email ? owner_email.trim() : null,
+      owner_phone: owner_phone.trim(),
       location: location.trim(),
-      unit_type: unit_type || null,
-      beds: beds || null,
-      size: size || null,
-      asking_price: asking_price || null,
+      unit_type: unit_type.trim(),
+      beds: beds.trim(),
+      size: size.trim(),
+      asking_price: asking_price.trim(),
+      paid_amount: toNullableNonNegativeInt(paid_amount) ?? null,
       installment_value: toNullableNonNegativeInt(installment_value) ?? null,
       remaining_amount: toNullableNonNegativeInt(remaining_amount) ?? null,
       remaining_installments: toNullableNonNegativeInt(remaining_installments) ?? null,
@@ -171,11 +186,12 @@ export async function createResaleSubmission(req: Request, res: Response) {
     html: `
       <h2>New resale submission received</h2>
       <p><strong>Owner:</strong> ${owner_name}</p>
-      <p><strong>Email:</strong> ${owner_email}</p>
-      <p><strong>Phone:</strong> ${owner_phone || "(not provided)"}</p>
-      <p><strong>Location:</strong> ${location}</p>
-      <p><strong>Unit type:</strong> ${unit_type || "(not provided)"}</p>
-      <p><strong>Asking price:</strong> ${asking_price || "(not provided)"}</p>
+      <p><strong>Phone:</strong> ${owner_phone}</p>
+      <p><strong>Email:</strong> ${owner_email || "(not provided)"}</p>
+      <p><strong>Compound:</strong> ${location}</p>
+      <p><strong>Unit type:</strong> ${unit_type}</p>
+      <p><strong>Asking price:</strong> ${asking_price}</p>
+      <p><strong>Paid amount so far:</strong> ${paid_amount || "(not provided)"}</p>
       <p><strong>Installment value:</strong> ${installment_value || "(not provided)"}</p>
       <p><strong>Remaining amount:</strong> ${remaining_amount || "(not provided)"}</p>
       <p><strong>Remaining installments:</strong> ${remaining_installments || "(not provided)"}</p>
@@ -327,7 +343,7 @@ export async function getAdminResaleListingById(req: Request, res: Response) {
 
 export async function createResaleListing(req: Request, res: Response) {
   const {
-    title, location, price, installment_value, remaining_amount, remaining_installments,
+    title, location, price, paid_amount, installment_value, remaining_amount, remaining_installments,
     delivery_time, description, gallery, gallery_meta, main_image_meta, beds, size,
     unit_type, status, slug, meta_title, meta_description, submission_id,
   } = req.body;
@@ -341,6 +357,7 @@ export async function createResaleListing(req: Request, res: Response) {
     title: title.trim(),
     location,
     price,
+    paid_amount,
     installment_value,
     remaining_amount,
     remaining_installments,
@@ -367,6 +384,7 @@ export async function createResaleListing(req: Request, res: Response) {
         title: normalized.title,
         location: normalized.location,
         price: normalized.price,
+        paid_amount: normalized.paid_amount,
         installment_value: normalized.installment_value,
         remaining_amount: normalized.remaining_amount,
         remaining_installments: normalized.remaining_installments,
@@ -403,7 +421,7 @@ export async function createResaleListing(req: Request, res: Response) {
 export async function updateResaleListing(req: Request, res: Response) {
   const listingId = parseInt(req.params.id, 10);
   const {
-    title, location, price, installment_value, remaining_amount, remaining_installments,
+    title, location, price, paid_amount, installment_value, remaining_amount, remaining_installments,
     delivery_time, description, gallery, gallery_meta, main_image_meta, beds, size,
     unit_type, status, slug, meta_title, meta_description,
   } = req.body;
@@ -415,7 +433,7 @@ export async function updateResaleListing(req: Request, res: Response) {
 
   const normalized = normalizeResaleListingPayload(
     {
-      title: title.trim(), location, price, installment_value, remaining_amount,
+      title: title.trim(), location, price, paid_amount, installment_value, remaining_amount,
       remaining_installments, delivery_time, description, gallery, gallery_meta,
       main_image_meta, beds, size, unit_type, status, slug, meta_title, meta_description,
     },
@@ -451,6 +469,7 @@ export async function updateResaleListing(req: Request, res: Response) {
       title: normalized.title,
       location: normalized.location,
       price: normalized.price,
+      paid_amount: normalized.paid_amount,
       installment_value: normalized.installment_value,
       remaining_amount: normalized.remaining_amount,
       remaining_installments: normalized.remaining_installments,

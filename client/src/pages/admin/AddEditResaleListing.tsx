@@ -1,15 +1,17 @@
-import { authFetch, authJson, authUploadJson } from '../../utils/api';
+import { apiJson, authFetch, authJson, authUploadJson, normalizeListResponse } from '../../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { SelectWithOther } from '../../components/ui/select-with-other';
 import { ArrowLeft, X, Upload } from 'lucide-react';
 import { NoticeToast } from '../../components/ui/notice-toast';
 import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { slugify } from '../../utils/slugify';
 import { optimizeImageFiles } from '../../utils/imageUpload';
-import { MediaAsset, ResaleSubmission } from '../../types';
+import { MediaAsset, Project, ResaleSubmission } from '../../types';
 import { useTemporaryMediaManager } from '../../hooks/useTemporaryMediaManager';
+import { RESALE_BEDS_OPTIONS } from '../../utils/resaleFormOptions';
 
 export default function AddEditResaleListing() {
   const { id } = useParams();
@@ -23,6 +25,8 @@ export default function AddEditResaleListing() {
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [slugDirty, setSlugDirty] = useState(false);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const [compoundOptions, setCompoundOptions] = useState<string[]>([]);
+  const [unitTypeOptions, setUnitTypeOptions] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     title: '',
     slug: '',
@@ -31,6 +35,7 @@ export default function AddEditResaleListing() {
     unit_type: '',
     beds: '',
     size: '',
+    paid_amount: '',
     installment_value: '',
     remaining_amount: '',
     remaining_installments: '',
@@ -45,6 +50,23 @@ export default function AddEditResaleListing() {
   const { cleanupTemporaryUpload, isTemporaryUpload, markSaved, trackTemporaryUpload } = useTemporaryMediaManager();
 
   useEffect(() => {
+    apiJson<any>('/api/projects?limit=100')
+      .then((data) => {
+        const projects = normalizeListResponse<Project>(data, 'projects');
+        const names = Array.from(new Set(projects.map((p) => p.name).filter(Boolean)));
+        setCompoundOptions(names.sort((a, b) => a.localeCompare(b)));
+      })
+      .catch(() => {});
+
+    apiJson<any>('/api/property-types')
+      .then((data) => {
+        const types = (Array.isArray(data) ? data : []).map((pt: { name: string }) => pt.name).filter(Boolean);
+        setUnitTypeOptions(types);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     if (id) {
       authJson<any>(`/api/resale/admin/listings/${id}`).then((data) => {
         setFormData({
@@ -55,6 +77,7 @@ export default function AddEditResaleListing() {
           unit_type: data.unit_type || '',
           beds: data.beds || '',
           size: data.size || '',
+          paid_amount: data.paid_amount != null ? String(data.paid_amount) : '',
           installment_value: data.installment_value != null ? String(data.installment_value) : '',
           remaining_amount: data.remaining_amount != null ? String(data.remaining_amount) : '',
           remaining_installments: data.remaining_installments != null ? String(data.remaining_installments) : '',
@@ -88,6 +111,7 @@ export default function AddEditResaleListing() {
           unit_type: submission.unit_type || '',
           beds: submission.beds || '',
           size: submission.size || '',
+          paid_amount: submission.paid_amount != null ? String(submission.paid_amount) : '',
           installment_value: submission.installment_value != null ? String(submission.installment_value) : '',
           remaining_amount: submission.remaining_amount != null ? String(submission.remaining_amount) : '',
           remaining_installments: submission.remaining_installments != null ? String(submission.remaining_installments) : '',
@@ -171,6 +195,7 @@ export default function AddEditResaleListing() {
     }
 
     for (const [field, label] of [
+      ['paid_amount', 'Paid amount'],
       ['installment_value', 'Installment value'],
       ['remaining_amount', 'Remaining amount'],
       ['remaining_installments', 'Remaining installments'],
@@ -255,48 +280,38 @@ export default function AddEditResaleListing() {
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Location</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.location}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, location: e.target.value }))}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Price</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.price}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
-                    placeholder="e.g. AED 1,850,000"
-                  />
-                </div>
+                <SelectWithOther
+                  label="Compound Name"
+                  required
+                  options={compoundOptions}
+                  value={formData.location}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, location: value }))}
+                  placeholder="Select a compound"
+                  otherPlaceholder="Type the compound name"
+                />
+                <SelectWithOther
+                  label="Unit Type"
+                  options={unitTypeOptions}
+                  value={formData.unit_type}
+                  onChange={(value) => setFormData((prev) => ({ ...prev, unit_type: value }))}
+                  placeholder="Select a unit type"
+                  otherPlaceholder="Type the unit type"
+                />
               </div>
 
               <div className="grid gap-6 md:grid-cols-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Unit Type</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.unit_type}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, unit_type: e.target.value }))}
-                    placeholder="e.g. Apartment, Villa"
-                  />
-                </div>
-                <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Beds</label>
-                  <input
-                    type="text"
+                  <select
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                     value={formData.beds}
                     onChange={(e) => setFormData((prev) => ({ ...prev, beds: e.target.value }))}
-                    placeholder="e.g. 2"
-                  />
+                  >
+                    <option value="">Select beds</option>
+                    {RESALE_BEDS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Size (Sqft)</label>
@@ -308,6 +323,29 @@ export default function AddEditResaleListing() {
                     placeholder="e.g. 1,250 sqft"
                   />
                 </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Price</label>
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.price}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
+                    placeholder="e.g. EGP 1,850,000"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-700">Amount Paid So Far</label>
+                <input
+                  type="number"
+                  min="0"
+                  inputMode="numeric"
+                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                  value={formData.paid_amount}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, paid_amount: e.target.value }))}
+                  placeholder="e.g. 1200000"
+                />
               </div>
 
               <div className="grid gap-6 md:grid-cols-2">
