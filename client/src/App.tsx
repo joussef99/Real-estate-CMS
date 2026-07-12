@@ -26,6 +26,7 @@ const DestinationProjects = lazy(() => import('./pages/DestinationProjects'));
 const Resale = lazy(() => import('./pages/Resale'));
 const ResaleDetails = lazy(() => import('./pages/ResaleDetails'));
 const SellUnit = lazy(() => import('./pages/SellUnit'));
+const Favorites = lazy(() => import('./pages/Favorites'));
 const Login = lazy(() => import('./pages/admin/Login'));
 const Dashboard = lazy(() => import('./pages/admin/Dashboard'));
 const ManageProjects = lazy(() => import('./pages/admin/ManageProjects'));
@@ -78,6 +79,7 @@ export default function App() {
             <Route path="/resale" element={<Resale />} />
             <Route path="/resale/:slug" element={<ResaleDetails />} />
             <Route path="/sell" element={<SellUnit />} />
+            <Route path="/favorites" element={<Favorites />} />
             <Route path="/admin/login" element={<Login />} />
             <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/admin/projects" element={<ProtectedRoute><ManageProjects /></ProtectedRoute>} />

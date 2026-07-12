@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "../components/Button";
 import { ProjectCard } from "../components/ProjectCard";
+import { ResaleListingCard } from "../components/ResaleListingCard";
 import { SectionHeading } from "../components/ui/section-heading";
 import { WHATSAPP_URL, WhatsAppIcon } from "../components/WhatsAppButton";
 import { Blog, Destination, Developer, Project, ResaleListing } from "../types";
@@ -337,8 +338,6 @@ export default function Home() {
             {heroMode === "sell" ? (
               <div className="overflow-hidden rounded-[1.4rem] border border-white/14 bg-slate-950/28 p-6 shadow-[0_18px_50px_rgba(2,6,23,0.2)] backdrop-blur-xl sm:rounded-[1.75rem] sm:bg-white/10 sm:p-8">
                 <span className="max-w-xl text-sm text-white/80 sm:text-base">
-                  Own a unit you'd like to sell?
-                  <br /> <br />
                   Submit your unit's details and our team will review, curate,
                   and publish it as a resale listing for qualified buyers.
                 </span>
@@ -549,40 +548,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3">
               {resaleListings.map((listing) => (
-                <Link
-                  key={listing.id}
-                  to={`/resale/${listing.slug || listing.id}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-lg transition-all hover:shadow-2xl"
-                >
-                  <div className="relative aspect-16/11 overflow-hidden">
-                    <img
-                      src={
-                        cloudinaryOptimizedUrl(
-                          resolveImageUrl(listing.main_image),
-                          { width: 900, height: 620 },
-                        ) || FALLBACK_IMAGE_URL
-                      }
-                      alt={listing.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
-                      referrerPolicy="no-referrer"
-                      onError={withFallbackImage}
-                    />
-                    <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
-                      {listing.price || "Price on request"}
-                    </div>
-                  </div>
-                  <div className="space-y-2 p-5 sm:p-6">
-                    <h3 className="line-clamp-1 text-lg font-semibold text-zinc-900 sm:text-xl">
-                      {listing.title}
-                    </h3>
-                    <div className="flex items-center text-sm text-zinc-500">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      <span className="line-clamp-1">{listing.location}</span>
-                    </div>
-                  </div>
-                </Link>
+                <ResaleListingCard key={listing.id} listing={listing} compact />
               ))}
             </div>
 

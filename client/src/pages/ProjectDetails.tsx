@@ -4,6 +4,8 @@ import { useParams } from 'react-router-dom';
 import { Project } from '../types';
 import { MapPin, Building2, CheckCircle2, Phone, Mail, ChevronLeft, ChevronRight, Bed, Maximize2 } from 'lucide-react';
 import { Button } from '../components/Button';
+import { FavoriteButton } from '../components/FavoriteButton';
+import { ShareButton } from '../components/ShareButton';
 import { motion } from 'motion/react';
 import { formatEGP, normalizeDownPayment } from '../utils/downPayment';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
@@ -296,11 +298,26 @@ export default function ProjectDetails() {
           {/* Main Content */}
           <div className="lg:col-span-2">
             <div className="mb-8">
-              <div className="mb-4 flex items-center gap-4">
-                <span className="rounded-full bg-zinc-100 px-4 py-1 text-sm font-semibold uppercase text-zinc-600">
-                  {project.type}
-                </span>
-                <span className="text-2xl font-bold text-black">{project.price_range}</span>
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="rounded-full bg-zinc-100 px-4 py-1 text-sm font-semibold uppercase text-zinc-600">
+                    {project.type}
+                  </span>
+                  <span className="text-2xl font-bold text-black">{project.price_range}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShareButton variant="solid" url={`/projects/${slug}`} title={project.name} />
+                  <FavoriteButton
+                    variant="solid"
+                    type="project"
+                    id={project.id}
+                    title={project.name}
+                    slug={project.slug}
+                    image={project.main_image}
+                    subtitle={project.location}
+                    price={project.price_range}
+                  />
+                </div>
               </div>
               <p className="mb-4 text-sm font-medium text-blue-900">
                 Starting Down Payment:{' '}

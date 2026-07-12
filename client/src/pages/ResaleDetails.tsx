@@ -4,6 +4,8 @@ import { useParams } from 'react-router-dom';
 import { ResaleListing } from '../types';
 import { MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, CalendarClock, ListChecks, Wallet } from 'lucide-react';
 import { Button } from '../components/Button';
+import { FavoriteButton } from '../components/FavoriteButton';
+import { ShareButton } from '../components/ShareButton';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 import { ErrorState } from '../components/ui/state-message';
 import { useApiData } from '../hooks/useApiData';
@@ -189,11 +191,26 @@ export default function ResaleDetails() {
         <div className="grid gap-12 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <div className="mb-8">
-              <div className="mb-4 flex items-center gap-4">
-                <span className="rounded-full bg-zinc-100 px-4 py-1 text-sm font-semibold uppercase text-zinc-600">
-                  {listing.unit_type || 'Resale Unit'}
-                </span>
-                <span className="text-2xl font-bold text-black">{listing.price || 'Price on request'}</span>
+              <div className="mb-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <span className="rounded-full bg-zinc-100 px-4 py-1 text-sm font-semibold uppercase text-zinc-600">
+                    {listing.unit_type || 'Resale Unit'}
+                  </span>
+                  <span className="text-2xl font-bold text-black">{listing.price || 'Price on request'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <ShareButton variant="solid" url={`/resale/${slug}`} title={listing.title} />
+                  <FavoriteButton
+                    variant="solid"
+                    type="resale"
+                    id={listing.id}
+                    title={listing.title}
+                    slug={listing.slug}
+                    image={listing.main_image}
+                    subtitle={listing.location}
+                    price={listing.price}
+                  />
+                </div>
               </div>
               <h1 className="mb-4 text-4xl font-bold text-zinc-900 md:text-5xl">{listing.title}</h1>
               <div className="flex flex-wrap gap-6 text-zinc-500">

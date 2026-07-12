@@ -2,10 +2,10 @@ import { apiJson } from '../utils/api';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { ResaleListing } from '../types';
-import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 import { ErrorState } from '../components/ui/state-message';
 import { FilterSelect, BEDROOM_OPTIONS } from '../components/ui/filter-select';
-import { Search, MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
+import { ResaleListingCard } from '../components/ResaleListingCard';
+import { Search, ChevronLeft, ChevronRight, Loader2, X } from 'lucide-react';
 
 const RESULTS_PER_PAGE = 12;
 const FILTER_DEBOUNCE_MS = 450;
@@ -235,36 +235,7 @@ export default function Resale() {
                 </div>
               ))
             : listings.map((listing) => (
-                <Link
-                  key={listing.id}
-                  to={`/resale/${listing.slug || listing.id}`}
-                  className="group overflow-hidden rounded-2xl border border-zinc-100 bg-white shadow-lg transition-all hover:shadow-2xl"
-                >
-                  <div className="relative aspect-16/11 overflow-hidden">
-                    <img
-                      src={resolveImageUrl(listing.main_image) || FALLBACK_IMAGE_URL}
-                      alt={listing.title}
-                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      loading="lazy"
-                      decoding="async"
-                      onError={withFallbackImage}
-                    />
-                    <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
-                      {listing.price || 'Price on request'}
-                    </div>
-                  </div>
-                  <div className="space-y-3 p-6">
-                    <h3 className="line-clamp-1 text-xl font-semibold text-zinc-900">{listing.title}</h3>
-                    <div className="flex items-center text-sm text-zinc-500">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      <span className="line-clamp-1">{listing.location}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-zinc-500">
-                      <span className="flex items-center gap-1"><Bed className="h-4 w-4" /> {listing.beds || 'N/A'}</span>
-                      <span className="flex items-center gap-1"><Maximize2 className="h-4 w-4" /> {listing.size || 'N/A'}</span>
-                    </div>
-                  </div>
-                </Link>
+                <ResaleListingCard key={listing.id} listing={listing} />
               ))}
         </div>
 

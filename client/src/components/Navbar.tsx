@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Search, User, Building2 } from 'lucide-react';
+import { Menu, X, Search, User, Building2, Heart } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Button } from './Button';
 import { WHATSAPP_URL, WhatsAppIcon } from './WhatsAppButton';
+import { useFavoritesList } from '../hooks/useFavorites';
 
 // Mirrors the lazy() imports in App.tsx — calling the same dynamic import
 // again here doesn't re-fetch the chunk (the bundler dedupes it), so
@@ -21,6 +22,7 @@ const routePrefetchers: Record<string, () => Promise<unknown>> = {
   '/careers': () => import('../pages/Careers'),
   '/contact': () => import('../pages/Contact'),
   '/about': () => import('../pages/About'),
+  '/favorites': () => import('../pages/Favorites'),
 };
 
 export const Navbar = () => {
@@ -34,6 +36,7 @@ export const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const favoritesCount = useFavoritesList().length;
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -104,6 +107,20 @@ export const Navbar = () => {
           {/* <Link to="/admin/login" className="text-slate-500 hover:text-slate-950" aria-label="Admin login">
             <User className="h-5 w-5" />
           </Link> */}
+          <Link
+            to="/favorites"
+            onMouseEnter={() => prefetch('/favorites')}
+            onFocus={() => prefetch('/favorites')}
+            className={`relative transition-colors hover:text-white ${location.pathname === '/favorites' ? 'text-white' : 'text-slate-300'}`}
+            aria-label="Your favorites"
+          >
+            <Heart className={`h-5 w-5 ${favoritesCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+            {favoritesCount > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+                {favoritesCount}
+              </span>
+            )}
+          </Link>
           <Button size="sm" asChild>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp us">
               <WhatsAppIcon className="h-4 w-4" />
@@ -165,6 +182,26 @@ export const Navbar = () => {
                           </Link>
                         </Dialog.Close>
                       ))}
+                      <Dialog.Close asChild>
+                        <Link
+                          to="/favorites"
+                          className={`flex items-center justify-between rounded-xl px-4 py-3 text-base font-medium transition-all duration-300 ${
+                            location.pathname === '/favorites'
+                              ? 'bg-slate-900 text-white'
+                              : 'text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2">
+                            <Heart className={`h-4 w-4 ${favoritesCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+                            Favorites
+                          </span>
+                          {favoritesCount > 0 && (
+                            <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-semibold text-white">
+                              {favoritesCount}
+                            </span>
+                          )}
+                        </Link>
+                      </Dialog.Close>
                     </div>
 
                     <div className="mt-auto space-y-3 pt-8">
