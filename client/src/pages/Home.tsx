@@ -18,6 +18,7 @@ import { ProjectCard } from "../components/ProjectCard";
 import { ResaleListingCard } from "../components/ResaleListingCard";
 import { SectionHeading } from "../components/ui/section-heading";
 import { WHATSAPP_URL, WhatsAppIcon } from "../components/WhatsAppButton";
+import { LeadCapturePopup } from "../components/LeadCapturePopup";
 import { Blog, Destination, Developer, Project, ResaleListing } from "../types";
 import {
   FALLBACK_IMAGE_URL,
@@ -227,6 +228,7 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh overflow-x-hidden">
+      <LeadCapturePopup />
       {/* ══════════════════════ CINEMATIC HERO ══════════════════════ */}
       <section className="relative min-h-dvh overflow-hidden bg-slate-950">
         <div className="absolute inset-0">
