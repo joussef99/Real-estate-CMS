@@ -6,6 +6,7 @@ import { makeUniqueResaleSlug, normalizeResaleListingPayload, toNullableNonNegat
 import { deleteImages, getPublicIdsFromMediaCollection, uploadImage } from "../services/mediaService.ts";
 import { notifyAdmin } from "../services/notificationService.ts";
 import { bedsMatchesFilter } from "../utils/bedsRange.ts";
+import { translateTextToEgyptianArabic } from "../services/translationService.ts";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX_TEXT_LENGTH = 5000;
@@ -115,6 +116,7 @@ const mapListingDetail = (listing: any) => ({
   remaining_installments: listing.remaining_installments,
   delivery_time: listing.delivery_time,
   description: listing.description,
+  description_ar: listing.description_ar,
   gallery: listing.gallery,
   gallery_meta: listing.gallery_meta,
   status: listing.status,
@@ -375,6 +377,7 @@ export async function createResaleListing(req: Request, res: Response) {
     meta_description,
   });
   const finalSlug = await makeUniqueResaleSlug(generateSlug(normalized.slugCandidate));
+  const description_ar = await translateTextToEgyptianArabic(normalized.description);
 
   const resolvedSubmissionId = submission_id ? Number(submission_id) : null;
 
@@ -390,6 +393,7 @@ export async function createResaleListing(req: Request, res: Response) {
         remaining_installments: normalized.remaining_installments,
         delivery_time: normalized.delivery_time,
         description: normalized.description,
+        description_ar,
         gallery: normalized.gallery,
         gallery_meta: normalized.gallery_meta,
         beds: normalized.beds,
@@ -443,11 +447,16 @@ export async function updateResaleListing(req: Request, res: Response) {
 
   const existingListing = await prisma.resaleListing.findUnique({
     where: { id: listingId },
-    select: { main_image: true, main_image_meta: true, gallery: true, gallery_meta: true },
+    select: { main_image: true, main_image_meta: true, gallery: true, gallery_meta: true, description: true, description_ar: true },
   });
   if (!existingListing) {
     return res.status(404).json({ error: "Resale listing not found" });
   }
+
+  const descriptionChanged = existingListing.description !== normalized.description;
+  const description_ar = descriptionChanged
+    ? (await translateTextToEgyptianArabic(normalized.description)) ?? existingListing.description_ar ?? null
+    : existingListing.description_ar ?? null;
 
   const previousPublicIds = getPublicIdsFromMediaCollection([
     existingListing.main_image_meta,
@@ -475,6 +484,7 @@ export async function updateResaleListing(req: Request, res: Response) {
       remaining_installments: normalized.remaining_installments,
       delivery_time: normalized.delivery_time,
       description: normalized.description,
+      description_ar,
       gallery: normalized.gallery,
       gallery_meta: normalized.gallery_meta,
       beds: normalized.beds,

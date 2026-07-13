@@ -21,6 +21,7 @@
     "db:nullify:legacy-images": "tsx src/scripts/audit-legacy-image-paths.ts --apply-nullify"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "bcryptjs": "^3.0.3",

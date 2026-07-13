@@ -124,7 +124,7 @@ export const Navbar = () => {
           <Button size="sm" asChild>
             <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp us">
               <WhatsAppIcon className="h-4 w-4" />
-              WhatsApp us
+              Contact us
             </a>
           </Button>
         </div>
@@ -209,7 +209,7 @@ export const Navbar = () => {
                         <Button className="w-full" asChild>
                           <a href={WHATSAPP_URL} target="_blank" rel="noopener noreferrer">
                             <WhatsAppIcon className="h-4 w-4" />
-                            WhatsApp us
+                            Contact us
                           </a>
                         </Button>
                       </Dialog.Close>

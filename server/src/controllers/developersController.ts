@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls } from "../utils/imageUrl.ts";
 import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
+import { translateTextToEgyptianArabic } from "../services/translationService.ts";
 
 const makeUniqueSlug = async (baseName: string, currentId?: number): Promise<string> => {
   let slug = generateSlug(baseName) || `developer-${Date.now()}`;
@@ -26,7 +27,7 @@ export async function getDevelopers(req: Request, res: Response) {
 
   if (limit <= 0 && !req.query.page && !includeProjectPreviews) {
     const developers = await prisma.developer.findMany({
-      select: { id: true, public_id: true, name: true, logo: true, logo_meta: true, description: true, slug: true },
+      select: { id: true, public_id: true, name: true, logo: true, logo_meta: true, description: true, description_ar: true, slug: true },
       orderBy: { id: "desc" },
     });
     const transformedDevelopers = (developers as any[])
@@ -98,8 +99,9 @@ export async function getDevelopers(req: Request, res: Response) {
 export async function createDeveloper(req: Request, res: Response) {
   const { name, logo, logo_meta, description } = req.body;
   const slug = await makeUniqueSlug(name);
+  const description_ar = await translateTextToEgyptianArabic(description);
   const created = await prisma.developer.create({
-    data: { name, logo, logo_meta: logo_meta || null, description, slug },
+    data: { name, logo, logo_meta: logo_meta || null, description, description_ar, slug },
   });
   return res.json({ id: created.id, public_id: created.public_id, slug });
 }
@@ -107,7 +109,7 @@ export async function createDeveloper(req: Request, res: Response) {
 export async function updateDeveloper(req: Request, res: Response) {
   const { name, logo, logo_meta, description } = req.body;
   const id = parseInt(req.params.id, 10);
-  const existing = await prisma.developer.findUnique({ where: { id }, select: { logo_meta: true } });
+  const existing = await prisma.developer.findUnique({ where: { id }, select: { logo_meta: true, description: true, description_ar: true } });
   const slug = await makeUniqueSlug(name, id);
 
   const previousPublicId = getPublicIdFromMedia(existing?.logo_meta);
@@ -116,9 +118,14 @@ export async function updateDeveloper(req: Request, res: Response) {
     await deleteImages([previousPublicId]);
   }
 
+  const descriptionChanged = existing?.description !== description;
+  const description_ar = descriptionChanged
+    ? (await translateTextToEgyptianArabic(description)) ?? existing?.description_ar ?? null
+    : existing?.description_ar ?? null;
+
   await prisma.developer.update({
     where: { id },
-    data: { name, logo, logo_meta: logo_meta || null, description, slug },
+    data: { name, logo, logo_meta: logo_meta || null, description, description_ar, slug },
   });
   return res.json({ success: true, slug });
 }

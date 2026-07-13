@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls } from "../utils/imageUrl.ts";
 import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
+import { translateTextToEgyptianArabic } from "../services/translationService.ts";
 
 const makeUniqueSlug = async (baseName: string, currentId?: number): Promise<string> => {
   let slug = generateSlug(baseName) || `destination-${Date.now()}`;
@@ -36,6 +37,7 @@ export async function getDestinations(req: Request, res: Response) {
       image: d.image || (d as any).image_meta?.url || null,
       image_meta: (d as any).image_meta ?? null,
       description: d.description,
+      description_ar: d.description_ar,
       slug: d.slug,
       project_count: d._count.projects,
     }));
@@ -59,6 +61,7 @@ export async function getDestinations(req: Request, res: Response) {
     image: d.image || (d as any).image_meta?.url || null,
     image_meta: (d as any).image_meta ?? null,
     description: d.description,
+    description_ar: d.description_ar,
     slug: d.slug,
     project_count: d._count.projects,
   }));
@@ -115,13 +118,13 @@ export async function getDestinationProjects(req: Request, res: Response) {
   const destination = /^\d+$/.test(identifier)
     ? await prisma.destination.findUnique({
         where: { id: parseInt(identifier, 10) },
-        select: { id: true, public_id: true, name: true, slug: true, image: true, image_meta: true, description: true },
+        select: { id: true, public_id: true, name: true, slug: true, image: true, image_meta: true, description: true, description_ar: true },
       })
     : await prisma.destination.findFirst({
         where: {
           OR: [{ slug: identifier }, { public_id: identifier }],
         },
-        select: { id: true, public_id: true, name: true, slug: true, image: true, image_meta: true, description: true },
+        select: { id: true, public_id: true, name: true, slug: true, image: true, image_meta: true, description: true, description_ar: true },
       });
   if (!destination) {
     return res.status(404).json({ error: "Destination not found" });
@@ -164,14 +167,15 @@ export async function getDestinationProjects(req: Request, res: Response) {
 export async function createDestination(req: Request, res: Response) {
   const { name, image, image_meta, description } = req.body;
   const slug = await makeUniqueSlug(name);
-  const created = await prisma.destination.create({ data: { name, image, image_meta: image_meta || null, description, slug } });
+  const description_ar = await translateTextToEgyptianArabic(description);
+  const created = await prisma.destination.create({ data: { name, image, image_meta: image_meta || null, description, description_ar, slug } });
   return res.json({ id: created.id, public_id: created.public_id, slug });
 }
 
 export async function updateDestination(req: Request, res: Response) {
   const { name, image, image_meta, description } = req.body;
   const id = parseInt(req.params.id, 10);
-  const existing = await prisma.destination.findUnique({ where: { id }, select: { image_meta: true } });
+  const existing = await prisma.destination.findUnique({ where: { id }, select: { image_meta: true, description: true, description_ar: true } });
   const slug = await makeUniqueSlug(name, id);
 
   const previousPublicId = getPublicIdFromMedia(existing?.image_meta);
@@ -180,9 +184,14 @@ export async function updateDestination(req: Request, res: Response) {
     await deleteImages([previousPublicId]);
   }
 
+  const descriptionChanged = existing?.description !== description;
+  const description_ar = descriptionChanged
+    ? (await translateTextToEgyptianArabic(description)) ?? existing?.description_ar ?? null
+    : existing?.description_ar ?? null;
+
   await prisma.destination.update({
     where: { id },
-    data: { name, image, image_meta: image_meta || null, description, slug },
+    data: { name, image, image_meta: image_meta || null, description, description_ar, slug },
   });
   return res.json({ success: true, slug });
 }

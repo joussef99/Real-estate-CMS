@@ -5,6 +5,7 @@ import { transformImagesToFullUrls, transformGalleryToFullUrls } from "../utils/
 import { makeUniqueProjectSlug, normalizePropertyPayload } from "../services/propertiesService.ts";
 import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
 import { bedsMatchesFilter } from "../utils/bedsRange.ts";
+import { translateTextToEgyptianArabic } from "../services/translationService.ts";
 
 const toPositiveInteger = (value: unknown) => {
   const parsed = parseInt(String(value ?? ""), 10);
@@ -90,6 +91,7 @@ const mapProjectDetail = (project: any) => ({
   type: project.type,
   status: project.status,
   description: project.description,
+  description_ar: project.description_ar,
   main_image: project.main_image || project.main_image_meta?.url || null,
   main_image_meta: project.main_image_meta,
   gallery: project.gallery,
@@ -415,6 +417,7 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           type: true,
           status: true,
           description: true,
+          description_ar: true,
           main_image: true,
           main_image_meta: true,
           gallery: true,
@@ -447,6 +450,7 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           type: true,
           status: true,
           description: true,
+          description_ar: true,
           main_image: true,
           main_image_meta: true,
           gallery: true,
@@ -536,6 +540,7 @@ export async function createProject(req: Request, res: Response) {
     meta_description,
   });
   const finalSlug = await makeUniqueSlug(generateSlug(normalized.slugCandidate));
+  const description_ar = await translateTextToEgyptianArabic(normalized.description);
 
   const created = await prisma.project.create({
     data: {
@@ -546,6 +551,7 @@ export async function createProject(req: Request, res: Response) {
       type: normalized.type,
       status: normalized.status,
       description: normalized.description,
+      description_ar,
       gallery: normalized.gallery,
       gallery_meta: normalized.gallery_meta,
       developer_id: normalized.developer_id,
@@ -643,8 +649,16 @@ export async function updateProject(req: Request, res: Response) {
   const finalSlug = await makeUniqueSlug(generateSlug(normalized.slugCandidate), projectId);
   const existingProject = await prisma.project.findUnique({
     where: { id: projectId },
-    select: { main_image: true, main_image_meta: true, gallery: true, gallery_meta: true },
+    select: { main_image: true, main_image_meta: true, gallery: true, gallery_meta: true, description: true, description_ar: true },
   });
+
+  // Only re-translate when the description actually changed — an edit to
+  // price or beds shouldn't burn a translation call. If a re-translation is
+  // attempted but fails, keep the previous Arabic text rather than blanking it.
+  const descriptionChanged = existingProject?.description !== normalized.description;
+  const description_ar = descriptionChanged
+    ? (await translateTextToEgyptianArabic(normalized.description)) ?? existingProject?.description_ar ?? null
+    : existingProject?.description_ar ?? null;
 
   const previousPublicIds = getPublicIdsFromMediaCollection([
     existingProject?.main_image_meta,
@@ -671,6 +685,7 @@ export async function updateProject(req: Request, res: Response) {
         type: normalized.type,
         status: normalized.status,
         description: normalized.description,
+        description_ar,
         gallery: normalized.gallery,
         gallery_meta: normalized.gallery_meta,
         developer_id: normalized.developer_id,

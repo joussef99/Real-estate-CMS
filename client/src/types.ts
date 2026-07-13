@@ -14,6 +14,8 @@ export interface Project {
   type: string;
   status?: string;
   description?: string;
+  /** Auto-translated Egyptian colloquial Arabic — null until translation runs successfully. */
+  description_ar?: string | null;
   main_image?: string;
   main_image_meta?: MediaAsset | null;
   gallery?: string | string[];
@@ -39,6 +41,7 @@ export interface Developer {
   logo: string;
   logo_meta?: MediaAsset | null;
   description: string;
+  description_ar?: string | null;
   slug?: string;
   preview_projects?: Project[];
 }
@@ -49,6 +52,7 @@ export interface Destination {
   image: string;
   image_meta?: MediaAsset | null;
   description: string;
+  description_ar?: string | null;
   slug?: string;
   project_count?: number;
   preview_projects?: Project[];
@@ -59,6 +63,9 @@ export interface Blog {
   title: string;
   slug?: string;
   content: string;
+  /** Auto-translated Egyptian colloquial Arabic — null until translation runs successfully. */
+  title_ar?: string | null;
+  content_ar?: string | null;
   image: string;
   image_meta?: MediaAsset | null;
   category: string;
@@ -83,7 +90,9 @@ export interface Career {
   location: string;
   type: string;
   description: string;
+  description_ar?: string | null;
   requirements: string;
+  requirements_ar?: string | null;
   apply_link?: string | null;
 }
 
@@ -100,6 +109,7 @@ export interface ResaleListing {
   remaining_installments?: number | null;
   delivery_time?: string | null;
   description?: string | null;
+  description_ar?: string | null;
   main_image?: string | null;
   main_image_meta?: MediaAsset | null;
   gallery?: string | string[];

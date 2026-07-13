@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma.ts";
 import { generateSlug } from "../utils/slug.ts";
 import { transformImagesToFullUrls } from "../utils/imageUrl.ts";
 import { deleteImages, getPublicIdFromMedia, getPublicIdsFromMediaCollection } from "../services/mediaService.ts";
+import { translateBlogToEgyptianArabic } from "../services/translationService.ts";
 
 const makeUniqueBlogSlug = async (baseSlug: string, currentId?: number): Promise<string> => {
   let slug = baseSlug;
@@ -86,10 +87,14 @@ export async function createBlog(req: Request, res: Response) {
   const finalMetaTitle = meta_title || title;
   const finalMetaDescription = meta_description || (content ? content.substring(0, 160) : `Read about ${title.toLowerCase()}.`);
 
+  const translation = await translateBlogToEgyptianArabic({ title, content });
+
   const created = await prisma.blog.create({
     data: {
       title,
       content,
+      title_ar: translation?.title_ar ?? null,
+      content_ar: translation?.content_ar ?? null,
       image,
       image_meta: image_meta || null,
       category,
@@ -105,7 +110,10 @@ export async function createBlog(req: Request, res: Response) {
 export async function updateBlog(req: Request, res: Response) {
   const { title, content, image, image_meta, category, author, slug, meta_title, meta_description } = req.body;
   const blogId = parseInt(req.params.id, 10);
-  const existing = await prisma.blog.findUnique({ where: { id: blogId }, select: { image_meta: true } });
+  const existing = await prisma.blog.findUnique({
+    where: { id: blogId },
+    select: { image_meta: true, title: true, content: true, title_ar: true, content_ar: true },
+  });
 
   const baseSlugCandidate = (slug && slug.trim()) || title;
   const baseSlug = generateSlug(baseSlugCandidate || `blog-${Date.now()}`);
@@ -119,11 +127,19 @@ export async function updateBlog(req: Request, res: Response) {
     await deleteImages([previousPublicId]);
   }
 
+  // Only re-translate when the source text actually changed — an edit to the
+  // category or author shouldn't burn a translation call.
+  const sourceChanged = existing?.title !== title || existing?.content !== content;
+  const translation = sourceChanged ? await translateBlogToEgyptianArabic({ title, content }) : null;
+
   await prisma.blog.update({
     where: { id: blogId },
     data: {
       title,
       content,
+      ...(sourceChanged
+        ? { title_ar: translation?.title_ar ?? existing?.title_ar ?? null, content_ar: translation?.content_ar ?? existing?.content_ar ?? null }
+        : {}),
       image,
       image_meta: image_meta || null,
       category,

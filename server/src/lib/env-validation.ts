@@ -90,6 +90,11 @@ const VAR_DESCRIPTIONS: Record<string, { default?: string; description: string; 
     description: "From address for notification emails. Use the Resend sandbox sender until you verify your own domain.",
     required: false,
   },
+  ANTHROPIC_API_KEY: {
+    description:
+      "Claude API key used to auto-translate blog posts (and other content) into Egyptian colloquial Arabic on save. Get one at console.anthropic.com. Auto-translation is silently disabled if unset — content saves normally with the Arabic fields left blank.",
+    required: false,
+  },
 };
 
 /**

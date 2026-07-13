@@ -17,29 +17,31 @@ model User {
 }
 
 model Developer {
-    id          Int       @id @default(autoincrement())
-    public_id   String    @unique @default(uuid())
-    name        String
-    logo        String?
-    logo_meta   Json?
-    description String?
-    website     String?
-    slug        String    @unique
-    projects    Project[]
+    id             Int       @id @default(autoincrement())
+    public_id      String    @unique @default(uuid())
+    name           String
+    logo           String?
+    logo_meta      Json?
+    description    String?
+    description_ar String?
+    website        String?
+    slug           String    @unique
+    projects       Project[]
 
     @@index([name])
     @@map("developers")
 }
 
 model Destination {
-    id          Int       @id @default(autoincrement())
-    public_id   String    @unique @default(uuid())
-    name        String
-    image       String?
-    image_meta  Json?
-    description String?
-    slug        String    @unique
-    projects    Project[]
+    id             Int       @id @default(autoincrement())
+    public_id      String    @unique @default(uuid())
+    name           String
+    image          String?
+    image_meta     Json?
+    description    String?
+    description_ar String?
+    slug           String    @unique
+    projects       Project[]
 
     @@index([name])
     @@map("destinations")
@@ -55,6 +57,7 @@ model Project {
     type             String?
     status           String?
     description      String?
+    description_ar   String?
     main_image       String?
     main_image_meta  Json?
     gallery          String?
@@ -87,6 +90,11 @@ model Blog {
     public_id        String   @unique @default(uuid())
     title            String
     content          String?
+    // Auto-translated to Egyptian colloquial Arabic on save (see
+    // translationService.ts) — null until a successful translation runs, and
+    // left as-is (not re-translated) on saves where the source text didn't change.
+    title_ar         String?
+    content_ar       String?
     image            String?
     image_meta       Json?
     category         String?
@@ -102,14 +110,16 @@ model Blog {
 }
 
 model Career {
-    id           Int     @id @default(autoincrement())
-    public_id    String  @unique @default(uuid())
-    title        String
-    location     String?
-    type         String?
-    description  String?
-    requirements String?
-    apply_link   String?
+    id              Int     @id @default(autoincrement())
+    public_id       String  @unique @default(uuid())
+    title           String
+    location        String?
+    type            String?
+    description     String?
+    description_ar  String?
+    requirements    String?
+    requirements_ar String?
+    apply_link      String?
 
     @@map("careers")
 }
@@ -210,6 +220,7 @@ model ResaleListing {
     remaining_installments Int?
     delivery_time          String?
     description            String?
+    description_ar         String?
     main_image             String?
     main_image_meta        Json?
     gallery                String?
