@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import type React from 'react';
 import { optimizeImageFiles } from '../utils/imageUpload';
 import { RESALE_BEDS_OPTIONS } from '../utils/resaleFormOptions';
+import { FINISHING_STATUS_OPTIONS } from '../utils/finishingStatusOptions';
 import type { Project } from '../types';
 
 const MAX_PHOTOS = 6;
@@ -26,6 +27,7 @@ export default function SellUnit() {
     remaining_amount: '',
     remaining_installments: '',
     delivery_time: '',
+    finishing_status: '',
     description: '',
   });
   const [compoundOptions, setCompoundOptions] = useState<string[]>([]);
@@ -86,6 +88,7 @@ export default function SellUnit() {
 
     for (const [field, label] of [
       ['asking_price', 'Asking price'],
+      ['size', 'Size'],
       ['paid_amount', 'Paid amount'],
       ['installment_value', 'Installment value'],
       ['remaining_amount', 'Remaining amount'],
@@ -136,7 +139,7 @@ export default function SellUnit() {
       setFormData({
         owner_name: '', owner_email: '', owner_phone: '', location: '',
         unit_type: '', beds: '', size: '', asking_price: '', paid_amount: '', installment_value: '',
-        remaining_amount: '', remaining_installments: '', delivery_time: '', description: '',
+        remaining_amount: '', remaining_installments: '', delivery_time: '', finishing_status: '', description: '',
       });
     } catch (err) {
       alert((err as Error).message || 'Error sending your submission. Please try again.');
@@ -253,13 +256,15 @@ export default function SellUnit() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium">Size <span className="text-red-500">*</span></label>
+                  <label className="mb-2 block text-sm font-medium">Size (SQM) <span className="text-red-500">*</span></label>
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
                     required
                     value={formData.size}
                     onChange={(e) => setFormData({ ...formData, size: e.target.value })}
-                    placeholder="e.g. 1,250 sqm"
+                    placeholder="e.g. 160"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
                   />
                 </div>
@@ -291,7 +296,7 @@ export default function SellUnit() {
                   />
                 </div>
               </div>
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-3">
                 <div>
                   <label className="mb-2 block text-sm font-medium">Monthly Installment</label>
                   <input
@@ -313,6 +318,19 @@ export default function SellUnit() {
                     placeholder="e.g. Q4 2027, Ready to move"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
                   />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Finishing Status</label>
+                  <select
+                    value={formData.finishing_status}
+                    onChange={(e) => setFormData({ ...formData, finishing_status: e.target.value })}
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:outline-none"
+                  >
+                    <option value="">Select finishing status</option>
+                    {FINISHING_STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <div className="grid gap-6 md:grid-cols-2">

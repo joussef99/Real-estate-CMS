@@ -18,54 +18,13 @@ const toNullableNumber = (value: unknown) => {
   return Number.isFinite(parsed) ? parsed : null;
 };
 
-const getProjectPriceBounds = (priceRange?: string | null) => {
-  if (!priceRange) {
-    return { min: null as number | null, max: null as number | null };
-  }
-
-  const regex = /(\d+(?:[.,]\d+)?)\s*([kmb])?/gi;
-  const values: number[] = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = regex.exec(priceRange)) !== null) {
-    const normalizedNumber = match[1].replace(/,/g, "");
-    let value = parseFloat(normalizedNumber);
-
-    if (!Number.isFinite(value)) continue;
-
-    switch ((match[2] || "").toLowerCase()) {
-      case "b":
-        value *= 1000000000;
-        break;
-      case "m":
-        value *= 1000000;
-        break;
-      case "k":
-        value *= 1000;
-        break;
-      default:
-        break;
-    }
-
-    values.push(value);
-  }
-
-  if (!values.length) {
-    return { min: null as number | null, max: null as number | null };
-  }
-
-  return {
-    min: values[0] ?? null,
-    max: values[values.length - 1] ?? values[0] ?? null,
-  };
-};
-
 const mapProjectCard = (project: any) => ({
   id: project.id,
   public_id: project.public_id,
   name: project.name,
   location: project.location,
-  price_range: project.price_range,
+  price_min: project.price_min,
+  price_max: project.price_max,
   downPayment: project.downPayment ?? null,
   type: project.type,
   main_image: project.main_image || project.main_image_meta?.url || null,
@@ -74,7 +33,8 @@ const mapProjectCard = (project: any) => ({
   developer_id: project.developer_id,
   destination_id: project.destination_id,
   beds: project.beds,
-  size: project.size,
+  size_min: project.size_min,
+  size_max: project.size_max,
   slug: project.slug,
   developer_name: project.developer?.name ?? null,
   destination_name: project.destination?.name ?? null,
@@ -86,7 +46,8 @@ const mapProjectDetail = (project: any) => ({
   public_id: project.public_id,
   name: project.name,
   location: project.location,
-  price_range: project.price_range,
+  price_min: project.price_min,
+  price_max: project.price_max,
   downPayment: project.downPayment ?? null,
   type: project.type,
   status: project.status,
@@ -102,7 +63,11 @@ const mapProjectDetail = (project: any) => ({
   is_featured: project.is_featured,
   featured: project.featured,
   beds: project.beds,
-  size: project.size,
+  size_min: project.size_min,
+  size_max: project.size_max,
+  installment_years: project.installment_years,
+  delivery_time: project.delivery_time,
+  finishing_status: project.finishing_status,
   slug: project.slug,
   meta_title: project.meta_title,
   meta_description: project.meta_description,
@@ -123,16 +88,29 @@ const validateProjectInput = (body: any) => {
     errors.push("Property title is required");
   }
 
-  const priceValue = body?.price_range ?? body?.price;
-  if (priceValue !== undefined && priceValue !== null && typeof priceValue !== "string") {
-    errors.push("price_range must be a string");
-  }
-
   const downPaymentValue = body?.downPayment;
   if (downPaymentValue !== undefined && downPaymentValue !== null && downPaymentValue !== "") {
     const parsedDownPayment = Number(downPaymentValue);
     if (!Number.isFinite(parsedDownPayment) || parsedDownPayment < 0) {
       errors.push("downPayment must be a non-negative number");
+    }
+  }
+
+  const installmentYearsValue = body?.installment_years;
+  if (installmentYearsValue !== undefined && installmentYearsValue !== null && installmentYearsValue !== "") {
+    const parsedInstallmentYears = Number(installmentYearsValue);
+    if (!Number.isFinite(parsedInstallmentYears) || parsedInstallmentYears < 0) {
+      errors.push("installment_years must be a non-negative number");
+    }
+  }
+
+  for (const field of ["size_min", "size_max", "price_min", "price_max"] as const) {
+    const value = body?.[field];
+    if (value !== undefined && value !== null && value !== "") {
+      const parsed = Number(value);
+      if (!Number.isFinite(parsed) || parsed < 0) {
+        errors.push(`${field} must be a non-negative number`);
+      }
     }
   }
 
@@ -185,14 +163,16 @@ export async function getProjects(req: Request, res: Response) {
       public_id: true,
       name: true,
       location: true,
-      price_range: true,
+      price_min: true,
+      price_max: true,
       downPayment: true,
       type: true,
       main_image: true,
       developer_id: true,
       destination_id: true,
       beds: true,
-      size: true,
+      size_min: true,
+      size_max: true,
       slug: true,
       developer: { select: { name: true } },
       destination: { select: { name: true, slug: true } },
@@ -285,9 +265,8 @@ export async function searchProjects(req: Request, res: Response) {
 
   if (price_min !== null || price_max !== null) {
     projects = projects.filter((project) => {
-      const { min, max } = getProjectPriceBounds(project.price_range as string | null);
-      const lowerBound = min ?? max;
-      const upperBound = max ?? min;
+      const lowerBound = project.price_min ?? project.price_max;
+      const upperBound = project.price_max ?? project.price_min;
 
       if (lowerBound === null || upperBound === null) {
         return false;
@@ -338,14 +317,16 @@ export async function getFeaturedProjects(req: Request, res: Response) {
       public_id: true,
       name: true,
       location: true,
-      price_range: true,
+      price_min: true,
+      price_max: true,
       downPayment: true,
       type: true,
       main_image: true,
       developer_id: true,
       destination_id: true,
       beds: true,
-      size: true,
+      size_min: true,
+      size_max: true,
       slug: true,
       main_image_meta: true,
       gallery_meta: true,
@@ -412,7 +393,8 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           public_id: true,
           name: true,
           location: true,
-          price_range: true,
+          price_min: true,
+          price_max: true,
           downPayment: true,
           type: true,
           status: true,
@@ -428,7 +410,11 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           is_featured: true,
           featured: true,
           beds: true,
-          size: true,
+          size_min: true,
+          size_max: true,
+          installment_years: true,
+          delivery_time: true,
+          finishing_status: true,
           slug: true,
           meta_title: true,
           meta_description: true,
@@ -445,7 +431,8 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           public_id: true,
           name: true,
           location: true,
-          price_range: true,
+          price_min: true,
+          price_max: true,
           downPayment: true,
           type: true,
           status: true,
@@ -461,7 +448,11 @@ export async function getProjectByIdentifier(req: Request, res: Response) {
           is_featured: true,
           featured: true,
           beds: true,
-          size: true,
+          size_min: true,
+          size_max: true,
+          installment_years: true,
+          delivery_time: true,
+          finishing_status: true,
           slug: true,
           meta_title: true,
           meta_description: true,
@@ -490,8 +481,8 @@ export async function createProject(req: Request, res: Response) {
     name,
     title,
     location,
-    price_range,
-    price,
+    price_min,
+    price_max,
     downPayment,
     type,
     status,
@@ -505,14 +496,17 @@ export async function createProject(req: Request, res: Response) {
     is_featured,
     featured,
     beds,
-    size,
+    size_min,
+    size_max,
+    installment_years,
+    delivery_time,
+    finishing_status,
     slug,
     meta_title,
     meta_description,
   } = req.body;
 
   const effectiveName = (typeof name === "string" && name.trim()) || (typeof title === "string" ? title.trim() : "");
-  const effectivePriceRange = price_range ?? price ?? null;
   const effectiveDownPayment =
     req.body.downPayment ??
     req.body.down_payment ??
@@ -520,7 +514,8 @@ export async function createProject(req: Request, res: Response) {
   const normalized = normalizePropertyPayload({
     name: effectiveName,
     location,
-    price_range: effectivePriceRange,
+    price_min,
+    price_max,
     downPayment: effectiveDownPayment,
     type,
     status,
@@ -534,7 +529,11 @@ export async function createProject(req: Request, res: Response) {
     is_featured,
     featured,
     beds,
-    size,
+    size_min,
+    size_max,
+    installment_years,
+    delivery_time,
+    finishing_status,
     slug,
     meta_title,
     meta_description,
@@ -546,7 +545,8 @@ export async function createProject(req: Request, res: Response) {
     data: {
       name: normalized.name,
       location: normalized.location,
-      price_range: normalized.price_range,
+      price_min: normalized.price_min,
+      price_max: normalized.price_max,
       downPayment: normalized.downPayment,
       type: normalized.type,
       status: normalized.status,
@@ -559,7 +559,11 @@ export async function createProject(req: Request, res: Response) {
       is_featured: normalized.is_featured,
       featured: normalized.featured,
       beds: normalized.beds,
-      size: normalized.size,
+      size_min: normalized.size_min,
+      size_max: normalized.size_max,
+      installment_years: normalized.installment_years,
+      delivery_time: normalized.delivery_time,
+      finishing_status: normalized.finishing_status,
       main_image: normalized.main_image,
       main_image_meta: normalized.main_image_meta,
       slug: finalSlug,
@@ -594,8 +598,8 @@ export async function updateProject(req: Request, res: Response) {
     name,
     title,
     location,
-    price_range,
-    price,
+    price_min,
+    price_max,
     downPayment,
     type,
     status,
@@ -609,7 +613,11 @@ export async function updateProject(req: Request, res: Response) {
     is_featured,
     featured,
     beds,
-    size,
+    size_min,
+    size_max,
+    installment_years,
+    delivery_time,
+    finishing_status,
     slug,
     meta_title,
     meta_description,
@@ -618,13 +626,13 @@ export async function updateProject(req: Request, res: Response) {
   const projectId = parseInt(req.params.id, 10);
   const hasDownPayment = Object.prototype.hasOwnProperty.call(req.body, "downPayment");
   const effectiveName = (typeof name === "string" && name.trim()) || (typeof title === "string" ? title.trim() : "");
-  const effectivePriceRange = price_range ?? price ?? null;
   const effectiveDownPayment = downPayment ?? null;
   const normalized = normalizePropertyPayload(
     {
       name: effectiveName,
       location,
-      price_range: effectivePriceRange,
+      price_min,
+      price_max,
       downPayment: effectiveDownPayment,
       type,
       status,
@@ -638,7 +646,11 @@ export async function updateProject(req: Request, res: Response) {
       is_featured,
       featured,
       beds,
-      size,
+      size_min,
+      size_max,
+      installment_years,
+      delivery_time,
+      finishing_status,
       slug,
       meta_title,
       meta_description,
@@ -680,7 +692,8 @@ export async function updateProject(req: Request, res: Response) {
       data: {
         name: normalized.name,
         location: normalized.location,
-        price_range: normalized.price_range,
+        price_min: normalized.price_min,
+        price_max: normalized.price_max,
         ...(hasDownPayment ? { downPayment: normalized.downPayment } : {}),
         type: normalized.type,
         status: normalized.status,
@@ -693,7 +706,11 @@ export async function updateProject(req: Request, res: Response) {
         is_featured: normalized.is_featured,
         featured: normalized.featured,
         beds: normalized.beds,
-        size: normalized.size,
+        size_min: normalized.size_min,
+        size_max: normalized.size_max,
+        installment_years: normalized.installment_years,
+        delivery_time: normalized.delivery_time,
+        finishing_status: normalized.finishing_status,
         main_image: normalized.main_image,
         main_image_meta: normalized.main_image_meta,
         slug: finalSlug,
@@ -738,7 +755,8 @@ export async function duplicateProject(req: Request, res: Response) {
     data: {
       name: copiedName,
       location: sourceProject.location,
-      price_range: sourceProject.price_range,
+      price_min: sourceProject.price_min,
+      price_max: sourceProject.price_max,
       downPayment: sourceProject.downPayment,
       type: sourceProject.type,
       status: sourceProject.status,
@@ -749,7 +767,11 @@ export async function duplicateProject(req: Request, res: Response) {
       is_featured: sourceProject.is_featured ? 1 : 0,
       featured: sourceProject.featured ? 1 : 0,
       beds: sourceProject.beds,
-      size: sourceProject.size,
+      size_min: sourceProject.size_min,
+      size_max: sourceProject.size_max,
+      installment_years: sourceProject.installment_years,
+      delivery_time: sourceProject.delivery_time,
+      finishing_status: sourceProject.finishing_status,
       main_image: sourceProject.main_image,
       slug: copiedSlug,
       meta_title: sourceProject.meta_title,

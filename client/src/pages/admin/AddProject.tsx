@@ -10,6 +10,7 @@ import { slugify } from '../../utils/slugify';
 import { optimizeImageFiles } from '../../utils/imageUpload';
 import { MediaAsset } from '../../types';
 import { useTemporaryMediaManager } from '../../hooks/useTemporaryMediaManager';
+import { FINISHING_STATUS_OPTIONS } from '../../utils/finishingStatusOptions';
 
 export default function AddProject() {
   const { id } = useParams();
@@ -28,7 +29,8 @@ export default function AddProject() {
     name: '',
     slug: '',
     location: '',
-    price_range: '',
+    price_min: '',
+    price_max: '',
     downPayment: '',
     type: '',
     status: 'Off-Plan',
@@ -39,7 +41,11 @@ export default function AddProject() {
     destination_id: '',
     is_featured: false,
     beds: '',
-    size: '',
+    size_min: '',
+    size_max: '',
+    installment_years: '',
+    delivery_time: '',
+    finishing_status: '',
   });
   const navigate = useNavigate();
   const { notice, showNotice } = useCleanupNotice();
@@ -64,7 +70,8 @@ export default function AddProject() {
             name: data.name,
             slug: data.slug || '',
             location: data.location,
-            price_range: data.price_range,
+            price_min: data.price_min != null ? String(data.price_min) : '',
+            price_max: data.price_max != null ? String(data.price_max) : '',
             downPayment: data.downPayment != null ? String(data.downPayment) : '',
             type: data.type,
             status: data.status,
@@ -75,7 +82,11 @@ export default function AddProject() {
             destination_id: data.destination_id,
             is_featured: data.is_featured === 1,
             beds: data.beds || '',
-            size: data.size || '',
+            size_min: data.size_min != null ? String(data.size_min) : '',
+            size_max: data.size_max != null ? String(data.size_max) : '',
+            installment_years: data.installment_years != null ? String(data.installment_years) : '',
+            delivery_time: data.delivery_time || '',
+            finishing_status: data.finishing_status || '',
           });
           if (data.gallery) {
             setGallery(typeof data.gallery === 'string' ? JSON.parse(data.gallery) : data.gallery);
@@ -159,7 +170,22 @@ export default function AddProject() {
       alert('Down Payment cannot be negative.');
       return;
     }
-    
+
+    if (formData.installment_years && Number(formData.installment_years) < 0) {
+      alert('Installment years cannot be negative.');
+      return;
+    }
+
+    if ((formData.size_min && Number(formData.size_min) < 0) || (formData.size_max && Number(formData.size_max) < 0)) {
+      alert('Size cannot be negative.');
+      return;
+    }
+
+    if ((formData.price_min && Number(formData.price_min) < 0) || (formData.price_max && Number(formData.price_max) < 0)) {
+      alert('Price cannot be negative.');
+      return;
+    }
+
     if (gallery.length === 0) {
       alert('Please upload at least 1 image to the project gallery.');
       return;
@@ -182,6 +208,11 @@ export default function AddProject() {
       body: JSON.stringify({
         ...formData,
         downPayment: effectiveDownPayment === '' ? null : Number(effectiveDownPayment),
+        installment_years: formData.installment_years === '' ? null : Number(formData.installment_years),
+        size_min: formData.size_min === '' ? null : Number(formData.size_min),
+        size_max: formData.size_max === '' ? null : Number(formData.size_max),
+        price_min: formData.price_min === '' ? null : Number(formData.price_min),
+        price_max: formData.price_max === '' ? null : Number(formData.price_max),
         slug: normalizedSlug,
         meta_title: formData.meta_title,
         meta_description: formData.meta_description,
@@ -245,26 +276,41 @@ export default function AddProject() {
                 </div>
               </div>
 
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-700">Location</label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                  value={formData.location}
+                  onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                  required
+                />
+              </div>
+
               <div className="grid gap-6 md:grid-cols-2">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Location</label>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Min Price (EGP)</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.location}
-                    onChange={e => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    value={formData.price_min}
+                    onChange={e => setFormData(prev => ({ ...prev, price_min: e.target.value }))}
+                    placeholder="e.g. 5000000"
                     required
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Price Range</label>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Max Price (EGP)</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.price_range}
-                    onChange={e => setFormData(prev => ({ ...prev, price_range: e.target.value }))}
-                    placeholder="e.g. $1.2M - $5M"
-                    required
+                    value={formData.price_max}
+                    onChange={e => setFormData(prev => ({ ...prev, price_max: e.target.value }))}
+                    placeholder="e.g. 20000000"
                   />
                 </div>
               </div>
@@ -336,7 +382,7 @@ export default function AddProject() {
                 </div>
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-3">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Number of Beds</label>
                   <input
@@ -348,14 +394,66 @@ export default function AddProject() {
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Size (Sqft)</label>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Min Size (SQM)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.size_min}
+                    onChange={e => setFormData({ ...formData, size_min: e.target.value })}
+                    placeholder="e.g. 100"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Max Size (SQM)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.size_max}
+                    onChange={e => setFormData({ ...formData, size_max: e.target.value })}
+                    placeholder="e.g. 450"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-6 md:grid-cols-3">
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Installment Years</label>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.installment_years}
+                    onChange={e => setFormData({ ...formData, installment_years: e.target.value })}
+                    placeholder="e.g. 8"
+                  />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Delivery Time</label>
                   <input
                     type="text"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
-                    value={formData.size}
-                    onChange={e => setFormData({ ...formData, size: e.target.value })}
-                    placeholder="e.g. 1,250 sqft"
+                    value={formData.delivery_time}
+                    onChange={e => setFormData({ ...formData, delivery_time: e.target.value })}
+                    placeholder="e.g. Q4 2027, Ready to move"
                   />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Finishing Status</label>
+                  <select
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.finishing_status}
+                    onChange={e => setFormData({ ...formData, finishing_status: e.target.value })}
+                  >
+                    <option value="">Select finishing status</option>
+                    {FINISHING_STATUS_OPTIONS.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

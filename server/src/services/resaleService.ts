@@ -4,18 +4,20 @@ import { generateSlug } from "../utils/slug.ts";
 export type ResaleListingPayload = {
   title: string;
   location?: string | null;
-  price?: string | null;
+  price?: number | string | null;
+  price_display?: string | null;
   paid_amount?: number | string | null;
   installment_value?: number | string | null;
   remaining_amount?: number | string | null;
   remaining_installments?: number | string | null;
   delivery_time?: string | null;
+  finishing_status?: string | null;
   description?: string | null;
   gallery?: string[];
   gallery_meta?: any[];
   main_image_meta?: any;
   beds?: string | null;
-  size?: string | null;
+  size?: number | string | null;
   unit_type?: string | null;
   status?: string | null;
   slug?: string | null;
@@ -67,19 +69,21 @@ export function normalizeResaleListingPayload(payload: ResaleListingPayload, cur
   return {
     title,
     location,
-    price: payload.price ?? null,
     // Validation already rejected malformed numeric values before this runs, so
     // an `undefined` result here can only mean "not provided" — safe to coerce to null.
+    price: toNullableNonNegativeInt(payload.price) ?? null,
+    price_display: payload.price_display?.trim() || null,
     paid_amount: toNullableNonNegativeInt(payload.paid_amount) ?? null,
     installment_value: toNullableNonNegativeInt(payload.installment_value) ?? null,
     remaining_amount: toNullableNonNegativeInt(payload.remaining_amount) ?? null,
     remaining_installments: toNullableNonNegativeInt(payload.remaining_installments) ?? null,
     delivery_time: payload.delivery_time ?? null,
+    finishing_status: payload.finishing_status ?? null,
     description: payload.description ?? null,
     gallery: JSON.stringify(gallery),
     gallery_meta: galleryMeta,
     beds: payload.beds ?? null,
-    size: payload.size ?? null,
+    size: toNullableNonNegativeInt(payload.size) ?? null,
     unit_type,
     status: payload.status === "unpublished" ? "unpublished" : "published",
     main_image: gallery.length > 0 ? gallery[0] : null,

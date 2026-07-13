@@ -3,6 +3,8 @@ import { MapPin, Bed, Maximize2 } from 'lucide-react';
 import { FavoriteButton } from './FavoriteButton';
 import { ShareButton } from './ShareButton';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { formatSize } from '../utils/size';
+import { formatPrice } from '../utils/price';
 import { ResaleListing } from '../types';
 
 interface ResaleListingCardProps {
@@ -30,7 +32,7 @@ export function ResaleListingCard({ listing, compact = false }: ResaleListingCar
           onError={withFallbackImage}
         />
         <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
-          {listing.price || 'Price on request'}
+          {formatPrice(listing.price, listing.price_display)}
         </div>
         <div className="absolute right-4 top-4 flex items-center gap-2">
           <ShareButton url={listingUrl} title={listing.title} />
@@ -41,7 +43,7 @@ export function ResaleListingCard({ listing, compact = false }: ResaleListingCar
             slug={listing.slug}
             image={listing.main_image}
             subtitle={listing.location}
-            price={listing.price}
+            price={formatPrice(listing.price, listing.price_display)}
           />
         </div>
       </div>
@@ -56,7 +58,7 @@ export function ResaleListingCard({ listing, compact = false }: ResaleListingCar
         {!compact && (
           <div className="flex items-center gap-4 text-sm text-zinc-500">
             <span className="flex items-center gap-1"><Bed className="h-4 w-4" /> {listing.beds || 'N/A'}</span>
-            <span className="flex items-center gap-1"><Maximize2 className="h-4 w-4" /> {listing.size || 'N/A'}</span>
+            <span className="flex items-center gap-1"><Maximize2 className="h-4 w-4" /> {formatSize(listing.size)}</span>
           </div>
         )}
       </div>

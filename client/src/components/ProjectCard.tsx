@@ -5,6 +5,8 @@ import { Button } from './Button';
 import { FavoriteButton } from './FavoriteButton';
 import { ShareButton } from './ShareButton';
 import { formatEGP, normalizeDownPayment } from '../utils/downPayment';
+import { formatSizeRange } from '../utils/size';
+import { formatPriceRange } from '../utils/price';
 import { FALLBACK_IMAGE_URL, cloudinaryOptimizedUrl, resolveImageUrl, withFallbackImage } from '../utils/image';
 
 export const ProjectCard = (props: any) => {
@@ -52,7 +54,7 @@ export const ProjectCard = (props: any) => {
           />
           <div className="absolute inset-0 bg-linear-to-t from-slate-950/85 via-slate-900/20 to-transparent" />
           <div className="absolute left-4 top-4 rounded-full border border-white/35 bg-white/20 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-xl">
-            {project.price_range || 'Price on request'}
+            {formatPriceRange(project.price_min, project.price_max)}
           </div>
           <div className="absolute right-4 top-4 flex items-center gap-2">
             <ShareButton url={`/projects/${projectUrl}`} title={project.name} />
@@ -63,7 +65,7 @@ export const ProjectCard = (props: any) => {
               slug={project.slug}
               image={project.main_image}
               subtitle={project.location}
-              price={project.price_range}
+              price={formatPriceRange(project.price_min, project.price_max)}
             />
           </div>
           <div className="absolute bottom-0 left-0 right-0 p-5 text-white">
@@ -85,7 +87,7 @@ export const ProjectCard = (props: any) => {
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Maximize2 className="h-4 w-4 text-slate-900" />
-            <span className="font-medium">{project.size || 'Area N/A'}</span>
+            <span className="font-medium">{formatSizeRange(project.size_min, project.size_max)}</span>
           </div>
         </div>
 

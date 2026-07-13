@@ -5,6 +5,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { Trash2, ArrowLeft, Check, ImageOff } from 'lucide-react';
 import { ResaleSubmission } from '../../types';
 import { resolveImageUrl } from '../../utils/image';
+import { formatSize } from '../../utils/size';
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-amber-100 text-amber-700',
@@ -98,7 +99,7 @@ export default function AdminResaleSubmissions() {
                         </td>
                         <td className="px-6 py-4 text-sm text-zinc-600">
                           <div className="font-medium">{submission.location}</div>
-                          <div className="text-xs text-zinc-400">{[submission.unit_type, submission.beds, submission.size].filter(Boolean).join(' · ')}</div>
+                          <div className="text-xs text-zinc-400">{[submission.unit_type, submission.beds, formatSize(submission.size)].filter(Boolean).join(' · ')}</div>
                           {submission.delivery_time && <div className="text-xs text-zinc-400">Delivery: {submission.delivery_time}</div>}
                         </td>
                         <td className="px-6 py-4 text-xs text-zinc-600">

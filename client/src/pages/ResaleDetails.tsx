@@ -2,11 +2,13 @@ import { apiFetch, parseJsonResponse } from '../utils/api';
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { ResaleListing } from '../types';
-import { MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, CalendarClock, ListChecks, Wallet } from 'lucide-react';
+import { MapPin, Bed, Maximize2, ChevronLeft, ChevronRight, CalendarClock, ListChecks, Wallet, Layers } from 'lucide-react';
 import { Button } from '../components/Button';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { ShareButton } from '../components/ShareButton';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
+import { formatSize } from '../utils/size';
+import { formatPrice } from '../utils/price';
 import { ErrorState } from '../components/ui/state-message';
 import { useApiData } from '../hooks/useApiData';
 
@@ -196,7 +198,7 @@ export default function ResaleDetails() {
                   <span className="rounded-full bg-zinc-100 px-4 py-1 text-sm font-semibold uppercase text-zinc-600">
                     {listing.unit_type || 'Resale Unit'}
                   </span>
-                  <span className="text-2xl font-bold text-black">{listing.price || 'Price on request'}</span>
+                  <span className="text-2xl font-bold text-black">{formatPrice(listing.price, listing.price_display)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ShareButton variant="solid" url={`/resale/${slug}`} title={listing.title} />
@@ -208,7 +210,7 @@ export default function ResaleDetails() {
                     slug={listing.slug}
                     image={listing.main_image}
                     subtitle={listing.location}
-                    price={listing.price}
+                    price={formatPrice(listing.price, listing.price_display)}
                   />
                 </div>
               </div>
@@ -236,7 +238,7 @@ export default function ResaleDetails() {
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total Size</p>
-                  <p className="font-bold text-zinc-900">{listing.size || 'N/A'}</p>
+                  <p className="font-bold text-zinc-900">{formatSize(listing.size)}</p>
                 </div>
               </div>
               {listing.delivery_time && (
@@ -291,6 +293,17 @@ export default function ResaleDetails() {
                   <div>
                     <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Installments Left</p>
                     <p className="font-bold text-zinc-900">{listing.remaining_installments}</p>
+                  </div>
+                </div>
+              )}
+              {listing.finishing_status && (
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Finishing</p>
+                    <p className="font-bold text-zinc-900">{listing.finishing_status}</p>
                   </div>
                 </div>
               )}

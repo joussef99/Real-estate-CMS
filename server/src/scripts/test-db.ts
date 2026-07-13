@@ -20,7 +20,7 @@ async function main() {
     data: {
       name: "DB Health Test Property",
       slug: generateSlug(testSlug),
-      price_range: "TEST",
+      price_min: 1,
       featured: 0,
       is_featured: 0,
     },
@@ -28,13 +28,13 @@ async function main() {
 
   const updated = await prisma.project.update({
     where: { id: created.id },
-    data: { price_range: "TEST-UPDATED" },
+    data: { price_min: 2 },
   });
 
   await prisma.project.delete({ where: { id: created.id } });
 
   console.log("CRUD smoke test OK");
-  console.log(JSON.stringify({ createdId: created.id, updatedPriceRange: updated.price_range }, null, 2));
+  console.log(JSON.stringify({ createdId: created.id, updatedPriceMin: updated.price_min }, null, 2));
 }
 
 main()

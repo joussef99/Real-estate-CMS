@@ -12,6 +12,7 @@ import { optimizeImageFiles } from '../../utils/imageUpload';
 import { MediaAsset, Project, ResaleSubmission } from '../../types';
 import { useTemporaryMediaManager } from '../../hooks/useTemporaryMediaManager';
 import { RESALE_BEDS_OPTIONS } from '../../utils/resaleFormOptions';
+import { FINISHING_STATUS_OPTIONS } from '../../utils/finishingStatusOptions';
 
 export default function AddEditResaleListing() {
   const { id } = useParams();
@@ -32,6 +33,7 @@ export default function AddEditResaleListing() {
     slug: '',
     location: '',
     price: '',
+    price_display: '',
     unit_type: '',
     beds: '',
     size: '',
@@ -40,6 +42,7 @@ export default function AddEditResaleListing() {
     remaining_amount: '',
     remaining_installments: '',
     delivery_time: '',
+    finishing_status: '',
     description: '',
     meta_title: '',
     meta_description: '',
@@ -73,15 +76,17 @@ export default function AddEditResaleListing() {
           title: data.title,
           slug: data.slug || '',
           location: data.location || '',
-          price: data.price || '',
+          price: data.price != null ? String(data.price) : '',
+          price_display: data.price_display || '',
           unit_type: data.unit_type || '',
           beds: data.beds || '',
-          size: data.size || '',
+          size: data.size != null ? String(data.size) : '',
           paid_amount: data.paid_amount != null ? String(data.paid_amount) : '',
           installment_value: data.installment_value != null ? String(data.installment_value) : '',
           remaining_amount: data.remaining_amount != null ? String(data.remaining_amount) : '',
           remaining_installments: data.remaining_installments != null ? String(data.remaining_installments) : '',
           delivery_time: data.delivery_time || '',
+          finishing_status: data.finishing_status || '',
           description: data.description || '',
           meta_title: data.meta_title || '',
           meta_description: data.meta_description || '',
@@ -107,15 +112,16 @@ export default function AddEditResaleListing() {
           title: `${submission.unit_type || 'Unit'} in ${submission.location}`,
           slug: slugify(`${submission.unit_type || 'unit'}-${submission.location}-${submission.id}`),
           location: submission.location,
-          price: submission.asking_price || '',
+          price: String(submission.asking_price),
           unit_type: submission.unit_type || '',
           beds: submission.beds || '',
-          size: submission.size || '',
+          size: submission.size != null ? String(submission.size) : '',
           paid_amount: submission.paid_amount != null ? String(submission.paid_amount) : '',
           installment_value: submission.installment_value != null ? String(submission.installment_value) : '',
           remaining_amount: submission.remaining_amount != null ? String(submission.remaining_amount) : '',
           remaining_installments: submission.remaining_installments != null ? String(submission.remaining_installments) : '',
           delivery_time: submission.delivery_time || '',
+          finishing_status: submission.finishing_status || '',
           description: submission.description || '',
         }));
 
@@ -199,6 +205,8 @@ export default function AddEditResaleListing() {
       ['installment_value', 'Installment value'],
       ['remaining_amount', 'Remaining amount'],
       ['remaining_installments', 'Remaining installments'],
+      ['size', 'Size'],
+      ['price', 'Price'],
     ] as const) {
       const value = formData[field];
       if (value !== '' && (Number.isNaN(Number(value)) || Number(value) < 0)) {
@@ -314,25 +322,41 @@ export default function AddEditResaleListing() {
                   </select>
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Size (Sqft)</label>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Size (SQM)</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                     value={formData.size}
                     onChange={(e) => setFormData((prev) => ({ ...prev, size: e.target.value }))}
-                    placeholder="e.g. 1,250 sqft"
+                    placeholder="e.g. 160"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-zinc-700">Price</label>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Price (EGP)</label>
                   <input
-                    type="text"
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
                     className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
                     value={formData.price}
                     onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
-                    placeholder="e.g. EGP 1,850,000"
+                    placeholder="e.g. 1850000"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-zinc-700">Price Display Override (optional)</label>
+                <input
+                  type="text"
+                  className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                  value={formData.price_display}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, price_display: e.target.value }))}
+                  placeholder="e.g. Negotiable, Contact for price"
+                />
+                <p className="mt-1 text-xs text-zinc-400">Shown instead of the price above when set — leave blank to show the price normally.</p>
               </div>
 
               <div>
@@ -348,7 +372,7 @@ export default function AddEditResaleListing() {
                 />
               </div>
 
-              <div className="grid gap-6 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-3">
                 <div>
                   <label className="mb-2 block text-sm font-medium text-zinc-700">Monthly Installment</label>
                   <input
@@ -370,6 +394,19 @@ export default function AddEditResaleListing() {
                     onChange={(e) => setFormData((prev) => ({ ...prev, delivery_time: e.target.value }))}
                     placeholder="e.g. Q4 2027, Ready to move"
                   />
+                </div>
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-zinc-700">Finishing Status</label>
+                  <select
+                    className="w-full rounded-xl border border-zinc-200 p-3 focus:border-black focus:ring-1 focus:ring-black outline-none transition-all"
+                    value={formData.finishing_status}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, finishing_status: e.target.value }))}
+                  >
+                    <option value="">Select finishing status</option>
+                    {FINISHING_STATUS_OPTIONS.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 

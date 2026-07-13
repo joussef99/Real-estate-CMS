@@ -4,7 +4,8 @@ import { generateSlug } from "../utils/slug.ts";
 export type PropertyPayload = {
   name: string;
   location?: string | null;
-  price_range?: string | null;
+  price_min?: number | string | null;
+  price_max?: number | string | null;
   downPayment?: number | string | null;
   type?: string | null;
   status?: string | null;
@@ -18,11 +19,21 @@ export type PropertyPayload = {
   is_featured?: boolean | number;
   featured?: boolean | number;
   beds?: string | null;
-  size?: string | null;
+  size_min?: number | string | null;
+  size_max?: number | string | null;
+  installment_years?: number | string | null;
+  delivery_time?: string | null;
+  finishing_status?: string | null;
   slug?: string | null;
   meta_title?: string | null;
   meta_description?: string | null;
 };
+
+function toNullableNonNegativeInt(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : null;
+}
 
 export async function makeUniqueProjectSlug(baseSlugCandidate: string, currentId?: number): Promise<string> {
   const baseSlug = generateSlug(baseSlugCandidate) || `project-${Date.now()}`;
@@ -58,17 +69,18 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
       : `Discover ${name}, a premium ${String(type || "property").toLowerCase()} property in ${String(location || "a prime location")}.`);
 
   const slugCandidate = (payload.slug && payload.slug.trim()) || payload.name || (currentId ? `project-${currentId}` : `project-${Date.now()}`);
-  const downPaymentValue = payload.downPayment;
-  const downPayment = downPaymentValue === undefined || downPaymentValue === null || downPaymentValue === ""
-    ? null
-    : Number.isFinite(Number(downPaymentValue))
-      ? Math.max(0, Math.round(Number(downPaymentValue)))
-      : null;
+  const downPayment = toNullableNonNegativeInt(payload.downPayment);
+  const installment_years = toNullableNonNegativeInt(payload.installment_years);
+  const size_min = toNullableNonNegativeInt(payload.size_min);
+  const size_max = toNullableNonNegativeInt(payload.size_max);
+  const price_min = toNullableNonNegativeInt(payload.price_min);
+  const price_max = toNullableNonNegativeInt(payload.price_max);
 
   return {
     name,
     location,
-    price_range: payload.price_range ?? null,
+    price_min,
+    price_max,
     downPayment,
     type,
     status: payload.status ?? null,
@@ -80,7 +92,11 @@ export function normalizePropertyPayload(payload: PropertyPayload, currentId?: n
     is_featured: isFeaturedValue,
     featured: isFeaturedValue,
     beds: payload.beds ?? null,
-    size: payload.size ?? null,
+    size_min,
+    size_max,
+    installment_years,
+    delivery_time: payload.delivery_time ?? null,
+    finishing_status: payload.finishing_status ?? null,
     main_image: gallery.length > 0 ? gallery[0] : null,
     main_image_meta: payload.main_image_meta || galleryMeta[0] || null,
     meta_title,

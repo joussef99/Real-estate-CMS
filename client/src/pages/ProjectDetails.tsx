@@ -2,12 +2,14 @@
 import React, { useCallback, useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Project } from '../types';
-import { MapPin, Building2, CheckCircle2, Phone, Mail, ChevronLeft, ChevronRight, Bed, Maximize2 } from 'lucide-react';
+import { MapPin, Building2, CheckCircle2, Phone, Mail, ChevronLeft, ChevronRight, Bed, Maximize2, CalendarClock, Repeat, Layers } from 'lucide-react';
 import { Button } from '../components/Button';
 import { FavoriteButton } from '../components/FavoriteButton';
 import { ShareButton } from '../components/ShareButton';
 import { motion } from 'motion/react';
 import { formatEGP, normalizeDownPayment } from '../utils/downPayment';
+import { formatSizeRange } from '../utils/size';
+import { formatPriceRange } from '../utils/price';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../utils/image';
 import { ErrorState } from '../components/ui/state-message';
 import { useApiData } from '../hooks/useApiData';
@@ -303,7 +305,7 @@ export default function ProjectDetails() {
                   <span className="rounded-full bg-zinc-100 px-4 py-1 text-sm font-semibold uppercase text-zinc-600">
                     {project.type}
                   </span>
-                  <span className="text-2xl font-bold text-black">{project.price_range}</span>
+                  <span className="text-2xl font-bold text-black">{formatPriceRange(project.price_min, project.price_max)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <ShareButton variant="solid" url={`/projects/${slug}`} title={project.name} />
@@ -315,7 +317,7 @@ export default function ProjectDetails() {
                     slug={project.slug}
                     image={project.main_image}
                     subtitle={project.location}
-                    price={project.price_range}
+                    price={formatPriceRange(project.price_min, project.price_max)}
                   />
                 </div>
               </div>
@@ -357,7 +359,7 @@ export default function ProjectDetails() {
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Total Size</p>
-                  <p className="font-bold text-zinc-900">{project.size || 'N/A'}</p>
+                  <p className="font-bold text-zinc-900">{formatSizeRange(project.size_min, project.size_max)}</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
@@ -384,7 +386,7 @@ export default function ProjectDetails() {
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Price Range</p>
-                  <p className="font-bold text-zinc-900">{project.price_range}</p>
+                  <p className="font-bold text-zinc-900">{formatPriceRange(project.price_min, project.price_max)}</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
@@ -400,6 +402,39 @@ export default function ProjectDetails() {
                   </p>
                 </div>
               </div>
+              {project.delivery_time && (
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                    <CalendarClock className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Delivery</p>
+                    <p className="font-bold text-zinc-900">{project.delivery_time}</p>
+                  </div>
+                </div>
+              )}
+              {project.installment_years != null && (
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                    <Repeat className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Installment Years</p>
+                    <p className="font-bold text-zinc-900">{project.installment_years}</p>
+                  </div>
+                </div>
+              )}
+              {project.finishing_status && (
+                <div className="flex items-start gap-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-emerald-600 shadow-sm">
+                    <Layers className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wider text-zinc-400">Finishing</p>
+                    <p className="font-bold text-zinc-900">{project.finishing_status}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="mb-12">

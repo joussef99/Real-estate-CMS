@@ -6,6 +6,7 @@ import { Button } from '../../components/Button';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ResaleListing } from '../../types';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../../utils/image';
+import { formatPrice } from '../../utils/price';
 
 export default function ManageResaleListings() {
   const [listings, setListings] = useState<ResaleListing[]>([]);
@@ -75,7 +76,7 @@ export default function ManageResaleListings() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-zinc-500">{listing.location}</td>
-                  <td className="px-6 py-4 text-sm text-zinc-500">{listing.price || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-500">{formatPrice(listing.price, listing.price_display)}</td>
                   <td className="px-6 py-4 text-sm text-zinc-500">{listing.beds || '-'}</td>
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium">

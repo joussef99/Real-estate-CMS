@@ -47,12 +47,17 @@ const validateResaleSubmissionInput = (body: any) => {
   const beds = typeof body?.beds === "string" ? body.beds.trim() : "";
   if (!beds) errors.push("Beds is required");
 
-  const size = typeof body?.size === "string" ? body.size.trim() : "";
-  if (!size) errors.push("Size is required");
+  if (body?.size === undefined || body?.size === null || body?.size === "") {
+    errors.push("Size is required");
+  } else if (toNullableNonNegativeInt(body.size) === undefined) {
+    errors.push("Size must be a non-negative number");
+  }
 
-  const askingPrice = typeof body?.asking_price === "string" ? body.asking_price.trim() : "";
-  if (!askingPrice) errors.push("Asking price is required");
-  else if (toNullableNonNegativeInt(askingPrice) === undefined) errors.push("Asking price must be a non-negative number");
+  if (body?.asking_price === undefined || body?.asking_price === null || body?.asking_price === "") {
+    errors.push("Asking price is required");
+  } else if (toNullableNonNegativeInt(body.asking_price) === undefined) {
+    errors.push("Asking price must be a non-negative number");
+  }
 
   if (body?.delivery_time !== undefined && body.delivery_time !== null && String(body.delivery_time).length > MAX_SHORT_TEXT_LENGTH) {
     errors.push("Delivery time is too long");
@@ -85,7 +90,11 @@ const validateResaleListingInput = (body: any) => {
     errors.push("Description is too long");
   }
 
-  for (const field of ["paid_amount", "installment_value", "remaining_amount", "remaining_installments"] as const) {
+  if (body?.price_display !== undefined && body.price_display !== null && String(body.price_display).length > MAX_SHORT_TEXT_LENGTH) {
+    errors.push("Price display override is too long");
+  }
+
+  for (const field of ["paid_amount", "installment_value", "remaining_amount", "remaining_installments", "size", "price"] as const) {
     if (body?.[field] !== undefined && body[field] !== null && body[field] !== "" && toNullableNonNegativeInt(body[field]) === undefined) {
       errors.push(`${field.replace(/_/g, " ")} must be a non-negative number`);
     }
@@ -100,6 +109,7 @@ const mapListingCard = (listing: any) => ({
   title: listing.title,
   location: listing.location,
   price: listing.price,
+  price_display: listing.price_display,
   main_image: listing.main_image || listing.main_image_meta?.url || null,
   main_image_meta: listing.main_image_meta,
   beds: listing.beds,
@@ -115,6 +125,7 @@ const mapListingDetail = (listing: any) => ({
   remaining_amount: listing.remaining_amount,
   remaining_installments: listing.remaining_installments,
   delivery_time: listing.delivery_time,
+  finishing_status: listing.finishing_status,
   description: listing.description,
   description_ar: listing.description_ar,
   gallery: listing.gallery,
@@ -149,7 +160,7 @@ export async function createResaleSubmission(req: Request, res: Response) {
   const {
     owner_name, owner_email, owner_phone, location, unit_type, beds, size,
     asking_price, paid_amount, installment_value, remaining_amount, remaining_installments,
-    delivery_time, description,
+    delivery_time, finishing_status, description,
   } = req.body;
 
   const files = (req.files as UploadedImageFile[] | undefined) ?? [];
@@ -170,13 +181,14 @@ export async function createResaleSubmission(req: Request, res: Response) {
       location: location.trim(),
       unit_type: unit_type.trim(),
       beds: beds.trim(),
-      size: size.trim(),
-      asking_price: asking_price.trim(),
+      size: toNullableNonNegativeInt(size) as number,
+      asking_price: toNullableNonNegativeInt(asking_price) as number,
       paid_amount: toNullableNonNegativeInt(paid_amount) ?? null,
       installment_value: toNullableNonNegativeInt(installment_value) ?? null,
       remaining_amount: toNullableNonNegativeInt(remaining_amount) ?? null,
       remaining_installments: toNullableNonNegativeInt(remaining_installments) ?? null,
       delivery_time: delivery_time || null,
+      finishing_status: finishing_status || null,
       description: description || null,
       photos: uploadedAssets.length > 0 ? JSON.stringify(uploadedAssets.map((asset) => asset.url)) : null,
       photos_meta: uploadedAssets.length > 0 ? uploadedAssets : undefined,
@@ -198,6 +210,7 @@ export async function createResaleSubmission(req: Request, res: Response) {
       <p><strong>Remaining amount:</strong> ${remaining_amount || "(not provided)"}</p>
       <p><strong>Remaining installments:</strong> ${remaining_installments || "(not provided)"}</p>
       <p><strong>Delivery time:</strong> ${delivery_time || "(not provided)"}</p>
+      <p><strong>Finishing status:</strong> ${finishing_status || "(not provided)"}</p>
       <p><strong>Description:</strong> ${description || "(not provided)"}</p>
       <p><strong>Photos attached:</strong> ${uploadedAssets.length}</p>
     `,
@@ -266,6 +279,11 @@ export async function getResaleListings(req: Request, res: Response) {
   const bedrooms = (req.query.bedrooms as string) || null;
   const price_min = toNullableNumber(req.query.price_min);
   const price_max = toNullableNumber(req.query.price_max);
+  const size_min = toNullableNumber(req.query.size_min);
+  const size_max = toNullableNumber(req.query.size_max);
+  const location = String(req.query.location ?? "").trim();
+  const unitType = String(req.query.unit_type ?? "").trim();
+  const finishingStatus = String(req.query.finishing_status ?? "").trim();
 
   const where: any = {
     status: "published",
@@ -278,22 +296,31 @@ export async function getResaleListings(req: Request, res: Response) {
           ],
         }
       : {}),
+    ...(location ? { location: { equals: location, mode: "insensitive" as const } } : {}),
+    ...(unitType ? { unit_type: { equals: unitType, mode: "insensitive" as const } } : {}),
+    ...(finishingStatus ? { finishing_status: { equals: finishingStatus, mode: "insensitive" as const } } : {}),
+    ...((size_min !== null || size_max !== null)
+      ? {
+          size: {
+            ...(size_min !== null ? { gte: size_min } : {}),
+            ...(size_max !== null ? { lte: size_max } : {}),
+          },
+        }
+      : {}),
+    ...((price_min !== null || price_max !== null)
+      ? {
+          price: {
+            ...(price_min !== null ? { gte: price_min } : {}),
+            ...(price_max !== null ? { lte: price_max } : {}),
+          },
+        }
+      : {}),
   };
 
   let listings = await prisma.resaleListing.findMany({ where, orderBy: { id: "desc" } });
 
   if (bedrooms) {
     listings = listings.filter((listing) => bedsMatchesFilter(listing.beds, bedrooms));
-  }
-
-  if (price_min !== null || price_max !== null) {
-    listings = listings.filter((listing) => {
-      const numericPrice = Number(String(listing.price ?? "").replace(/[^0-9.]/g, ""));
-      if (!Number.isFinite(numericPrice) || numericPrice <= 0) return false;
-      if (price_min !== null && numericPrice < price_min) return false;
-      if (price_max !== null && numericPrice > price_max) return false;
-      return true;
-    });
   }
 
   const total = listings.length;
@@ -345,8 +372,8 @@ export async function getAdminResaleListingById(req: Request, res: Response) {
 
 export async function createResaleListing(req: Request, res: Response) {
   const {
-    title, location, price, paid_amount, installment_value, remaining_amount, remaining_installments,
-    delivery_time, description, gallery, gallery_meta, main_image_meta, beds, size,
+    title, location, price, price_display, paid_amount, installment_value, remaining_amount, remaining_installments,
+    delivery_time, finishing_status, description, gallery, gallery_meta, main_image_meta, beds, size,
     unit_type, status, slug, meta_title, meta_description, submission_id,
   } = req.body;
 
@@ -359,11 +386,13 @@ export async function createResaleListing(req: Request, res: Response) {
     title: title.trim(),
     location,
     price,
+    price_display,
     paid_amount,
     installment_value,
     remaining_amount,
     remaining_installments,
     delivery_time,
+    finishing_status,
     description,
     gallery,
     gallery_meta,
@@ -387,11 +416,13 @@ export async function createResaleListing(req: Request, res: Response) {
         title: normalized.title,
         location: normalized.location,
         price: normalized.price,
+        price_display: normalized.price_display,
         paid_amount: normalized.paid_amount,
         installment_value: normalized.installment_value,
         remaining_amount: normalized.remaining_amount,
         remaining_installments: normalized.remaining_installments,
         delivery_time: normalized.delivery_time,
+        finishing_status: normalized.finishing_status,
         description: normalized.description,
         description_ar,
         gallery: normalized.gallery,
@@ -425,8 +456,8 @@ export async function createResaleListing(req: Request, res: Response) {
 export async function updateResaleListing(req: Request, res: Response) {
   const listingId = parseInt(req.params.id, 10);
   const {
-    title, location, price, paid_amount, installment_value, remaining_amount, remaining_installments,
-    delivery_time, description, gallery, gallery_meta, main_image_meta, beds, size,
+    title, location, price, price_display, paid_amount, installment_value, remaining_amount, remaining_installments,
+    delivery_time, finishing_status, description, gallery, gallery_meta, main_image_meta, beds, size,
     unit_type, status, slug, meta_title, meta_description,
   } = req.body;
 
@@ -437,8 +468,8 @@ export async function updateResaleListing(req: Request, res: Response) {
 
   const normalized = normalizeResaleListingPayload(
     {
-      title: title.trim(), location, price, paid_amount, installment_value, remaining_amount,
-      remaining_installments, delivery_time, description, gallery, gallery_meta,
+      title: title.trim(), location, price, price_display, paid_amount, installment_value, remaining_amount,
+      remaining_installments, delivery_time, finishing_status, description, gallery, gallery_meta,
       main_image_meta, beds, size, unit_type, status, slug, meta_title, meta_description,
     },
     listingId,
@@ -478,11 +509,13 @@ export async function updateResaleListing(req: Request, res: Response) {
       title: normalized.title,
       location: normalized.location,
       price: normalized.price,
+      price_display: normalized.price_display,
       paid_amount: normalized.paid_amount,
       installment_value: normalized.installment_value,
       remaining_amount: normalized.remaining_amount,
       remaining_installments: normalized.remaining_installments,
       delivery_time: normalized.delivery_time,
+      finishing_status: normalized.finishing_status,
       description: normalized.description,
       description_ar,
       gallery: normalized.gallery,

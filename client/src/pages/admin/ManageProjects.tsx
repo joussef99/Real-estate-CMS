@@ -7,6 +7,7 @@ import { NoticeToast } from '../../components/ui/notice-toast';
 import { useCleanupNotice } from '../../hooks/useCleanupNotice';
 import { Project } from '../../types';
 import { FALLBACK_IMAGE_URL, resolveImageUrl, withFallbackImage } from '../../utils/image';
+import { formatSizeRange } from '../../utils/size';
 
 export default function ManageProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -114,7 +115,7 @@ export default function ManageProjects() {
                   <td className="px-6 py-4 text-sm text-zinc-500">{project.location}</td>
                   <td className="px-6 py-4 text-sm text-zinc-500">{project.type}</td>
                   <td className="px-6 py-4 text-sm text-zinc-500">{project.beds || '-'}</td>
-                  <td className="px-6 py-4 text-sm text-zinc-500">{project.size || '-'}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-500">{formatSizeRange(project.size_min, project.size_max)}</td>
                   <td className="px-6 py-4">
                     <span className="rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium">
                       {project.status}

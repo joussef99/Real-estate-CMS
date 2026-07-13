@@ -52,7 +52,8 @@ model Project {
     public_id        String  @unique @default(uuid())
     name             String
     location         String?
-    price_range      String?
+    price_min        Int?
+    price_max        Int?
     downPayment      Int?    @map("down_payment")
     type             String?
     status           String?
@@ -68,7 +69,11 @@ model Project {
     is_featured      Int     @default(0)
     featured         Int     @default(0)
     beds             String?
-    size             String?
+    size_min         Int?
+    size_max         Int?
+    installment_years Int?
+    delivery_time    String?
+    finishing_status String?
     slug             String  @unique
     meta_title       String?
     meta_description String?
@@ -186,13 +191,14 @@ model ResaleSubmission {
     location              String
     unit_type             String
     beds                  String
-    size                  String
-    asking_price          String
+    size                  Int
+    asking_price          Int
     paid_amount           Int?
     installment_value     Int?
     remaining_amount      Int?
     remaining_installments Int?
     delivery_time         String?
+    finishing_status      String?
     description           String?
     photos                String?
     photos_meta           Json?
@@ -213,12 +219,14 @@ model ResaleListing {
     title                  String
     slug                   String   @unique
     location               String?
-    price                  String?
+    price                  Int?
+    price_display          String?
     paid_amount            Int?
     installment_value      Int?
     remaining_amount       Int?
     remaining_installments Int?
     delivery_time          String?
+    finishing_status       String?
     description            String?
     description_ar         String?
     main_image             String?
@@ -226,7 +234,7 @@ model ResaleListing {
     gallery                String?
     gallery_meta           Json?
     beds                   String?
-    size                   String?
+    size                   Int?
     unit_type              String?
     status                 String   @default("published") // published | unpublished
     meta_title             String?

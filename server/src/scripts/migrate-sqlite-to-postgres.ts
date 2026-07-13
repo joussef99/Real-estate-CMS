@@ -22,6 +22,43 @@ const DRY_RUN = process.env.DRY_RUN === "true";
 
 type SqliteRow = Record<string, any>;
 
+// The legacy SQLite schema stored project size as free text, often a range
+// (e.g. "100 - 450 sqm"). The Postgres schema splits this into size_min/size_max.
+function parseLegacySizeRange(raw: unknown): { size_min: number | null; size_max: number | null } {
+  if (typeof raw !== "string" || !raw) return { size_min: null, size_max: null };
+  const matches = raw.replace(/,/g, "").match(/\d+(\.\d+)?/g);
+  if (!matches || matches.length === 0) return { size_min: null, size_max: null };
+  const nums = matches.map(Number);
+  return { size_min: Math.round(Math.min(...nums)), size_max: Math.round(Math.max(...nums)) };
+}
+
+// The legacy SQLite schema stored project price as free text with k/m/b
+// shorthand (e.g. "EGP 5M - 15M"). The Postgres schema splits this into price_min/price_max.
+function parseLegacyPriceRange(raw: unknown): { price_min: number | null; price_max: number | null } {
+  if (typeof raw !== "string" || !raw) return { price_min: null, price_max: null };
+
+  const regex = /(\d+(?:[.,]\d+)?)\s*([kmb])?/gi;
+  const values: number[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(raw)) !== null) {
+    const normalizedNumber = match[1].replace(/,/g, "");
+    let value = parseFloat(normalizedNumber);
+    if (!Number.isFinite(value)) continue;
+
+    switch ((match[2] || "").toLowerCase()) {
+      case "b": value *= 1000000000; break;
+      case "m": value *= 1000000; break;
+      case "k": value *= 1000; break;
+      default: break;
+    }
+    values.push(value);
+  }
+
+  if (!values.length) return { price_min: null, price_max: null };
+  return { price_min: Math.round(Math.min(...values)), price_max: Math.round(Math.max(...values)) };
+}
+
 type MigrationStats = {
   processed: number;
   created: number;
@@ -359,7 +396,7 @@ async function main() {
             data: {
               name: project.name,
               location: project.location ?? null,
-              price_range: project.price_range ?? null,
+              ...parseLegacyPriceRange(project.price_range),
               type: project.type ?? null,
               status: project.status ?? null,
               description: project.description ?? null,
@@ -371,7 +408,7 @@ async function main() {
               is_featured: project.is_featured ?? 0,
               featured: project.featured ?? 0,
               beds: project.beds ?? null,
-              size: project.size ?? null,
+              ...parseLegacySizeRange(project.size),
               slug: project.slug,
               meta_title: project.meta_title ?? null,
               meta_description: project.meta_description ?? null,
@@ -385,7 +422,7 @@ async function main() {
               id: project.id,
               name: project.name,
               location: project.location ?? null,
-              price_range: project.price_range ?? null,
+              ...parseLegacyPriceRange(project.price_range),
               type: project.type ?? null,
               status: project.status ?? null,
               description: project.description ?? null,
@@ -397,7 +434,7 @@ async function main() {
               is_featured: project.is_featured ?? 0,
               featured: project.featured ?? 0,
               beds: project.beds ?? null,
-              size: project.size ?? null,
+              ...parseLegacySizeRange(project.size),
               slug: project.slug,
               meta_title: project.meta_title ?? null,
               meta_description: project.meta_description ?? null,
